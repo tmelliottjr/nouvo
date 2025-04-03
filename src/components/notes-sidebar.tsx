@@ -34,6 +34,7 @@ import {
   type FolderNode,
   type NoteTree,
 } from "../state-providers/use-notes";
+import { ThemeToggle } from "./themes/theme-toggle";
 
 export function NotesSidebar({
   ...props
@@ -45,6 +46,7 @@ export function NotesSidebar({
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Nouvo</SidebarGroupLabel>
+          <ThemeToggle />
           <SidebarGroupContent>
             <SidebarMenu>testst</SidebarMenu>
           </SidebarGroupContent>
@@ -81,7 +83,7 @@ export function NotesSidebar({
 }
 
 function NotesTree({ notes }: { notes: NoteTree }) {
-  const { updateNote } = useNotes();
+  const { updateNote, updateFolder } = useNotes();
 
   return notes.map((noteOrFolder) => {
     if ("children" in noteOrFolder) {
@@ -89,7 +91,7 @@ function NotesTree({ notes }: { notes: NoteTree }) {
         <FolderNode
           folder={noteOrFolder}
           key={noteOrFolder.id}
-          onNameChange={(name) => updateNote(noteOrFolder.id, { name })}
+          onNameChange={(name) => updateFolder(noteOrFolder.id, { name })}
         />
       );
     }
@@ -158,8 +160,8 @@ function NoteNode({
 
   return (
     <SidebarMenuButton
-      isActive={noteNode.id === currentNote?.note.id}
-      className="data-[active=true]:bg-transparent"
+      isActive={noteNode.id === currentNote?.id}
+      className="data-[active=true]:bg-stone-400"
       key={noteNode.id}
       onClick={() => selectNote(noteNode.id)}
     >

@@ -20,14 +20,22 @@ export type Note = {
   tags: Array<string>;
 };
 
+type AtLeastOne<T, U = { [K in keyof T]: Pick<T, K> }> = Partial<T> &
+  U[keyof U];
+
 type NotesContext = {
   noteTree: NoteTree;
   addNote: (id?: string) => void;
   addFolder: (id?: string) => void;
-  updateNote: (id: string, { name }: { name: string }) => void;
+  updateNote: (
+    id: string,
+    updateProps: AtLeastOne<{ name: string; content: string }>
+  ) => void;
+  updateFolder: (id: string, updateProps: { name: string }) => void;
   selectNote: (id: string) => void;
   // TODO: Will this work as a "current working" note?
-  currentNote: { note: Note; path: string[] } | null;
+  currentNote: Note | null;
+  currentPath: string[] | null;
 };
 
 const NotesContext = createContext<NotesContext | undefined>(undefined);
@@ -60,10 +68,8 @@ function NotesProvider({ children }: PropsWithChildren) {
     },
   ]);
 
-  const [currentNote, setCurrentNote] = useImmer<{
-    note: Note;
-    path: string[];
-  } | null>(null);
+  const [currentNote, setCurrentNote] = useImmer<Note | null>(null);
+  const [currentPath, setCurrentPath] = useImmer<string[] | null>(null);
 
   /**
    * Adds a note to the provided parent, located by ID.
@@ -96,43 +102,88 @@ function NotesProvider({ children }: PropsWithChildren) {
     }
   };
 
-  function findNoteById(
+  function findNodeById(
     id: string,
-    notes: NoteTree,
+    tree: NoteTree,
     path: Array<string> = []
-  ): { note: Note; path: string[] } | undefined {
-    for (const note of notes) {
-      if ("children" in note) {
-        const result = findNoteById(id, note.children, [...path, note.name]);
+  ): { node: Node; path: string[] } | undefined {
+    for (const node of tree) {
+      if (node.id === id) {
+        return { node: node, path: [...path, node.name] };
+      }
+
+      if (isFolder(node)) {
+        const result = findNodeById(id, node.children, [...path, node.name]);
         if (result) return result;
-      } else if (note.id === id) {
-        return { note, path: [...path, note.name] };
       }
     }
   }
 
-  const updateNote: NotesContext["updateNote"] = (id, { name }) => {
-    setNoteTree((prevNoteTree) => {
-      const { note } = findNoteById(id, prevNoteTree) ?? {};
+  function isFolder(node: Node): node is FolderNode {
+    return "children" in node;
+  }
 
-      if (!note) {
-        console.warn(`Could not find not with id: ${id}`);
+  const updateNote: NotesContext["updateNote"] = (id, updateProps) => {
+		// I'm already updating the _actual_ note every time, why not just use this alone?
+    setNoteTree((prevNoteTree) => {
+      const { node } = findNodeById(id, prevNoteTree) ?? {};
+
+      if (!node || isFolder(node)) {
+        console.warn(`Could not find note with id: ${id}`);
         return;
       }
 
-      note.name = name;
+      for (const key in updateProps) {
+        const typedKey = key as keyof typeof updateProps;
+        const value = updateProps[typedKey];
+        if (value !== undefined) {
+          node[typedKey] = value;
+        }
+      }
+    });
+
+		// This seems really gross.
+    if (currentNote) {
+      setCurrentNote((prevNote) => {
+        if (!prevNote) return;
+
+        for (const key in updateProps) {
+          const typedKey = key as keyof typeof updateProps;
+          const value = updateProps[typedKey];
+          if (value !== undefined) {
+            prevNote[typedKey] = value;
+          }
+        }
+      });
+    }
+  };
+
+  const updateFolder: NotesContext["updateFolder"] = (id, updateProps) => {
+    setNoteTree((prevNoteTree) => {
+      const { node: note } = findNodeById(id, prevNoteTree) ?? {};
+
+      if (!note || !isFolder(note)) {
+        console.warn(`Could not find folder with id: ${id}`);
+        return;
+      }
+
+      for (const key in updateProps) {
+        const typedKey = key as keyof typeof updateProps;
+        note[typedKey] = updateProps[typedKey];
+      }
     });
   };
 
   const selectNote: NotesContext["selectNote"] = (id) => {
-    const result = findNoteById(id, noteTree);
+    const result = findNodeById(id, noteTree);
 
-    if (!result) {
+    if (!result || isFolder(result.node)) {
       console.warn(`Could not find not with id: ${id}`);
       return;
     }
 
-    setCurrentNote(result);
+    setCurrentNote(result.node);
+    setCurrentPath(result.path);
   };
 
   const value: NotesContext = {
@@ -141,7 +192,9 @@ function NotesProvider({ children }: PropsWithChildren) {
     updateNote,
     addFolder,
     currentNote,
+    currentPath,
     selectNote,
+    updateFolder,
   };
 
   return <NotesContext value={value}>{children}</NotesContext>;
