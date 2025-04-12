@@ -1,96 +1,56 @@
-'use client';
+"use client";
 
-import emojiMartData from '@emoji-mart/data';
-// import { CalloutPlugin } from '@udecode/plate-callout/react';
-import { CodeBlockPlugin } from '@udecode/plate-code-block/react';
-import { BaseDatePlugin } from '@udecode/plate-date';
-// import { DocxPlugin } from '@udecode/plate-docx';
-// import { EmojiPlugin } from '@udecode/plate-emoji/react';
-// import {
-//   FontBackgroundColorPlugin,
-//   FontColorPlugin,
-//   FontSizePlugin,
-// } from '@udecode/plate-font/react';
-// import { HighlightPlugin } from '@udecode/plate-highlight/react';
-// import { HorizontalRulePlugin } from '@udecode/plate-horizontal-rule/react';
-// import { JuicePlugin } from '@udecode/plate-juice';
-// import { KbdPlugin } from '@udecode/plate-kbd/react';
-// import { ColumnPlugin } from '@udecode/plate-layout/react';
-// import { MarkdownPlugin } from '@udecode/plate-markdown';
-// import { SlashPlugin } from '@udecode/plate-slash-command/react';
-// import { TogglePlugin } from '@udecode/plate-toggle/react';
-// import { TrailingBlockPlugin } from '@udecode/plate-trailing-block';
-
-// import { FixedToolbarPlugin } from '@/components/editor/plugins/fixed-toolbar-plugin';
-// import { FloatingToolbarPlugin } from '@/components/editor/plugins/floating-toolbar-plugin';
-// import { BlockDiscussion } from '@/components/plate-ui/block-discussion';
-// import { SuggestionBelowNodes } from '@/components/plate-ui/suggestion-line-break';
-
-// import { aiPlugins } from './ai-plugins';
-// import { alignPlugin } from './align-plugin';
-// import { autoformatPlugin } from './autoformat-plugin';
-// import { basicNodesPlugins } from './basic-nodes-plugins';
-// import { blockMenuPlugins } from './block-menu-plugins';
-// import { commentsPlugin } from './comments-plugin';
-// import { cursorOverlayPlugin } from './cursor-overlay-plugin';
-// import { deletePlugins } from './delete-plugins';
-// import { dndPlugins } from './dnd-plugins';
-// import { equationPlugins } from './equation-plugins';
-// import { exitBreakPlugin } from './exit-break-plugin';
-// import { indentListPlugins } from './indent-list-plugins';
-// import { lineHeightPlugin } from './line-height-plugin';
-// import { linkPlugin } from './link-plugin';
-// import { mediaPlugins } from './media-plugins';
-// import { mentionPlugin } from './mention-plugin';
-// import { resetBlockTypePlugin } from './reset-block-type-plugin';
-// import { skipMarkPlugin } from './skip-mark-plugin';
-// import { softBreakPlugin } from './soft-break-plugin';
-// import { suggestionPlugin } from './suggestion-plugin';
-// import { tablePlugin } from './table-plugin';
-// import { tocPlugin } from './toc-plugin';
+import emojiMartData from "@emoji-mart/data";
+import { CalloutPlugin } from "@udecode/plate-callout/react";
+import { CodeBlockPlugin } from "@udecode/plate-code-block/react";
+import { DocxPlugin } from "@udecode/plate-docx";
+import { EmojiPlugin } from "@udecode/plate-emoji/react";
+import { TocPlugin } from "@udecode/plate-heading/react";
+import { HighlightPlugin } from "@udecode/plate-highlight/react";
+import { HorizontalRulePlugin } from "@udecode/plate-horizontal-rule/react";
+import { JuicePlugin } from "@udecode/plate-juice";
+import { KbdPlugin } from "@udecode/plate-kbd/react";
+import { LinkPlugin } from "@udecode/plate-link/react";
+import { NodeIdPlugin } from "@udecode/plate-node-id";
+import { DeletePlugin } from "@udecode/plate-select";
+import { SlashPlugin } from "@udecode/plate-slash-command/react";
+import { TrailingBlockPlugin } from "@udecode/plate-trailing-block";
+import { LinkFloatingToolbar } from "../plate-ui/link-floating-toolbar";
+import { autoformatPlugin } from "./plugins/autoformat";
+import { basicNodesPlugins } from "./plugins/basic-nodes";
+import { exitBreakPlugin } from "./plugins/exit-break";
 
 export const viewPlugins = [
+  CalloutPlugin,
   ...basicNodesPlugins,
   HorizontalRulePlugin,
-  linkPlugin,
-  DatePlugin,
-  mentionPlugin,
-  tablePlugin,
-  TogglePlugin,
-  tocPlugin,
-  ...mediaPlugins,
-  ...equationPlugins,
-  CalloutPlugin,
-  ColumnPlugin,
 
   // Marks
-  FontColorPlugin,
-  FontBackgroundColorPlugin,
-  FontSizePlugin,
   HighlightPlugin,
   KbdPlugin,
-  skipMarkPlugin,
-
-  // Block Style
-  alignPlugin,
-  ...indentListPlugins,
-  lineHeightPlugin,
-
-  // Collaboration
-  commentsPlugin.configure({
-    render: { aboveNodes: BlockDiscussion as any },
+  LinkPlugin.configure({
+    render: { afterEditable: () => <LinkFloatingToolbar /> },
   }),
-  suggestionPlugin.configure({
-    render: { belowNodes: SuggestionBelowNodes as any },
+  NodeIdPlugin,
+  TocPlugin.configure({
+    options: {
+      topOffset: 80,
+    },
   }),
 ] as const;
 
 export const editorPlugins = [
-  // AI
-  ...aiPlugins,
-
   // Nodes
   ...viewPlugins,
+  exitBreakPlugin,
+  autoformatPlugin,
+  DeletePlugin.configure({
+    options: {
+      query: {
+        allow: ["p", "blockquote"],
+      },
+    },
+  }),
 
   // Functionality
   SlashPlugin.extend({
@@ -102,23 +62,11 @@ export const editorPlugins = [
       },
     },
   }),
-  autoformatPlugin,
-  cursorOverlayPlugin,
-  ...blockMenuPlugins,
-  ...dndPlugins,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   EmojiPlugin.configure({ options: { data: emojiMartData as any } }),
-  exitBreakPlugin,
-  resetBlockTypePlugin,
-  ...deletePlugins,
-  softBreakPlugin,
   TrailingBlockPlugin,
 
   // Deserialization
   DocxPlugin,
-  MarkdownPlugin.configure({ options: { indentList: true } }),
   JuicePlugin,
-
-  // UI
-  FixedToolbarPlugin,
-  FloatingToolbarPlugin,
 ];

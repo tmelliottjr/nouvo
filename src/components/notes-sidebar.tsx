@@ -39,20 +39,42 @@ import { ThemeToggle } from "./themes/theme-toggle";
 export function NotesSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
-  const { noteTree: notes, addNote, addFolder } = useNotes();
+  const {
+    noteTree: notes,
+    addNote,
+    addFolder,
+    setSelectedItemId,
+    setIsViewingFolder,
+  } = useNotes();
+
+  const handleNotesHeaderClick = () => {
+    // Set to null to navigate to top-level folder view
+    setSelectedItemId(null);
+    // Ensure we're in folder view mode
+    setIsViewingFolder(true);
+  };
 
   return (
     <Sidebar {...props}>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Nouvo</SidebarGroupLabel>
-          <ThemeToggle />
+          <div className="flex items-center justify-between px-2">
+            <h1 className="text-xl font-bold tracking-tight">Nouvo</h1>
+            <ThemeToggle />
+          </div>
           <SidebarGroupContent>
             <SidebarMenu>testst</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Notes</SidebarGroupLabel>
+          <div
+            className="flex items-center cursor-pointer hover:bg-stone-100 dark:hover:bg-stone-800 rounded-md px-2 py-1"
+            onClick={handleNotesHeaderClick}
+          >
+            <SidebarGroupLabel className="text-base font-semibold">
+              Notes
+            </SidebarGroupLabel>
+          </div>
 
           <SidebarGroupAction
             title="New Note"
@@ -113,24 +135,35 @@ function FolderNode({
   folder: FolderNode;
   onNameChange: (name: string) => void;
 }) {
+  const { selectFolder } = useNotes();
+
   function handleNameChange(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
       onNameChange(event.currentTarget.value);
     }
   }
 
+  function handleFolderClick() {
+    selectFolder(folder.id);
+  }
+
   return (
     <SidebarMenuItem key={folder.id}>
       <Collapsible className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90">
         <CollapsibleTrigger asChild>
-          <SidebarMenuButton>
+          <SidebarMenuButton className="collapsible-trigger">
             <ChevronRight className="transition-transform" />
-            <Folder />
-            {folder.name ? (
-              folder.name
-            ) : (
-              <Input className="h-5" autoFocus onKeyDown={handleNameChange} />
-            )}
+            <div
+              className="flex items-center flex-1 cursor-pointer"
+              onClick={handleFolderClick}
+            >
+              <Folder className="mr-2" />
+              {folder.name ? (
+                <span>{folder.name}</span>
+              ) : (
+                <Input className="h-5" autoFocus onKeyDown={handleNameChange} />
+              )}
+            </div>
           </SidebarMenuButton>
         </CollapsibleTrigger>
         <CollapsibleContent>
