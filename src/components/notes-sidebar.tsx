@@ -34,7 +34,7 @@ import {
   type FolderNode,
   type NoteTree,
 } from "../state-providers/use-notes";
-import { ThemeToggle } from "./themes/theme-toggle";
+import { ThemeSelector } from "./themes/theme-selector";
 
 export function NotesSidebar({
   ...props
@@ -60,7 +60,7 @@ export function NotesSidebar({
         <SidebarGroup>
           <div className="flex items-center justify-between px-2">
             <h1 className="text-xl font-bold tracking-tight">Nouvo</h1>
-            <ThemeToggle />
+            <ThemeSelector />
           </div>
           <SidebarGroupContent>
             <SidebarMenu>testst</SidebarMenu>

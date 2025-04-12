@@ -1,4 +1,5 @@
 import strings from "@/lib/strings";
+import { cn } from "@/lib/utils";
 import { FolderNode, Note, useNotes } from "@/state-providers/use-notes";
 import {
   ChevronRight,
@@ -95,33 +96,29 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
       <>
         {folders.length > 0 && (
           <div
-            className={`mb-3 ${
-              depth > 0
-                ? "pl-5 border-l border-stone-200 dark:border-stone-700"
-                : ""
-            }`}
+            className={cn("mb-3", depth > 0 && "pl-5 border-l border-border")}
           >
             <div className="space-y-1.5">
               {folders.map((subfolder) => (
                 <div key={subfolder.id} className="space-y-1.5">
                   <div
                     onClick={(e) => toggleFolder(subfolder.id, e)}
-                    className="group flex items-center p-2 rounded-md hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer border border-transparent hover:border-stone-200 dark:hover:border-stone-700 bg-stone-50 dark:bg-stone-900"
+                    className="group flex items-center p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer border border-transparent hover:border-border bg-accent-foreground/5"
                   >
-                    <div className="flex items-center justify-center h-5 w-5 text-stone-500 dark:text-stone-400 mr-2 flex-shrink-0">
+                    <div className="flex items-center justify-center h-5 w-5 text-muted-foreground mr-2 flex-shrink-0">
                       <ChevronRight
                         className={`h-4 w-4 transition-transform ${
                           expandedFolders[subfolder.id] ? "rotate-90" : ""
                         }`}
                       />
                     </div>
-                    <Folder className="h-4 w-4 text-amber-600 dark:text-amber-500 mr-2 group-hover:text-amber-700 dark:group-hover:text-amber-400 flex-shrink-0" />
+                    <Folder className="h-4 w-4 text-amber-500 mr-2 group-hover:text-amber-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-stone-700 dark:text-stone-200 text-sm font-semibold group-hover:text-stone-900 dark:group-hover:text-white truncate">
+                      <h3 className="text-foreground text-sm font-semibold group-hover:text-accent-foreground truncate">
                         {subfolder.name}
                       </h3>
                     </div>
-                    <span className="text-xs text-stone-400 dark:text-stone-500 ml-2">
+                    <span className="text-xs text-muted-foreground ml-2">
                       {subfolder.children.length}
                     </span>
                   </div>
@@ -137,31 +134,25 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
         )}
 
         {files.length > 0 && (
-          <div
-            className={`${
-              depth > 0
-                ? "pl-5 border-l border-stone-200 dark:border-stone-700"
-                : ""
-            }`}
-          >
+          <div className={cn(depth > 0 && "pl-5 border-l border-border")}>
             <div className="space-y-1.5">
               {files.map((file) => (
                 <div
                   key={file.id}
                   onClick={() => selectNote(file.id)}
-                  className="group flex items-center p-2 rounded-md hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer border border-transparent hover:border-stone-200 dark:hover:border-stone-700 bg-stone-50 dark:bg-stone-900"
+                  className="group flex items-center p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer border border-transparent hover:border-border bg-accent-foreground/5"
                 >
-                  <div className="flex items-center justify-center h-5 w-5 text-stone-500 dark:text-stone-400 mr-2 flex-shrink-0">
-                    <File className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
+                  <div className="flex items-center justify-center h-5 w-5 mr-2 flex-shrink-0">
+                    <File className="h-4 w-4 text-indigo-500 group-hover:text-indigo-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-stone-600 dark:text-stone-300 text-sm font-normal group-hover:text-stone-800 dark:group-hover:text-white truncate">
+                    <h3 className="text-foreground text-sm font-normal group-hover:text-accent-foreground truncate">
                       {file.name}
                     </h3>
                   </div>
                   <button
                     onClick={(e) => handleDeleteNote(file, e)}
-                    className="p-1 rounded-sm opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-600 dark:text-stone-500 dark:hover:text-red-500 transition-opacity"
+                    className="p-1 rounded-sm opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
                     aria-label={strings.notes.folderView.deleteButton.ariaLabel}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -176,13 +167,13 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
   };
 
   return (
-    <div className="p-4 w-1/2 max-w-3xl mx-auto bg-white dark:bg-stone-950">
+    <div className="p-4 w-full sm:w-4/5 md:w-3/4 lg:w-2/3 xl:w-1/2 max-w-3xl mx-auto bg-background">
       <div className="flex mb-4 relative">
         <div style={{ width: "7px" }} className="absolute left-0">
           {hasParent && (
             <button
               onClick={navigateToParent}
-              className="flex items-center justify-center h-8 w-8 text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 absolute -left-2"
+              className="flex items-center justify-center h-8 w-8 text-muted-foreground hover:text-foreground rounded-full hover:bg-accent/50 absolute -left-2"
               aria-label={strings.notes.folderView.parentButton.ariaLabel}
             >
               <CornerUpLeft className="h-5 w-5" />
@@ -190,24 +181,24 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
           )}
         </div>
         <div className="ml-7">
-          <h2 className="text-xl font-semibold text-stone-700 dark:text-stone-200 flex items-center">
-            <Folder className="h-6 w-6 text-stone-500 dark:text-stone-400 mr-2 absolute -ml-7" />
+          <h2 className="text-xl font-semibold text-foreground flex items-center">
+            <Folder className="h-6 w-6 text-muted-foreground mr-2 absolute -ml-7" />
             {folder.name}
           </h2>
         </div>
       </div>
 
       {folder.children.length > 0 ? (
-        <div className="bg-white dark:bg-stone-950">
+        <div className="bg-background">
           {renderFolderHierarchy(folder.children)}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-12 text-center bg-stone-50 dark:bg-stone-900 rounded-md border border-stone-200 dark:border-stone-800">
-          <FolderPlusIcon className="h-12 w-12 text-stone-300 dark:text-stone-600 mb-3" />
-          <h3 className="text-lg font-medium text-stone-700 dark:text-stone-300 mb-1">
+        <div className="flex flex-col items-center justify-center py-12 text-center bg-accent/5 rounded-md border border-border">
+          <FolderPlusIcon className="h-12 w-12 text-muted-foreground mb-3" />
+          <h3 className="text-lg font-medium text-foreground mb-1">
             {strings.notes.folderView.emptyFolder.title}
           </h3>
-          <p className="text-stone-500 dark:text-stone-400 text-sm max-w-md">
+          <p className="text-muted-foreground text-sm max-w-md">
             {strings.notes.folderView.emptyFolder.description}
           </p>
         </div>
