@@ -122,11 +122,41 @@ Example:
 
 ## File Structure Conventions
 
-### Components
+### Component Design
 
-- Place reusable UI components in `/src/components`
-- Group related components into subdirectories (e.g., `/src/components/notes`)
-- Keep component-specific utilities within the component directories
+Components follow a domain-based structure:
+  - ui: Reusable UI elements (buttons, inputs, etc.)
+  - notes: Note-specific components
+  - `/src/components/sidebar`: Navigation and folder structure components
+  - `/src/components/editor`: Text editor related components
+
+- Each component should be in its own file
+- Group related components in folders with an index.ts file for exports
+- For complex components, create a directory with the component name:
+  ```
+  /NoteEditor/
+    ├── index.ts
+    ├── NoteEditor.tsx
+    ├── EditorToolbar.tsx
+    └── FormatButton.tsx
+  ```
+
+- **Avoiding Component Bloat**:
+  - Keep components under 100-150 lines of code
+  - Extract repeated patterns into separate components
+  - Split complex rendering logic into smaller components
+  - Use composition over inheritance
+
+- **Component Boundaries**:
+  - Create clear interfaces between components
+  - Pass only necessary props to child components
+  - Use prop destructuring for clarity
+
+- **Code Reuse Strategies**:
+  - Extract common UI patterns to shared components
+  - Create utility components for frequently used patterns
+  - Don't over-abstract - duplicating simple JSX is often clearer than complex abstractions
+  - Consider the trade-off between DRY principles and readability
 
 ### State Management
 

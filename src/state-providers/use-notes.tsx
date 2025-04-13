@@ -582,12 +582,7 @@ function NotesProvider({ children }: PropsWithChildren) {
       setFolderExpanded(id, true);
     }
 
-    // Select the newly created note and set view mode properly
-    setSelectedItemId(noteId);
-
-    // Ensure we're not in folder viewing mode
-    setIsViewingFolder(false);
-
+    // Return the ID but don't select it yet - selection happens after naming
     return noteId;
   };
 
@@ -596,11 +591,48 @@ function NotesProvider({ children }: PropsWithChildren) {
    * If an ID is not provided, the folder is added at the root.
    */
   const addFolder: NotesContext["addFolder"] = (id) => {
+    const folderId = crypto.randomUUID();
+    const folder: FolderNode = {
+      id: folderId,
+      children: [],
+      name: "",
+    };
+
     if (!id) {
+      // Add to root level
       setNoteTree((prevNotes) => {
-        prevNotes.push({ id: crypto.randomUUID(), children: [], name: "" });
+        prevNotes.push(folder);
       });
+    } else {
+      // Add to specified parent folder
+      setNoteTree((prevNotes) => {
+        const addFolderToFolder = (tree: NoteTree): boolean => {
+          for (let i = 0; i < tree.length; i++) {
+            const node = tree[i];
+            if (node.id === id && isFolder(node)) {
+              // Found the parent folder, add the new folder
+              node.children.push(folder);
+              return true;
+            }
+
+            if (isFolder(node)) {
+              if (addFolderToFolder(node.children)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+
+        addFolderToFolder(prevNotes);
+      });
+
+      // If adding to a folder, also expand that folder
+      setFolderExpanded(id, true);
     }
+
+    // Return the ID but don't select it yet - selection happens after naming
+    return folderId;
   };
 
   function findNodeById(

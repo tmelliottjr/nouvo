@@ -163,6 +163,7 @@ function FolderNode({
     isFromUrl,
     addNote,
     deleteNote,
+    updateFolder,
   } = useNotes();
 
   // Use the global expanded state instead of local state
@@ -176,11 +177,15 @@ function FolderNode({
       const value = event.currentTarget.value.trim();
       if (value) {
         onNameChange(value);
+        // Only select the folder after naming it
+        selectFolder(folder.id);
       }
     } else if (event.key === "Escape") {
       // We don't delete folders on cancel since they might contain notes
       // Just set a default name instead
       onNameChange("New Folder");
+      // Select the folder after naming
+      selectFolder(folder.id);
     }
   }
 
@@ -188,15 +193,24 @@ function FolderNode({
     const value = event.currentTarget.value.trim();
     if (value) {
       onNameChange(value);
+      // Only select the folder after naming it
+      selectFolder(folder.id);
     } else {
       // We don't delete folders on empty name since they might contain notes
       // Just set a default name instead
       onNameChange("New Folder");
+      // Select the folder after naming
+      selectFolder(folder.id);
     }
   }
 
+  // Click handler depends on whether the folder has a name
   function handleFolderClick() {
-    selectFolder(folder.id);
+    // Only select the folder if it already has a name
+    if (folder.name) {
+      selectFolder(folder.id);
+    }
+    // If it doesn't have a name, do nothing - user needs to name it first
   }
 
   function handleOpenChange(open: boolean) {
@@ -329,7 +343,7 @@ function NoteNode({
       const value = event.currentTarget.value.trim();
       if (value) {
         onNameChange(value);
-        // Explicitly select the note after naming it
+        // Only select the note after naming it
         selectNote(noteNode.id);
       } else {
         // Delete note if name is empty
@@ -345,7 +359,7 @@ function NoteNode({
     const value = event.currentTarget.value.trim();
     if (value) {
       onNameChange(value);
-      // Explicitly select the note after naming it
+      // Only select the note after naming it
       selectNote(noteNode.id);
     } else {
       // Delete note if name is empty on blur
@@ -360,12 +374,21 @@ function NoteNode({
     }
   }, [noteNode.name]);
 
+  // Click handler depends on whether the note has a name
+  function handleNoteClick() {
+    // Only select the note if it already has a name
+    if (noteNode.name) {
+      selectNote(noteNode.id);
+    }
+    // If it doesn't have a name, do nothing - user needs to name it first
+  }
+
   return (
     <SidebarMenuButton
       isActive={noteNode.id === currentNote?.id}
       className="data-[active=true]:bg-stone-400"
       key={noteNode.id}
-      onClick={() => selectNote(noteNode.id)}
+      onClick={handleNoteClick}
     >
       <File className="shrink-0" />
       {noteNode.name ? (
