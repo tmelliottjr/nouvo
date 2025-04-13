@@ -29,11 +29,23 @@ const strings = {
         label: "New Note",
         ariaLabel: "Create new note in this folder",
       },
+      addFolder: {
+        label: "New Folder",
+        ariaLabel: "Create new folder in this folder",
+      },
+      rename: {
+        label: "Rename",
+        ariaLabel: "Rename item",
+        placeholder: "Enter new name...",
+      },
     },
     deleteDialog: {
       title: "Delete Note",
       description: (name: string) =>
         `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+      folderTitle: "Delete Folder",
+      folderDescription: (name: string) =>
+        `Are you sure you want to delete "${name}" and all its contents? This action cannot be undone.`,
     },
     breadcrumbs: {
       ellipsis: "...",
@@ -48,6 +60,9 @@ const strings = {
     },
     contextMenu: {
       addNote: "New Note",
+      addFolder: "New Folder",
+      rename: "Rename",
+      delete: "Delete",
     },
   },
 };

@@ -6,11 +6,23 @@ import {
   File,
   FileEdit,
   Folder,
-  FolderPlusIcon,
+  FolderPlus,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Collapsible,
   CollapsibleContent,
@@ -47,7 +59,9 @@ import {
   type FolderNode,
   type NoteTree,
 } from "../state-providers/use-notes";
+import { AddFolderButton } from "./notes/actions/add-folder-button";
 import { AddNoteButton } from "./notes/actions/add-note-button";
+import { DeleteFolderDialog } from "./notes/delete-folder-dialog";
 import { ThemeSelector } from "./themes/theme-selector";
 
 export function NotesSidebar({
@@ -102,7 +116,7 @@ export function NotesSidebar({
             className="cursor-pointer"
             onClick={() => addFolder()}
           >
-            <FolderPlusIcon />{" "}
+            <FolderPlus />{" "}
             <span className="sr-only cursor-pointer">New Folder</span>
           </SidebarGroupAction>
 
@@ -162,15 +176,19 @@ function FolderNode({
     isDirectPathToNote,
     isFromUrl,
     addNote,
-    deleteNote,
+    addFolder,
+    deleteFolder,
     updateFolder,
   } = useNotes();
 
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   // Use the global expanded state instead of local state
   const isOpen = expandedFolderIds.has(folder.id);
   const [isAutoExpanding, setIsAutoExpanding] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
   function handleNameChange(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
@@ -204,6 +222,26 @@ function FolderNode({
     }
   }
 
+  function handleRenameKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      const value = event.currentTarget.value.trim();
+      if (value) {
+        updateFolder(folder.id, { name: value });
+        setIsRenaming(false);
+      }
+    } else if (event.key === "Escape") {
+      setIsRenaming(false);
+    }
+  }
+
+  function handleRenameBlur(event: React.FocusEvent<HTMLInputElement>) {
+    const value = event.currentTarget.value.trim();
+    if (value) {
+      updateFolder(folder.id, { name: value });
+    }
+    setIsRenaming(false);
+  }
+
   // Click handler depends on whether the folder has a name
   function handleFolderClick() {
     // Only select the folder if it already has a name
@@ -222,12 +260,35 @@ function FolderNode({
     addNote(folder.id);
   }
 
+  function handleAddFolder(e: React.MouseEvent) {
+    e.stopPropagation();
+    addFolder(folder.id);
+  }
+
+  function handleRename(e: React.MouseEvent) {
+    e.stopPropagation();
+    setIsRenaming(true);
+  }
+
+  function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    setIsDeleteDialogOpen(true);
+  }
+
   // Ensure input is focused
   useEffect(() => {
     if (!folder.name && inputRef.current) {
       inputRef.current.focus();
     }
   }, [folder.name]);
+
+  // Ensure rename input is focused when renaming
+  useEffect(() => {
+    if (isRenaming && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [isRenaming]);
 
   // Handle initial expansion when navigating via URL
   useEffect(() => {
@@ -249,82 +310,139 @@ function FolderNode({
     : "transition-all duration-150 ease-in-out";
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <SidebarMenuItem key={folder.id}>
-          <Collapsible
-            className={`group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90 ${animationClass}`}
-            open={isOpen}
-            onOpenChange={handleOpenChange}
-          >
-            <CollapsibleTrigger asChild>
-              <SidebarMenuButton
-                className="collapsible-trigger relative"
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-              >
-                <ChevronRight className="transition-transform duration-200" />
-                <div
-                  className="flex items-center flex-1 cursor-pointer"
-                  onClick={handleFolderClick}
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <SidebarMenuItem key={folder.id}>
+            <Collapsible
+              className={`[&[data-state=open]>button>svg:first-child]:rotate-90 ${animationClass}`}
+              open={isOpen}
+              onOpenChange={handleOpenChange}
+            >
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton
+                  className="collapsible-trigger relative"
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
                 >
-                  <Folder className="mr-2 shrink-0" />
-                  {folder.name ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="sidebar-text-truncate">
-                          {folder.name}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" align="center">
-                        {folder.name}
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <Input
-                      ref={inputRef}
-                      className="h-5"
-                      autoFocus
-                      onKeyDown={handleNameChange}
-                      onBlur={handleBlur}
-                      placeholder="Enter folder name..."
-                    />
-                  )}
-                </div>
-
-                {/* Add Note Button on Hover */}
-                {isHovered && (
+                  <ChevronRight className="h-4 w-4 transition-transform duration-200" />
                   <div
-                    className="absolute right-2 opacity-0 group-hover/collapsible:opacity-100 transition-opacity"
-                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center flex-1 cursor-pointer"
+                    onClick={handleFolderClick}
                   >
-                    <AddNoteButton
-                      folderId={folder.id}
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                    <Folder
+                      className={`h-4 w-4 text-amber-500 mr-2 flex-shrink-0 ${
+                        isHovered ? "opacity-70" : ""
+                      }`}
                     />
+                    {!folder.name ? (
+                      <Input
+                        ref={inputRef}
+                        className="h-5"
+                        autoFocus
+                        onKeyDown={handleNameChange}
+                        onBlur={handleBlur}
+                        placeholder="Enter folder name..."
+                      />
+                    ) : isRenaming ? (
+                      <Input
+                        ref={renameInputRef}
+                        className="h-5"
+                        defaultValue={folder.name}
+                        autoFocus
+                        onKeyDown={handleRenameKeyDown}
+                        onBlur={handleRenameBlur}
+                        placeholder={
+                          strings.notes.folderView.rename.placeholder
+                        }
+                      />
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="sidebar-text-truncate">
+                            {folder.name}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" align="center">
+                          {folder.name}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
-                )}
-              </SidebarMenuButton>
-            </CollapsibleTrigger>
-            <CollapsibleContent className={`overflow-hidden ${animationClass}`}>
-              <SidebarMenuSub className="animate-slideDownAndFade">
-                <NotesTree notes={folder.children} />
-              </SidebarMenuSub>
-            </CollapsibleContent>
-          </Collapsible>
-        </SidebarMenuItem>
-      </ContextMenuTrigger>
 
-      {/* Context Menu for right-click */}
-      <ContextMenuContent className="w-52">
-        <ContextMenuItem onClick={handleAddNote} className="cursor-pointer">
-          <FileEdit className="mr-2 h-4 w-4" />
-          <span>{strings.notes.contextMenu.addNote}</span>
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+                  {/* Add buttons on Hover */}
+                  {isHovered && folder.name && (
+                    <div
+                      className="absolute right-2 opacity-100 transition-opacity flex gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <AddNoteButton
+                        folderId={folder.id}
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                      />
+                      <AddFolderButton
+                        parentId={folder.id}
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                      />
+                    </div>
+                  )}
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              <CollapsibleContent
+                className={`overflow-hidden ${animationClass}`}
+              >
+                <SidebarMenuSub className="animate-slideDownAndFade">
+                  <NotesTree notes={folder.children} />
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarMenuItem>
+        </ContextMenuTrigger>
+
+        {/* Context Menu for right-click */}
+        <ContextMenuContent className="w-52">
+          <ContextMenuItem onClick={handleAddNote} className="cursor-pointer">
+            <FileEdit className="mr-2 h-4 w-4" />
+            <span>{strings.notes.contextMenu.addNote}</span>
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleAddFolder} className="cursor-pointer">
+            <FolderPlus className="mr-2 h-4 w-4" />
+            <span>{strings.notes.contextMenu.addFolder}</span>
+          </ContextMenuItem>
+          {folder.name && (
+            <>
+              <ContextMenuItem
+                onClick={handleRename}
+                className="cursor-pointer"
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                <span>{strings.notes.contextMenu.rename}</span>
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={handleDelete}
+                className="cursor-pointer text-red-600 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-950"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                <span>{strings.notes.contextMenu.delete}</span>
+              </ContextMenuItem>
+            </>
+          )}
+        </ContextMenuContent>
+      </ContextMenu>
+
+      {/* Delete confirmation dialog */}
+      {folder.name && (
+        <DeleteFolderDialog
+          folder={folder}
+          isOpen={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+        />
+      )}
+    </>
   );
 }
 
@@ -335,8 +453,12 @@ function NoteNode({
   noteNode: Note;
   onNameChange: (name: string) => void;
 }) {
-  const { selectNote, currentNote, deleteNote } = useNotes();
+  const { selectNote, currentNote, deleteNote, updateNote } = useNotes();
   const inputRef = useRef<HTMLInputElement>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   function handleNameChange(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
@@ -367,12 +489,55 @@ function NoteNode({
     }
   }
 
+  function handleRenameKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      const value = event.currentTarget.value.trim();
+      if (value) {
+        updateNote(noteNode.id, { name: value });
+        setIsRenaming(false);
+      }
+    } else if (event.key === "Escape") {
+      setIsRenaming(false);
+    }
+  }
+
+  function handleRenameBlur(event: React.FocusEvent<HTMLInputElement>) {
+    const value = event.currentTarget.value.trim();
+    if (value) {
+      updateNote(noteNode.id, { name: value });
+    }
+    setIsRenaming(false);
+  }
+
+  function handleRename(e: React.MouseEvent) {
+    e.stopPropagation();
+    setIsRenaming(true);
+  }
+
+  function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    setIsDeleteDialogOpen(true);
+  }
+
+  function handleDeleteConfirm() {
+    deleteNote(noteNode.id);
+    setIsDeleteDialogOpen(false);
+  }
+
   // Ensure input is focused
   useEffect(() => {
     if (!noteNode.name && inputRef.current) {
       inputRef.current.focus();
     }
   }, [noteNode.name]);
+
+  // Ensure rename input is focused when renaming
+  useEffect(() => {
+    if (isRenaming && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [isRenaming]);
 
   // Click handler depends on whether the note has a name
   function handleNoteClick() {
@@ -384,32 +549,131 @@ function NoteNode({
   }
 
   return (
-    <SidebarMenuButton
-      isActive={noteNode.id === currentNote?.id}
-      className="data-[active=true]:bg-stone-400"
-      key={noteNode.id}
-      onClick={handleNoteClick}
-    >
-      <File className="shrink-0" />
-      {noteNode.name ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="sidebar-text-truncate">{noteNode.name}</span>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" align="center">
-            {noteNode.name}
-          </TooltipContent>
-        </Tooltip>
-      ) : (
-        <Input
-          ref={inputRef}
-          className="h-7"
-          autoFocus
-          onKeyDown={handleNameChange}
-          onBlur={handleBlur}
-          placeholder="Enter note name..."
-        />
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <SidebarMenuButton
+            isActive={noteNode.id === currentNote?.id}
+            className={`relative ${
+              noteNode.id === currentNote?.id
+                ? "tree-item-selected"
+                : "hover:bg-muted"
+            } tree-item`}
+            key={noteNode.id}
+            onClick={handleNoteClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
+            <div className="flex items-center flex-1">
+              <File
+                className={`h-4 w-4 text-indigo-500 mr-2 flex-shrink-0 ${
+                  isHovered ? "opacity-70" : ""
+                }`}
+              />
+              {!noteNode.name ? (
+                <Input
+                  ref={inputRef}
+                  className="h-7"
+                  autoFocus
+                  onKeyDown={handleNameChange}
+                  onBlur={handleBlur}
+                  placeholder="Enter note name..."
+                />
+              ) : isRenaming ? (
+                <Input
+                  ref={renameInputRef}
+                  className="h-7"
+                  defaultValue={noteNode.name}
+                  autoFocus
+                  onKeyDown={handleRenameKeyDown}
+                  onBlur={handleRenameBlur}
+                  placeholder={strings.notes.folderView.rename.placeholder}
+                />
+              ) : (
+                <div className="flex-1 min-w-0">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-foreground text-sm font-normal truncate">
+                        {noteNode.name}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" align="center">
+                      {noteNode.name}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
+            </div>
+
+            {/* Add delete button on hover */}
+            {isHovered && noteNode.name && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(e);
+                }}
+                className="p-1 rounded-sm opacity-100 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                aria-label={
+                  strings.notes.folderView.deleteButton?.ariaLabel ||
+                  "Delete note"
+                }
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </SidebarMenuButton>
+        </ContextMenuTrigger>
+
+        {/* Context Menu for right-click */}
+        <ContextMenuContent className="w-52">
+          {noteNode.name && (
+            <>
+              <ContextMenuItem
+                onClick={handleRename}
+                className="cursor-pointer"
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                <span>{strings.notes.contextMenu.rename}</span>
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={handleDelete}
+                className="cursor-pointer text-red-600 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-950"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                <span>{strings.notes.contextMenu.delete}</span>
+              </ContextMenuItem>
+            </>
+          )}
+        </ContextMenuContent>
+      </ContextMenu>
+
+      {/* Delete confirmation dialog */}
+      {noteNode.name && (
+        <AlertDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {strings.notes.deleteDialog.title}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {strings.notes.deleteDialog.description(noteNode.name)}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteConfirm}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {strings.common.delete}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
-    </SidebarMenuButton>
+    </>
   );
 }

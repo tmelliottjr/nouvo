@@ -43,6 +43,7 @@ type NotesContext = {
   ) => void;
   updateFolder: (id: string, updateProps: { name: string }) => void;
   deleteNote: (id: string) => void;
+  deleteFolder: (id: string) => void;
   selectNote: (id: string) => void;
   selectFolder: (id: string) => void;
   getNote: (id: string) => Note | undefined;
@@ -763,6 +764,48 @@ function NotesProvider({ children }: PropsWithChildren) {
     });
   };
 
+  /**
+   * Deletes a folder and all its contents
+   */
+  const deleteFolder: NotesContext["deleteFolder"] = (id) => {
+    // First check if the folder exists
+    const folderToDelete = getFolder(id);
+    if (!folderToDelete) return;
+
+    // If we're currently viewing this folder, reset to parent or root folder view
+    if (selectedItemId === id) {
+      setSelectedItemId(null);
+      setIsViewingFolder(true);
+    }
+
+    // Remove the folder from the tree
+    setNoteTree((prevNoteTree) => {
+      // Function to recursively search and remove the folder
+      const removeFolderFromTree = (tree: NoteTree): boolean => {
+        const nodeIndex = tree.findIndex((node) => node.id === id);
+
+        if (nodeIndex >= 0) {
+          // Found the folder, remove it
+          tree.splice(nodeIndex, 1);
+          return true;
+        }
+
+        // Search in sub-folders
+        for (const node of tree) {
+          if (isFolder(node)) {
+            if (removeFolderFromTree(node.children)) {
+              return true;
+            }
+          }
+        }
+
+        return false;
+      };
+
+      removeFolderFromTree(prevNoteTree);
+    });
+  };
+
   const selectNote: NotesContext["selectNote"] = (id) => {
     const result = findNodeById(id, noteTree);
 
@@ -992,6 +1035,7 @@ function NotesProvider({ children }: PropsWithChildren) {
     updateNote,
     addFolder,
     deleteNote,
+    deleteFolder,
     currentNote,
     currentFolder,
     currentPath,
