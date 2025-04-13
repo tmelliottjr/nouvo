@@ -1,3 +1,4 @@
+"use client";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,9 +16,17 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import strings from "@/lib/strings";
 import { useNotes } from "@/state-providers/use-notes";
 import React from "react";
+import { ShareNoteButton } from "./share-note-button";
 
 export function NoteHeader() {
-  const { currentPath, noteTree, selectNote, selectFolder } = useNotes();
+  const {
+    currentPath,
+    noteTree,
+    selectNote,
+    selectFolder,
+    currentNote,
+    isViewingFolder,
+  } = useNotes();
 
   // Function to handle breadcrumb clicks
   const handleBreadcrumbClick = (itemName: string, index: number) => {
@@ -90,7 +99,7 @@ export function NoteHeader() {
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 h-4" />
-      <Breadcrumb>
+      <Breadcrumb className="flex-grow">
         <BreadcrumbList>
           {displayPath?.map((pathPart, index) => {
             // Special handling for the ellipsis item
@@ -152,6 +161,11 @@ export function NoteHeader() {
           })}
         </BreadcrumbList>
       </Breadcrumb>
+
+      {/* Share button - only show when viewing a note (not a folder) */}
+      {!isViewingFolder && currentNote && (
+        <ShareNoteButton noteId={currentNote.id} />
+      )}
     </header>
   );
 }

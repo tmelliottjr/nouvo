@@ -1,7 +1,17 @@
 "use client";
 
-import { createContext, PropsWithChildren, useContext, useMemo } from "react";
+import { enableMapSet } from "immer";
+import {
+  createContext,
+  PropsWithChildren,
+  useContext,
+  useEffect,
+  useMemo,
+} from "react";
 import { useImmer } from "use-immer";
+
+// Enable the MapSet plugin for Immer to handle Set objects
+enableMapSet();
 
 export type FolderNode = {
   id: string;
@@ -45,6 +55,10 @@ type NotesContext = {
   setSelectedItemId: (id: string | null) => void;
   setIsViewingFolder: (isViewingFolder: boolean) => void;
   moveNode: (nodeId: string, destinationFolderId: string) => void;
+  expandedFolderIds: Set<string>;
+  setFolderExpanded: (id: string, expanded: boolean) => void;
+  isDirectPathToNote: (folderId: string) => boolean;
+  isFromUrl: boolean;
 };
 
 const NotesContext = createContext<NotesContext | undefined>(undefined);
@@ -504,6 +518,15 @@ function NotesProvider({ children }: PropsWithChildren) {
   const [currentPath, setCurrentPath] = useImmer<string[] | null>(null);
   const [selectedItemId, setSelectedItemId] = useImmer<string | null>(null);
   const [isViewingFolder, setIsViewingFolder] = useImmer<boolean>(false);
+  const [expandedFolderIds, setExpandedFolderIds] = useImmer<Set<string>>(
+    new Set()
+  );
+  const [isFromUrl, setIsFromUrl] = useImmer<boolean>(false);
+
+  // Track the paths to the current note for auto-expansion
+  const [directPathFolderIds, setDirectPathFolderIds] = useImmer<Set<string>>(
+    new Set()
+  );
 
   /**
    * Adds a note to the provided parent, located by ID.
@@ -785,6 +808,82 @@ function NotesProvider({ children }: PropsWithChildren) {
     });
   };
 
+  // Find the direct path to the selected note and collect all folder IDs on that path
+  const findFolderIdsInPathToNote = (
+    noteId: string,
+    tree: NoteTree,
+    path: string[] = []
+  ): string[] => {
+    for (const node of tree) {
+      if (!isFolder(node) && node.id === noteId) {
+        // Found the note, return the path of folder IDs
+        return path;
+      }
+
+      if (isFolder(node)) {
+        // Check children of this folder
+        const folderPath = [...path, node.id];
+        const result = findFolderIdsInPathToNote(
+          noteId,
+          node.children,
+          folderPath
+        );
+        if (result.length > 0) {
+          return result;
+        }
+      }
+    }
+    return [];
+  };
+
+  // Function to check if a folder is in the direct path to the current note
+  const isDirectPathToNote: NotesContext["isDirectPathToNote"] = (folderId) => {
+    return directPathFolderIds.has(folderId);
+  };
+
+  // Function to set a folder's expanded state
+  const setFolderExpanded: NotesContext["setFolderExpanded"] = (
+    id,
+    expanded
+  ) => {
+    setExpandedFolderIds((prev) => {
+      const newSet = new Set(prev);
+      if (expanded) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
+
+  // Effect to handle URL navigation
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const noteId = urlParams.get("id");
+
+    if (noteId) {
+      // Mark that we're navigating from a URL
+      setIsFromUrl(true);
+
+      // Find the direct path to the note and auto-expand those folders
+      const pathFolderIds = findFolderIdsInPathToNote(noteId, noteTree);
+
+      if (pathFolderIds.length > 0) {
+        // Store the direct path folder IDs
+        setDirectPathFolderIds(new Set(pathFolderIds));
+
+        // Auto-expand folders along the path to the note
+        setExpandedFolderIds(new Set(pathFolderIds));
+
+        // Select the note
+        selectNote(noteId);
+      }
+    } else {
+      setIsFromUrl(false);
+    }
+  }, []);
+
   const currentNote = useMemo(() => {
     if (selectedItemId && !isViewingFolder) {
       return getNote(selectedItemId);
@@ -818,6 +917,10 @@ function NotesProvider({ children }: PropsWithChildren) {
     setSelectedItemId,
     setIsViewingFolder,
     moveNode,
+    expandedFolderIds,
+    setFolderExpanded,
+    isDirectPathToNote,
+    isFromUrl,
   };
 
   return <NotesContext value={value}>{children}</NotesContext>;

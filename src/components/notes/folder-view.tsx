@@ -1,3 +1,5 @@
+"use client";
+
 import strings from "@/lib/strings";
 import { cn } from "@/lib/utils";
 import { FolderNode, Note, useNotes } from "@/state-providers/use-notes";
@@ -156,7 +158,7 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
     };
 
     return (
-      <div ref={combinedRef} className="space-y-1.5 mb-1.5">
+      <div ref={combinedRef} className="draggable-folder-item space-y-1.5">
         <div
           {...attributes}
           {...listeners}
@@ -238,28 +240,32 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
           e.stopPropagation();
           selectNote(note.id);
         }}
-        className={cn(
-          "group flex items-center p-2 rounded-md transition-colors cursor-pointer border",
-          isDragging
-            ? "opacity-50 bg-accent border-dashed border-accent"
-            : "hover:bg-accent hover:text-accent-foreground border-transparent hover:border-border bg-accent-foreground/5"
-        )}
+        className="draggable-note-item"
       >
-        <div className="flex items-center justify-center h-5 w-5 mr-2 flex-shrink-0">
-          <File className="h-4 w-4 text-indigo-500 group-hover:text-indigo-600" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-foreground text-sm font-normal group-hover:text-accent-foreground truncate">
-            {note.name}
-          </h3>
-        </div>
-        <button
-          onClick={(e) => handleDeleteNote(note, e)}
-          className="p-1 rounded-sm opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity cursor-pointer"
-          aria-label={strings.notes.folderView.deleteButton.ariaLabel}
+        <div
+          className={cn(
+            "group flex items-center p-2 rounded-md transition-colors cursor-pointer border",
+            isDragging
+              ? "opacity-50 bg-accent border-dashed border-accent"
+              : "hover:bg-accent hover:text-accent-foreground border-transparent hover:border-border bg-accent-foreground/5"
+          )}
         >
-          <Trash2 className="h-4 w-4" />
-        </button>
+          <div className="flex items-center justify-center h-5 w-5 mr-2 flex-shrink-0">
+            <File className="h-4 w-4 text-indigo-500 group-hover:text-indigo-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-foreground text-sm font-normal group-hover:text-accent-foreground truncate">
+              {note.name}
+            </h3>
+          </div>
+          <button
+            onClick={(e) => handleDeleteNote(note, e)}
+            className="p-1 rounded-sm opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity cursor-pointer"
+            aria-label={strings.notes.folderView.deleteButton.ariaLabel}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     );
   };
@@ -379,7 +385,7 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
         </div>
 
         {folder.children.length > 0 ? (
-          <div className="bg-background">
+          <div className="bg-background space-y-1.5">
             {folder.children
               .filter((node) => "children" in node)
               .map((subfolder) => (

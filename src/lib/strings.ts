@@ -33,6 +33,14 @@ const strings = {
     breadcrumbs: {
       ellipsis: "...",
     },
+    share: {
+      button: {
+        label: "Share",
+        ariaLabel: "Share note",
+      },
+      tooltip: "Copy link to share this note",
+      copied: "Link copied!",
+    },
   },
 };
 

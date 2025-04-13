@@ -9,6 +9,7 @@ import {
   FolderPlusIcon,
 } from "lucide-react";
 import * as React from "react";
+import { useEffect, useState } from "react";
 
 import {
   Collapsible,
@@ -28,6 +29,11 @@ import {
   SidebarMenuSub,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Note,
   useNotes,
@@ -107,25 +113,31 @@ export function NotesSidebar({
 function NotesTree({ notes }: { notes: NoteTree }) {
   const { updateNote, updateFolder } = useNotes();
 
-  return notes.map((noteOrFolder) => {
-    if ("children" in noteOrFolder) {
-      return (
-        <FolderNode
-          folder={noteOrFolder}
-          key={noteOrFolder.id}
-          onNameChange={(name) => updateFolder(noteOrFolder.id, { name })}
-        />
-      );
-    }
+  return (
+    <div className="staggered-container">
+      {notes.map((noteOrFolder) => {
+        if ("children" in noteOrFolder) {
+          return (
+            <div key={noteOrFolder.id} className="staggered-item">
+              <FolderNode
+                folder={noteOrFolder}
+                onNameChange={(name) => updateFolder(noteOrFolder.id, { name })}
+              />
+            </div>
+          );
+        }
 
-    return (
-      <NoteNode
-        noteNode={noteOrFolder}
-        key={noteOrFolder.id}
-        onNameChange={(name) => updateNote(noteOrFolder.id, { name })}
-      />
-    );
-  });
+        return (
+          <div key={noteOrFolder.id} className="staggered-item">
+            <NoteNode
+              noteNode={noteOrFolder}
+              onNameChange={(name) => updateNote(noteOrFolder.id, { name })}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function FolderNode({
@@ -135,7 +147,17 @@ function FolderNode({
   folder: FolderNode;
   onNameChange: (name: string) => void;
 }) {
-  const { selectFolder } = useNotes();
+  const {
+    selectFolder,
+    expandedFolderIds,
+    setFolderExpanded,
+    isDirectPathToNote,
+    isFromUrl,
+  } = useNotes();
+
+  // Use the global expanded state instead of local state
+  const isOpen = expandedFolderIds.has(folder.id);
+  const [isAutoExpanding, setIsAutoExpanding] = useState(false);
 
   function handleNameChange(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
@@ -147,27 +169,61 @@ function FolderNode({
     selectFolder(folder.id);
   }
 
+  function handleOpenChange(open: boolean) {
+    setFolderExpanded(folder.id, open);
+  }
+
+  // Handle initial expansion when navigating via URL
+  useEffect(() => {
+    if (isFromUrl && isDirectPathToNote(folder.id)) {
+      setIsAutoExpanding(true);
+
+      // Reset the auto-expanding flag after animation completes
+      const timer = setTimeout(() => {
+        setIsAutoExpanding(false);
+      }, 300);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isFromUrl, folder.id, isDirectPathToNote]);
+
+  // Determine animation class based on auto-expansion
+  const animationClass = isAutoExpanding
+    ? "transition-all duration-300 ease-in-out"
+    : "transition-all duration-150 ease-in-out";
+
   return (
     <SidebarMenuItem key={folder.id}>
-      <Collapsible className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90">
+      <Collapsible
+        className={`group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90 ${animationClass}`}
+        open={isOpen}
+        onOpenChange={handleOpenChange}
+      >
         <CollapsibleTrigger asChild>
           <SidebarMenuButton className="collapsible-trigger">
-            <ChevronRight className="transition-transform" />
+            <ChevronRight className="transition-transform duration-200" />
             <div
               className="flex items-center flex-1 cursor-pointer"
               onClick={handleFolderClick}
             >
-              <Folder className="mr-2" />
+              <Folder className="mr-2 shrink-0" />
               {folder.name ? (
-                <span>{folder.name}</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="sidebar-text-truncate">{folder.name}</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" align="start">
+                    {folder.name}
+                  </TooltipContent>
+                </Tooltip>
               ) : (
                 <Input className="h-5" autoFocus onKeyDown={handleNameChange} />
               )}
             </div>
           </SidebarMenuButton>
         </CollapsibleTrigger>
-        <CollapsibleContent>
-          <SidebarMenuSub>
+        <CollapsibleContent className={`overflow-hidden ${animationClass}`}>
+          <SidebarMenuSub className="animate-slideDownAndFade">
             <NotesTree notes={folder.children} />
           </SidebarMenuSub>
         </CollapsibleContent>
@@ -198,10 +254,16 @@ function NoteNode({
       key={noteNode.id}
       onClick={() => selectNote(noteNode.id)}
     >
-      {/* TODO: Make file / folder edit name component w/ icons */}
-      <File />
+      <File className="shrink-0" />
       {noteNode.name ? (
-        noteNode.name
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="sidebar-text-truncate">{noteNode.name}</span>
+          </TooltipTrigger>
+          <TooltipContent side="right" align="start">
+            {noteNode.name}
+          </TooltipContent>
+        </Tooltip>
       ) : (
         <Input className="h-7" autoFocus onKeyDown={handleNameChange} />
       )}
