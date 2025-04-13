@@ -61,6 +61,7 @@ import {
   type NoteTree,
 } from "../state-providers/use-notes";
 import { DeleteFolderDialog } from "./notes/delete-folder-dialog";
+import { NoteCalendar } from "./notes/note-calendar";
 import { ThemeSelector } from "./themes/theme-selector";
 
 // New SidebarLink component that uses Next.js Link
@@ -103,13 +104,7 @@ function SidebarLink({
 export function NotesSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
-  const {
-    noteTree: notes,
-    addNote,
-    addFolder,
-    setSelectedItemId,
-    setIsViewingFolder,
-  } = useNotes();
+  const { noteTree: notes, addNote, addFolder } = useNotes();
 
   return (
     <Sidebar {...props}>
@@ -123,6 +118,14 @@ export function NotesSidebar({
             <SidebarMenu>testst</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Calendar Component */}
+        <SidebarGroup>
+          <div className="px-0 py-2">
+            <NoteCalendar />
+          </div>
+        </SidebarGroup>
+
         <SidebarGroup>
           <Link
             href="/notes"
@@ -163,13 +166,20 @@ export function NotesSidebar({
 function NotesTree({ notes }: { notes: NoteTree }) {
   const { updateNote, updateFolder } = useNotes();
 
+  // The key is to ensure each item has a stable identity
+  // and its own isolated state context
   return (
     <div className="staggered-container">
       {notes.map((noteOrFolder) => {
         if ("children" in noteOrFolder) {
           return (
-            <div key={noteOrFolder.id} className="staggered-item">
+            <div
+              key={noteOrFolder.id}
+              className="staggered-item"
+              data-item-id={noteOrFolder.id}
+            >
               <FolderNode
+                key={noteOrFolder.id}
                 folder={noteOrFolder}
                 onNameChange={(name) => updateFolder(noteOrFolder.id, { name })}
               />
@@ -178,8 +188,13 @@ function NotesTree({ notes }: { notes: NoteTree }) {
         }
 
         return (
-          <div key={noteOrFolder.id} className="staggered-item">
+          <div
+            key={noteOrFolder.id}
+            className="staggered-item"
+            data-item-id={noteOrFolder.id}
+          >
             <NoteNode
+              key={noteOrFolder.id}
               noteNode={noteOrFolder}
               onNameChange={(name) => updateNote(noteOrFolder.id, { name })}
             />

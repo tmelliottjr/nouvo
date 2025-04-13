@@ -1,7 +1,7 @@
 "use client";
 
 import { enableMapSet } from "immer";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   createContext,
   PropsWithChildren,
@@ -29,6 +29,7 @@ export type Note = {
   name: string;
   content: string;
   tags: Array<string>;
+  creationDate: string; // ISO 8601 format
 };
 
 type AtLeastOne<T, U = { [K in keyof T]: Pick<T, K> }> = Partial<T> &
@@ -68,6 +69,7 @@ const NotesContext = createContext<NotesContext | undefined>(undefined);
 
 function NotesProvider({ children }: PropsWithChildren) {
   const params = useParams();
+  const router = useRouter();
   const [noteTree, setNoteTree] = useImmer<NoteTree>([
     {
       id: "projects-folder",
@@ -99,6 +101,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                     ],
                   }),
                   tags: ["react", "frontend"],
+                  creationDate: "2025-04-01T09:30:00.000Z",
                 },
                 {
                   id: "react-patterns-note",
@@ -118,6 +121,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                     ],
                   }),
                   tags: ["react", "architecture"],
+                  creationDate: "2025-04-05T14:15:00.000Z",
                 },
               ],
             },
@@ -143,6 +147,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                     ],
                   }),
                   tags: ["vue", "frontend"],
+                  creationDate: "2025-04-02T10:45:00.000Z",
                 },
               ],
             },
@@ -175,6 +180,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                 ],
               }),
               tags: ["react-native", "mobile"],
+              creationDate: "2025-04-03T11:20:00.000Z",
             },
             {
               id: "flutter-folder",
@@ -198,6 +204,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                     ],
                   }),
                   tags: ["flutter", "mobile"],
+                  creationDate: "2025-04-06T15:30:00.000Z",
                 },
                 {
                   id: "flutter-state-note",
@@ -217,6 +224,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                     ],
                   }),
                   tags: ["flutter", "architecture"],
+                  creationDate: "2025-04-07T16:45:00.000Z",
                 },
               ],
             },
@@ -250,6 +258,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                 ],
               }),
               tags: ["travel", "planning"],
+              creationDate: "2025-04-08T13:15:00.000Z",
             },
             {
               id: "europe-note",
@@ -269,6 +278,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                 ],
               }),
               tags: ["travel", "planning"],
+              creationDate: "2025-04-09T14:30:00.000Z",
             },
           ],
         },
@@ -298,6 +308,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                     ],
                   }),
                   tags: ["food", "italian"],
+                  creationDate: "2025-04-10T09:15:00.000Z",
                 },
                 {
                   id: "risotto-note",
@@ -317,6 +328,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                     ],
                   }),
                   tags: ["food", "italian"],
+                  creationDate: "2025-04-10T10:30:00.000Z",
                 },
               ],
             },
@@ -339,6 +351,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                     ],
                   }),
                   tags: ["food", "dessert"],
+                  creationDate: "2025-04-11T08:15:00.000Z",
                 },
                 {
                   id: "cheesecake-note",
@@ -358,6 +371,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                     ],
                   }),
                   tags: ["food", "dessert"],
+                  creationDate: "2025-04-11T09:30:00.000Z",
                 },
               ],
             },
@@ -388,6 +402,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                 ],
               }),
               tags: ["work", "meetings"],
+              creationDate: "2025-04-12T09:00:00.000Z",
             },
             {
               id: "q2-planning-note",
@@ -404,6 +419,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                 ],
               }),
               tags: ["work", "planning"],
+              creationDate: "2025-04-12T14:00:00.000Z",
             },
           ],
         },
@@ -433,6 +449,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                     ],
                   }),
                   tags: ["work", "requirements"],
+                  creationDate: "2025-04-13T10:00:00.000Z",
                 },
                 {
                   id: "alpha-timeline-note",
@@ -452,6 +469,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                     ],
                   }),
                   tags: ["work", "planning"],
+                  creationDate: "2025-04-13T11:30:00.000Z",
                 },
               ],
             },
@@ -474,6 +492,7 @@ function NotesProvider({ children }: PropsWithChildren) {
                     ],
                   }),
                   tags: ["work", "meetings"],
+                  creationDate: "2025-04-13T15:00:00.000Z",
                 },
               ],
             },
@@ -498,6 +517,7 @@ function NotesProvider({ children }: PropsWithChildren) {
             ],
           }),
           tags: ["personal", "shopping"],
+          creationDate: "2025-04-12T16:30:00.000Z",
         },
         {
           id: "ideas-note",
@@ -514,6 +534,7 @@ function NotesProvider({ children }: PropsWithChildren) {
             ],
           }),
           tags: ["ideas", "development"],
+          creationDate: "2025-04-13T08:45:00.000Z",
         },
       ],
     },
@@ -551,6 +572,7 @@ function NotesProvider({ children }: PropsWithChildren) {
       }),
       name: "",
       tags: [],
+      creationDate: new Date().toISOString(),
     };
 
     if (!id) {
@@ -733,6 +755,9 @@ function NotesProvider({ children }: PropsWithChildren) {
     const noteToDelete = getNote(id);
     if (!noteToDelete) return;
 
+    // Check if we're currently viewing this note
+    const isCurrentlyViewing = selectedItemId === id && !isViewingFolder;
+
     // If we're currently viewing this note, reset to folder view
     if (selectedItemId === id) {
       setSelectedItemId(null);
@@ -765,6 +790,11 @@ function NotesProvider({ children }: PropsWithChildren) {
 
       removeNoteFromTree(prevNoteTree);
     });
+
+    // If we were viewing the note, navigate to the main notes view
+    if (isCurrentlyViewing) {
+      router.push("/notes");
+    }
   };
 
   /**

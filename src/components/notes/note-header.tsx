@@ -6,6 +6,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
 import {
   HoverCard,
   HoverCardContent,
@@ -15,11 +16,14 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import strings from "@/lib/strings";
 import { useNotes } from "@/state-providers/use-notes";
+import { CalendarIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { ShareNoteButton } from "./share-note-button";
 
 export function NoteHeader() {
+  const router = useRouter();
   const {
     currentPath,
     noteTree,
@@ -69,6 +73,23 @@ export function NoteHeader() {
     }
   };
 
+  // Format date for display
+  const formatCreationDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  // Handle click on creation date to navigate to calendar view for that day
+  const handleDateClick = (dateString: string) => {
+    const date = new Date(dateString);
+    const formattedDate = date.toISOString().split("T")[0]; // Format as YYYY-MM-DD
+    router.push(`/notes/calendar/${formattedDate}`);
+  };
+
   // Create a collapsed path array when path is longer than 3 items
   const displayPath = React.useMemo(() => {
     if (!currentPath || currentPath.length <= 3) {
@@ -97,7 +118,7 @@ export function NoteHeader() {
   }, [currentPath]);
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+    <header className="flex items-center h-16 shrink-0 border-b px-4">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 h-4" />
       <Breadcrumb className="flex-grow">
@@ -175,6 +196,19 @@ export function NoteHeader() {
           })}
         </BreadcrumbList>
       </Breadcrumb>
+
+      {/* Creation date button - only show when viewing a note */}
+      {!isViewingFolder && currentNote && currentNote.creationDate && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mr-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+          onClick={() => handleDateClick(currentNote.creationDate)}
+        >
+          <CalendarIcon className="h-3.5 w-3.5" />
+          <span>Created: {formatCreationDate(currentNote.creationDate)}</span>
+        </Button>
+      )}
 
       {/* Share button - only show when viewing a note (not a folder) */}
       {!isViewingFolder && currentNote && (
