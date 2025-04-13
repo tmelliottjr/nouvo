@@ -1,13 +1,7 @@
 "use client";
 
 import { enableMapSet } from "immer";
-import {
-  createContext,
-  PropsWithChildren,
-  useContext,
-  useEffect,
-  useMemo,
-} from "react";
+import { createContext, PropsWithChildren, useContext, useMemo } from "react";
 import { useImmer } from "use-immer";
 
 // Enable the MapSet plugin for Immer to handle Set objects
@@ -987,33 +981,6 @@ function NotesProvider({ children }: PropsWithChildren) {
       return newSet;
     });
   };
-
-  // Effect to handle URL navigation
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const noteId = urlParams.get("id");
-
-    if (noteId) {
-      // Mark that we're navigating from a URL
-      setIsFromUrl(true);
-
-      // Find the direct path to the note and auto-expand those folders
-      const pathFolderIds = findFolderIdsInPathToNote(noteId, noteTree);
-
-      if (pathFolderIds.length > 0) {
-        // Store the direct path folder IDs
-        setDirectPathFolderIds(new Set(pathFolderIds));
-
-        // Auto-expand folders along the path to the note
-        setExpandedFolderIds(new Set(pathFolderIds));
-
-        // Select the note
-        selectNote(noteId);
-      }
-    } else {
-      setIsFromUrl(false);
-    }
-  }, []);
 
   const currentNote = useMemo(() => {
     if (selectedItemId && !isViewingFolder) {

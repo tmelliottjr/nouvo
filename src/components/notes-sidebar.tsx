@@ -10,6 +10,7 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -63,6 +64,7 @@ import { AddFolderButton } from "./notes/actions/add-folder-button";
 import { AddNoteButton } from "./notes/actions/add-note-button";
 import { DeleteFolderDialog } from "./notes/delete-folder-dialog";
 import { ThemeSelector } from "./themes/theme-selector";
+import { Button } from "./ui/button";
 
 export function NotesSidebar({
   ...props
@@ -380,12 +382,14 @@ function FolderNode({
                         folderId={folder.id}
                         variant="ghost"
                         size="icon"
+                        asChild
                         className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                       />
                       <AddFolderButton
                         parentId={folder.id}
                         variant="ghost"
                         size="icon"
+                        asChild
                         className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                       />
                     </div>
@@ -454,6 +458,7 @@ function NoteNode({
   onNameChange: (name: string) => void;
 }) {
   const { selectNote, currentNote, deleteNote, updateNote } = useNotes();
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -467,6 +472,8 @@ function NoteNode({
         onNameChange(value);
         // Only select the note after naming it
         selectNote(noteNode.id);
+        // Navigate to the note page with the dynamic route
+        router.push(`/notes/${noteNode.id}`);
       } else {
         // Delete note if name is empty
         deleteNote(noteNode.id);
@@ -483,6 +490,8 @@ function NoteNode({
       onNameChange(value);
       // Only select the note after naming it
       selectNote(noteNode.id);
+      // Navigate to the note page with the dynamic route
+      router.push(`/notes/${noteNode.id}`);
     } else {
       // Delete note if name is empty on blur
       deleteNote(noteNode.id);
@@ -544,6 +553,8 @@ function NoteNode({
     // Only select the note if it already has a name
     if (noteNode.name) {
       selectNote(noteNode.id);
+      // Navigate to the note page with the dynamic route
+      router.push(`/notes/${noteNode.id}`);
     }
     // If it doesn't have a name, do nothing - user needs to name it first
   }
@@ -607,7 +618,9 @@ function NoteNode({
 
             {/* Add delete button on hover */}
             {isHovered && noteNode.name && (
-              <button
+              <Button
+                variant="ghost"
+                asChild
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDelete(e);
@@ -617,9 +630,10 @@ function NoteNode({
                   strings.notes.folderView.deleteButton?.ariaLabel ||
                   "Delete note"
                 }
+                size={"lg"}
               >
-                <Trash2 className="h-4 w-4" />
-              </button>
+                <Trash2 />
+              </Button>
             )}
           </SidebarMenuButton>
         </ContextMenuTrigger>

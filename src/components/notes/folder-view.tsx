@@ -1,5 +1,4 @@
 "use client";
-
 import strings from "@/lib/strings";
 import { cn } from "@/lib/utils";
 import { FolderNode, Note, useNotes } from "@/state-providers/use-notes";
@@ -36,6 +35,7 @@ interface FolderViewProps {
 }
 
 export function FolderView({ folder, isRootView = false }: FolderViewProps) {
+  // The rest of the component code, only executed on the client
   const {
     selectNote,
     selectFolder,
@@ -202,6 +202,7 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
             <div className="absolute right-2 top-2">
               <AddNoteButton
                 folderId={folder.id}
+                asChild
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
@@ -411,7 +412,7 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
               folderId={folder.id}
               variant="outline"
               size="default"
-              showTooltip={false}
+              asChild
             />
           </div>
         </div>

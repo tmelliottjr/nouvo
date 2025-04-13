@@ -4,13 +4,16 @@ import { Button } from "@/components/ui/button";
 import strings from "@/lib/strings";
 import { useNotes } from "@/state-providers/use-notes";
 import { FolderPlus } from "lucide-react";
+import React from "react";
 
-interface AddFolderButtonProps {
+interface AddFolderButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   parentId: string;
   variant?: "default" | "ghost" | "outline" | "secondary" | "link";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
   showTooltip?: boolean;
+  asChild?: boolean;
 }
 
 export function AddFolderButton({
@@ -18,7 +21,8 @@ export function AddFolderButton({
   variant = "ghost",
   size = "icon",
   className = "",
-  showTooltip = false,
+  asChild = false,
+  ...props
 }: AddFolderButtonProps) {
   const { addFolder } = useNotes();
 
@@ -35,10 +39,16 @@ export function AddFolderButton({
       onClick={handleClick}
       className={className}
       aria-label={strings.notes.folderView.addFolder.ariaLabel}
+      asChild={asChild}
+      {...props}
     >
-      <FolderPlus className="h-4 w-4" />
-      {size !== "icon" && (
-        <span>{strings.notes.folderView.addFolder.label}</span>
+      {!asChild && (
+        <>
+          <FolderPlus className="h-4 w-4" />
+          {size !== "icon" && (
+            <span>{strings.notes.folderView.addFolder.label}</span>
+          )}
+        </>
       )}
     </Button>
   );

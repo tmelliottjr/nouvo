@@ -4,13 +4,15 @@ import { Button } from "@/components/ui/button";
 import strings from "@/lib/strings";
 import { useNotes } from "@/state-providers/use-notes";
 import { FileEdit } from "lucide-react";
+import React from "react";
 
-interface AddNoteButtonProps {
+interface AddNoteButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   folderId: string;
   variant?: "default" | "ghost" | "outline" | "secondary" | "link";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
-  showTooltip?: boolean;
+  asChild?: boolean;
 }
 
 export function AddNoteButton({
@@ -18,7 +20,8 @@ export function AddNoteButton({
   variant = "ghost",
   size = "icon",
   className = "",
-  showTooltip = false, // Changed default to false to remove tooltips
+  asChild = false,
+  ...props
 }: AddNoteButtonProps) {
   const { addNote } = useNotes();
 
@@ -35,9 +38,17 @@ export function AddNoteButton({
       onClick={handleClick}
       className={className}
       aria-label={strings.notes.folderView.addNote.ariaLabel}
+      asChild={asChild}
+      {...props}
     >
-      <FileEdit className="h-4 w-4" />
-      {size !== "icon" && <span>{strings.notes.folderView.addNote.label}</span>}
+      {!asChild && (
+        <>
+          <FileEdit className="h-4 w-4" />
+          {size !== "icon" && (
+            <span>{strings.notes.folderView.addNote.label}</span>
+          )}
+        </>
+      )}
     </Button>
   );
 }
