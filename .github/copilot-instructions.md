@@ -138,17 +138,6 @@ Example:
 - Common utilities go in `/src/lib`
 - Custom hooks go in `/src/hooks`
 
-## Documentation Resources
-
-### Official Documentation
-
-- [React Documentation](https://react.dev/reference/react)
-- [Next.js Documentation](https://nextjs.org/docs)
-- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-- [Shadcn UI Documentation](https://ui.shadcn.com/docs)
-- [Tiptap Documentation](https://tiptap.dev/docs/editor/introduction)
-
 ### Best Practices
 
 - Follow React's official guidelines for [thinking in React](https://react.dev/learn/thinking-in-react)

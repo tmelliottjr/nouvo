@@ -44,6 +44,7 @@ type NotesContext = {
   isViewingFolder: boolean;
   setSelectedItemId: (id: string | null) => void;
   setIsViewingFolder: (isViewingFolder: boolean) => void;
+  moveNode: (nodeId: string, destinationFolderId: string) => void;
 };
 
 const NotesContext = createContext<NotesContext | undefined>(undefined);
@@ -678,6 +679,112 @@ function NotesProvider({ children }: PropsWithChildren) {
     setIsViewingFolder(true);
   };
 
+  const moveNode: NotesContext["moveNode"] = (nodeId, destinationFolderId) => {
+    setNoteTree((prevNoteTree) => {
+      // Find the node to move
+      let nodeToMove: Node | undefined;
+      let sourceParent: FolderNode | undefined;
+      let sourceIndex = -1;
+
+      // Function to find the node and its parent
+      const findNodeAndParent = (
+        tree: NoteTree,
+        parent?: FolderNode
+      ): boolean => {
+        const index = tree.findIndex((node) => node.id === nodeId);
+
+        if (index >= 0) {
+          // Found the node
+          nodeToMove = tree[index];
+          sourceParent = parent;
+          sourceIndex = index;
+          return true;
+        }
+
+        // Search in folders
+        for (const node of tree) {
+          if (isFolder(node)) {
+            if (findNodeAndParent(node.children, node)) {
+              return true;
+            }
+          }
+        }
+
+        return false;
+      };
+
+      // Find the destination folder
+      const findDestinationFolder = (
+        tree: NoteTree
+      ): FolderNode | undefined => {
+        // Check if it's the root level
+        if (destinationFolderId === "root") {
+          return undefined;
+        }
+
+        for (const node of tree) {
+          if (node.id === destinationFolderId && isFolder(node)) {
+            return node;
+          }
+
+          if (isFolder(node)) {
+            const result = findDestinationFolder(node.children);
+            if (result) return result;
+          }
+        }
+        return undefined;
+      };
+
+      // Find the node to move and its parent
+      findNodeAndParent(prevNoteTree);
+
+      // If we couldn't find the node, abort
+      if (!nodeToMove) {
+        console.warn(`Could not find node with id: ${nodeId}`);
+        return;
+      }
+
+      // Find the destination folder
+      const destinationFolder = findDestinationFolder(prevNoteTree);
+
+      // Prevent moving a folder into itself or its descendants
+      if (isFolder(nodeToMove)) {
+        const isSelfOrDescendant = (
+          folder: FolderNode,
+          targetId: string
+        ): boolean => {
+          if (folder.id === targetId) return true;
+          return folder.children.some(
+            (child) => isFolder(child) && isSelfOrDescendant(child, targetId)
+          );
+        };
+
+        if (
+          destinationFolder &&
+          isSelfOrDescendant(nodeToMove, destinationFolder.id)
+        ) {
+          console.warn("Cannot move a folder into itself or its descendants");
+          return;
+        }
+      }
+
+      // Remove node from its current location
+      if (sourceParent) {
+        sourceParent.children.splice(sourceIndex, 1);
+      } else {
+        prevNoteTree.splice(sourceIndex, 1);
+      }
+
+      // Add node to its new location
+      if (destinationFolder) {
+        destinationFolder.children.push(nodeToMove);
+      } else {
+        // If no destination folder is specified, add to root
+        prevNoteTree.push(nodeToMove);
+      }
+    });
+  };
+
   const currentNote = useMemo(() => {
     if (selectedItemId && !isViewingFolder) {
       return getNote(selectedItemId);
@@ -710,6 +817,7 @@ function NotesProvider({ children }: PropsWithChildren) {
     isViewingFolder,
     setSelectedItemId,
     setIsViewingFolder,
+    moveNode,
   };
 
   return <NotesContext value={value}>{children}</NotesContext>;
