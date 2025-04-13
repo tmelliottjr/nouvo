@@ -1,7 +1,14 @@
 "use client";
 
 import { enableMapSet } from "immer";
-import { createContext, PropsWithChildren, useContext, useMemo } from "react";
+import { useParams } from "next/navigation";
+import {
+  createContext,
+  PropsWithChildren,
+  useContext,
+  useEffect,
+  useMemo,
+} from "react";
 import { useImmer } from "use-immer";
 
 // Enable the MapSet plugin for Immer to handle Set objects
@@ -39,6 +46,7 @@ type NotesContext = {
   deleteNote: (id: string) => void;
   deleteFolder: (id: string) => void;
   selectNote: (id: string) => void;
+  deselectNote: () => void;
   selectFolder: (id: string) => void;
   getNote: (id: string) => Note | undefined;
   getFolder: (id: string) => FolderNode | undefined;
@@ -59,6 +67,7 @@ type NotesContext = {
 const NotesContext = createContext<NotesContext | undefined>(undefined);
 
 function NotesProvider({ children }: PropsWithChildren) {
+  const params = useParams();
   const [noteTree, setNoteTree] = useImmer<NoteTree>([
     {
       id: "projects-folder",
@@ -801,6 +810,13 @@ function NotesProvider({ children }: PropsWithChildren) {
   };
 
   const selectNote: NotesContext["selectNote"] = (id) => {
+    if (!id) {
+      setSelectedItemId(null);
+      setCurrentPath(null);
+      setIsFromUrl(false);
+      return;
+    }
+
     const result = findNodeById(id, noteTree);
 
     if (!result || isFolder(result.node)) {
@@ -982,6 +998,12 @@ function NotesProvider({ children }: PropsWithChildren) {
     });
   };
 
+  const deselectNote: NotesContext["deselectNote"] = () => {
+    setSelectedItemId(null);
+    setCurrentPath(null);
+    setIsFromUrl(false);
+  };
+
   const currentNote = useMemo(() => {
     if (selectedItemId && !isViewingFolder) {
       return getNote(selectedItemId);
@@ -995,6 +1017,18 @@ function NotesProvider({ children }: PropsWithChildren) {
     }
     return undefined;
   }, [selectedItemId, isViewingFolder]);
+
+  useEffect(() => {
+    if (!params.noteId) {
+      deselectNote();
+      return;
+    }
+    // If the noteId in the URL doesn't match the current note, select the note
+    if (params.noteId && currentNote?.id !== params.noteId) {
+      selectNote(params.noteId as string);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.noteId]);
 
   const value: NotesContext = {
     noteTree,

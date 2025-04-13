@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import strings from "@/lib/strings";
 import { useNotes } from "@/state-providers/use-notes";
+import Link from "next/link";
 import React from "react";
 import { ShareNoteButton } from "./share-note-button";
 
@@ -101,6 +102,19 @@ export function NoteHeader() {
       <Separator orientation="vertical" className="mr-2 h-4" />
       <Breadcrumb className="flex-grow">
         <BreadcrumbList>
+          {/* Add root "Notes" link that always goes to /notes */}
+          <BreadcrumbItem className="hidden md:block">
+            <Link
+              href="/notes"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              Notes
+            </Link>
+          </BreadcrumbItem>
+          {displayPath && displayPath.length > 0 && (
+            <BreadcrumbSeparator className="hidden md:block" />
+          )}
+
           {displayPath?.map((pathPart, index) => {
             // Special handling for the ellipsis item
             if (pathPart === "...") {

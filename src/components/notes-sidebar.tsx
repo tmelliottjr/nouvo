@@ -10,7 +10,7 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -60,11 +60,45 @@ import {
   type FolderNode,
   type NoteTree,
 } from "../state-providers/use-notes";
-import { AddFolderButton } from "./notes/actions/add-folder-button";
-import { AddNoteButton } from "./notes/actions/add-note-button";
 import { DeleteFolderDialog } from "./notes/delete-folder-dialog";
 import { ThemeSelector } from "./themes/theme-selector";
-import { Button } from "./ui/button";
+
+// New SidebarLink component that uses Next.js Link
+interface SidebarLinkProps {
+  href: string;
+  isActive?: boolean;
+  className?: string;
+  onClick?: (e: React.MouseEvent) => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  children: React.ReactNode;
+}
+
+function SidebarLink({
+  href,
+  isActive,
+  className,
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+  children,
+}: SidebarLinkProps) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md w-full ${
+        isActive
+          ? "bg-accent text-accent-foreground tree-item-selected"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      } ${className || ""}`}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export function NotesSidebar({
   ...props
@@ -76,13 +110,6 @@ export function NotesSidebar({
     setSelectedItemId,
     setIsViewingFolder,
   } = useNotes();
-
-  const handleNotesHeaderClick = () => {
-    // Set to null to navigate to top-level folder view
-    setSelectedItemId(null);
-    // Ensure we're in folder view mode
-    setIsViewingFolder(true);
-  };
 
   return (
     <Sidebar {...props}>
@@ -97,15 +124,14 @@ export function NotesSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <div
+          <Link
+            href="/notes"
             className="flex items-center cursor-pointer hover:bg-stone-100 dark:hover:bg-stone-800 rounded-md px-2 py-1"
-            onClick={handleNotesHeaderClick}
           >
             <SidebarGroupLabel className="text-base font-semibold">
               Notes
             </SidebarGroupLabel>
-          </div>
-
+          </Link>
           <SidebarGroupAction
             title="New Note"
             className="mr-6 cursor-pointer"
@@ -245,10 +271,11 @@ function FolderNode({
   }
 
   // Click handler depends on whether the folder has a name
-  function handleFolderClick() {
-    // Only select the folder if it already has a name
+  function handleFolderClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    // Toggle folder expansion instead of navigation
     if (folder.name) {
-      selectFolder(folder.id);
+      setFolderExpanded(folder.id, !isOpen);
     }
     // If it doesn't have a name, do nothing - user needs to name it first
   }
@@ -378,20 +405,28 @@ function FolderNode({
                       className="absolute right-2 opacity-100 transition-opacity flex gap-1"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <AddNoteButton
-                        folderId={folder.id}
-                        variant="ghost"
-                        size="icon"
-                        asChild
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                      />
-                      <AddFolderButton
-                        parentId={folder.id}
-                        variant="ghost"
-                        size="icon"
-                        asChild
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                      />
+                      <div
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground rounded-md flex items-center justify-center cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addNote(folder.id);
+                        }}
+                        aria-label={strings.notes.folderView.addNote.ariaLabel}
+                      >
+                        <FileEdit className="h-4 w-4" />
+                      </div>
+                      <div
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground rounded-md flex items-center justify-center cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addFolder(folder.id);
+                        }}
+                        aria-label={
+                          strings.notes.folderView.addFolder.ariaLabel
+                        }
+                      >
+                        <FolderPlus className="h-4 w-4" />
+                      </div>
                     </div>
                   )}
                 </SidebarMenuButton>
@@ -458,7 +493,6 @@ function NoteNode({
   onNameChange: (name: string) => void;
 }) {
   const { selectNote, currentNote, deleteNote, updateNote } = useNotes();
-  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -472,8 +506,6 @@ function NoteNode({
         onNameChange(value);
         // Only select the note after naming it
         selectNote(noteNode.id);
-        // Navigate to the note page with the dynamic route
-        router.push(`/notes/${noteNode.id}`);
       } else {
         // Delete note if name is empty
         deleteNote(noteNode.id);
@@ -490,8 +522,6 @@ function NoteNode({
       onNameChange(value);
       // Only select the note after naming it
       selectNote(noteNode.id);
-      // Navigate to the note page with the dynamic route
-      router.push(`/notes/${noteNode.id}`);
     } else {
       // Delete note if name is empty on blur
       deleteNote(noteNode.id);
@@ -548,59 +578,52 @@ function NoteNode({
     }
   }, [isRenaming]);
 
-  // Click handler depends on whether the note has a name
-  function handleNoteClick() {
-    // Only select the note if it already has a name
-    if (noteNode.name) {
-      selectNote(noteNode.id);
-      // Navigate to the note page with the dynamic route
-      router.push(`/notes/${noteNode.id}`);
-    }
-    // If it doesn't have a name, do nothing - user needs to name it first
-  }
-
   return (
     <>
       <ContextMenu>
         <ContextMenuTrigger asChild>
-          <SidebarMenuButton
-            isActive={noteNode.id === currentNote?.id}
-            className={`relative ${
-              noteNode.id === currentNote?.id
-                ? "tree-item-selected"
-                : "hover:bg-muted"
-            } tree-item`}
-            key={noteNode.id}
-            onClick={handleNoteClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-          >
-            <div className="flex items-center flex-1">
-              <File
-                className={`h-4 w-4 text-indigo-500 mr-2 flex-shrink-0 ${
-                  isHovered ? "opacity-70" : ""
-                }`}
+          {!noteNode.name ? (
+            // For new notes without a name, render the input field
+            <div className="flex items-center px-3 py-2 text-sm font-medium rounded-md w-full">
+              <File className="h-4 w-4 text-indigo-500 mr-2 flex-shrink-0" />
+              <Input
+                ref={inputRef}
+                className="h-7"
+                autoFocus
+                onKeyDown={handleNameChange}
+                onBlur={handleBlur}
+                placeholder="Enter note name..."
               />
-              {!noteNode.name ? (
-                <Input
-                  ref={inputRef}
-                  className="h-7"
-                  autoFocus
-                  onKeyDown={handleNameChange}
-                  onBlur={handleBlur}
-                  placeholder="Enter note name..."
+            </div>
+          ) : isRenaming ? (
+            // For notes being renamed, render the rename input field
+            <div className="flex items-center px-3 py-2 text-sm font-medium rounded-md w-full">
+              <File className="h-4 w-4 text-indigo-500 mr-2 flex-shrink-0" />
+              <Input
+                ref={renameInputRef}
+                className="h-7"
+                defaultValue={noteNode.name}
+                autoFocus
+                onKeyDown={handleRenameKeyDown}
+                onBlur={handleRenameBlur}
+                placeholder={strings.notes.folderView.rename.placeholder}
+              />
+            </div>
+          ) : (
+            // For normal notes, use the SidebarLink component
+            <SidebarLink
+              href={`/notes/${noteNode.id}`}
+              isActive={noteNode.id === currentNote?.id}
+              className="relative tree-item"
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+            >
+              <div className="flex items-center flex-1">
+                <File
+                  className={`h-4 w-4 text-indigo-500 mr-2 flex-shrink-0 ${
+                    isHovered ? "opacity-70" : ""
+                  }`}
                 />
-              ) : isRenaming ? (
-                <Input
-                  ref={renameInputRef}
-                  className="h-7"
-                  defaultValue={noteNode.name}
-                  autoFocus
-                  onKeyDown={handleRenameKeyDown}
-                  onBlur={handleRenameBlur}
-                  placeholder={strings.notes.folderView.rename.placeholder}
-                />
-              ) : (
                 <div className="flex-1 min-w-0">
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -613,29 +636,27 @@ function NoteNode({
                     </TooltipContent>
                   </Tooltip>
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Add delete button on hover */}
-            {isHovered && noteNode.name && (
-              <Button
-                variant="ghost"
-                asChild
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(e);
-                }}
-                className="p-1 rounded-sm opacity-100 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                aria-label={
-                  strings.notes.folderView.deleteButton?.ariaLabel ||
-                  "Delete note"
-                }
-                size={"lg"}
-              >
-                <Trash2 />
-              </Button>
-            )}
-          </SidebarMenuButton>
+              {/* Add delete button on hover */}
+              {isHovered && (
+                <div
+                  className="h-6 w-6 p-0 rounded-sm opacity-100 text-muted-foreground hover:text-destructive transition-colors cursor-pointer flex items-center justify-center"
+                  onClick={(e) => {
+                    e.preventDefault(); // Prevent the default navigation behavior
+                    e.stopPropagation(); // Stop event propagation to parent elements
+                    handleDelete(e);
+                  }}
+                  aria-label={
+                    strings.notes.folderView.deleteButton?.ariaLabel ||
+                    "Delete note"
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                </div>
+              )}
+            </SidebarLink>
+          )}
         </ContextMenuTrigger>
 
         {/* Context Menu for right-click */}

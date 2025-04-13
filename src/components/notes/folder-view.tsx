@@ -274,10 +274,10 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
           )}
         >
           <div className="flex items-center justify-center h-5 w-5 mr-2 flex-shrink-0">
-            <File className="h-4 w-4 text-indigo-500 group-hover:text-indigo-600" />
+            <File className="h-4 w-4 text-indigo-500" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-foreground text-sm font-normal group-hover:text-accent-foreground truncate">
+            <h3 className="text-foreground text-sm font-normal truncate">
               {note.name}
             </h3>
           </div>

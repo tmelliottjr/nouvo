@@ -28,6 +28,12 @@ Noevo is a note-taking application built with modern web technologies. This docu
 
 ## Component Design Principles
 
+### Navigation
+
+- **Next.js**: Framework for server-side rendering, routing, and more
+
+When controlling navigation, we use the Next.js router for client-side navigation. This allows us to take advantage of Next.js's built-in features like prefetching and dynamic routing. We should avoid using state and `useEffect` for navigation, as it can lead to unnecessary complexity and performance issues.
+
 ### 1. Modular Component Structure
 
 - **Single Responsibility**: Each component should focus on one specific functionality
@@ -125,14 +131,16 @@ Example:
 ### Component Design
 
 Components follow a domain-based structure:
-  - ui: Reusable UI elements (buttons, inputs, etc.)
-  - notes: Note-specific components
-  - `/src/components/sidebar`: Navigation and folder structure components
-  - `/src/components/editor`: Text editor related components
+
+- ui: Reusable UI elements (buttons, inputs, etc.)
+- notes: Note-specific components
+- `/src/components/sidebar`: Navigation and folder structure components
+- `/src/components/editor`: Text editor related components
 
 - Each component should be in its own file
 - Group related components in folders with an index.ts file for exports
 - For complex components, create a directory with the component name:
+
   ```
   /NoteEditor/
     ├── index.ts
@@ -142,12 +150,14 @@ Components follow a domain-based structure:
   ```
 
 - **Avoiding Component Bloat**:
+
   - Keep components under 100-150 lines of code
   - Extract repeated patterns into separate components
   - Split complex rendering logic into smaller components
   - Use composition over inheritance
 
 - **Component Boundaries**:
+
   - Create clear interfaces between components
   - Pass only necessary props to child components
   - Use prop destructuring for clarity

@@ -1,6 +1,8 @@
 import strings from "@/lib/strings";
 import { useNotes } from "@/state-providers/use-notes";
 import { FileText } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useEffect } from "react";
 import TiptapEditor from "../tiptap-editor/editor";
 import { EmptyState } from "./empty-state";
 import { FolderView } from "./folder-view";
@@ -14,6 +16,7 @@ export function NoteView() {
     isViewingFolder,
     selectedItemId,
     noteTree,
+    selectNote,
   } = useNotes();
 
   function handleContentUpdate(content: string) {
