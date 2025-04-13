@@ -533,18 +533,62 @@ function NotesProvider({ children }: PropsWithChildren) {
    * If an ID is not provided, the note is added at the root.
    */
   const addNote: NotesContext["addNote"] = (id) => {
+    const noteId = crypto.randomUUID();
     const note: Note = {
-      id: crypto.randomUUID(),
-      content: "",
+      id: noteId,
+      content: JSON.stringify({
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [{ text: "", type: "text" }],
+          },
+        ],
+      }),
       name: "",
       tags: [],
     };
 
     if (!id) {
+      // Add to root level
       setNoteTree((prevNotes) => {
         prevNotes.push(note);
       });
+    } else {
+      // Add to specified folder
+      setNoteTree((prevNotes) => {
+        const addNoteToFolder = (tree: NoteTree): boolean => {
+          for (let i = 0; i < tree.length; i++) {
+            const node = tree[i];
+            if (node.id === id && isFolder(node)) {
+              // Found the folder, add the note
+              node.children.push(note);
+              return true;
+            }
+
+            if (isFolder(node)) {
+              if (addNoteToFolder(node.children)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+
+        addNoteToFolder(prevNotes);
+      });
+
+      // If adding to a folder, also expand that folder
+      setFolderExpanded(id, true);
     }
+
+    // Select the newly created note and set view mode properly
+    setSelectedItemId(noteId);
+
+    // Ensure we're not in folder viewing mode
+    setIsViewingFolder(false);
+
+    return noteId;
   };
 
   /**
@@ -619,6 +663,17 @@ function NotesProvider({ children }: PropsWithChildren) {
         }
       }
     });
+
+    // If we're updating the name from empty to something, select the note to ensure focus
+    if (
+      updateProps.name &&
+      updateProps.name !== "" &&
+      getNote(id)?.name === ""
+    ) {
+      // Ensure we're in note view mode after naming the note
+      setIsViewingFolder(false);
+      selectNote(id);
+    }
   };
 
   const updateFolder: NotesContext["updateFolder"] = (id, updateProps) => {
@@ -686,6 +741,7 @@ function NotesProvider({ children }: PropsWithChildren) {
 
     setSelectedItemId(id);
     setCurrentPath(result.path);
+    // Always ensure we're not in folder view mode when selecting a note
     setIsViewingFolder(false);
   };
 

@@ -27,6 +27,7 @@ import {
   Trash2,
 } from "lucide-react";
 import React, { useState } from "react";
+import { AddNoteButton } from "./actions/add-note-button";
 import { DeleteNoteDialog } from "./delete-note-dialog";
 
 interface FolderViewProps {
@@ -157,14 +158,22 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
       setDroppableRef(node);
     };
 
+    // Track hover state for showing the add note button
+    const [isHovered, setIsHovered] = useState(false);
+
     return (
-      <div ref={combinedRef} className="draggable-folder-item space-y-1.5">
+      <div
+        ref={combinedRef}
+        className="draggable-folder-item space-y-1.5"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <div
           {...attributes}
           {...listeners}
           onClick={(e) => toggleFolder(folder.id, e)}
           className={cn(
-            "group flex items-center p-2 rounded-md transition-colors cursor-pointer border",
+            "group flex items-center p-2 rounded-md transition-colors cursor-pointer border relative",
             isDragging
               ? "opacity-50 bg-accent border-dashed border-accent"
               : "hover:bg-accent hover:text-accent-foreground border-transparent hover:border-border bg-accent-foreground/5",
@@ -187,6 +196,19 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
           <span className="text-xs text-primary/80 font-semibold ml-2 px-1.5 py-0.5 rounded-full bg-primary/10">
             {folder.children.length}
           </span>
+
+          {/* Add Note Button on Hover */}
+          {isHovered && (
+            <div className="absolute right-2 top-2">
+              <AddNoteButton
+                folderId={folder.id}
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                showTooltip={true}
+              />
+            </div>
+          )}
         </div>
 
         {/* Render children only if folder is expanded */}
@@ -376,11 +398,21 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
               </button>
             )}
           </div>
-          <div className="ml-7">
+          <div className="ml-7 flex-1">
             <h2 className="text-xl font-semibold text-foreground flex items-center">
               <Folder className="h-6 w-6 text-muted-foreground mr-2 absolute -ml-7" />
               {folder.name}
             </h2>
+          </div>
+
+          {/* Add Note Button in header */}
+          <div className="flex items-center gap-2">
+            <AddNoteButton
+              folderId={folder.id}
+              variant="outline"
+              size="default"
+              showTooltip={false}
+            />
           </div>
         </div>
 

@@ -29,6 +29,7 @@ export default function TiptapEditor({
       onUpdate: handleContentUpdate,
       shouldRerenderOnTransaction: false,
       autofocus: true,
+      editable: true,
       editorProps: {
         attributes: {
           class:
@@ -36,8 +37,8 @@ export default function TiptapEditor({
         },
       },
     },
-    [note.id]
+    [note.id, note.name]
   );
 
-  return <EditorContent editor={editor} className="flex justify-center"/>;
+  return <EditorContent editor={editor} className="flex justify-center" />;
 }

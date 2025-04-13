@@ -9,13 +9,19 @@ import {
   FolderPlusIcon,
 } from "lucide-react";
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -34,12 +40,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import strings from "@/lib/strings";
 import {
   Note,
   useNotes,
   type FolderNode,
   type NoteTree,
 } from "../state-providers/use-notes";
+import { AddNoteButton } from "./notes/actions/add-note-button";
 import { ThemeSelector } from "./themes/theme-selector";
 
 export function NotesSidebar({
@@ -153,15 +161,37 @@ function FolderNode({
     setFolderExpanded,
     isDirectPathToNote,
     isFromUrl,
+    addNote,
+    deleteNote,
   } = useNotes();
 
   // Use the global expanded state instead of local state
   const isOpen = expandedFolderIds.has(folder.id);
   const [isAutoExpanding, setIsAutoExpanding] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   function handleNameChange(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
-      onNameChange(event.currentTarget.value);
+      const value = event.currentTarget.value.trim();
+      if (value) {
+        onNameChange(value);
+      }
+    } else if (event.key === "Escape") {
+      // We don't delete folders on cancel since they might contain notes
+      // Just set a default name instead
+      onNameChange("New Folder");
+    }
+  }
+
+  function handleBlur(event: React.FocusEvent<HTMLInputElement>) {
+    const value = event.currentTarget.value.trim();
+    if (value) {
+      onNameChange(value);
+    } else {
+      // We don't delete folders on empty name since they might contain notes
+      // Just set a default name instead
+      onNameChange("New Folder");
     }
   }
 
@@ -172,6 +202,18 @@ function FolderNode({
   function handleOpenChange(open: boolean) {
     setFolderExpanded(folder.id, open);
   }
+
+  function handleAddNote(e: React.MouseEvent) {
+    e.stopPropagation();
+    addNote(folder.id);
+  }
+
+  // Ensure input is focused
+  useEffect(() => {
+    if (!folder.name && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [folder.name]);
 
   // Handle initial expansion when navigating via URL
   useEffect(() => {
@@ -193,42 +235,82 @@ function FolderNode({
     : "transition-all duration-150 ease-in-out";
 
   return (
-    <SidebarMenuItem key={folder.id}>
-      <Collapsible
-        className={`group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90 ${animationClass}`}
-        open={isOpen}
-        onOpenChange={handleOpenChange}
-      >
-        <CollapsibleTrigger asChild>
-          <SidebarMenuButton className="collapsible-trigger">
-            <ChevronRight className="transition-transform duration-200" />
-            <div
-              className="flex items-center flex-1 cursor-pointer"
-              onClick={handleFolderClick}
-            >
-              <Folder className="mr-2 shrink-0" />
-              {folder.name ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="sidebar-text-truncate">{folder.name}</span>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" align="start">
-                    {folder.name}
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                <Input className="h-5" autoFocus onKeyDown={handleNameChange} />
-              )}
-            </div>
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
-        <CollapsibleContent className={`overflow-hidden ${animationClass}`}>
-          <SidebarMenuSub className="animate-slideDownAndFade">
-            <NotesTree notes={folder.children} />
-          </SidebarMenuSub>
-        </CollapsibleContent>
-      </Collapsible>
-    </SidebarMenuItem>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <SidebarMenuItem key={folder.id}>
+          <Collapsible
+            className={`group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90 ${animationClass}`}
+            open={isOpen}
+            onOpenChange={handleOpenChange}
+          >
+            <CollapsibleTrigger asChild>
+              <SidebarMenuButton
+                className="collapsible-trigger relative"
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+              >
+                <ChevronRight className="transition-transform duration-200" />
+                <div
+                  className="flex items-center flex-1 cursor-pointer"
+                  onClick={handleFolderClick}
+                >
+                  <Folder className="mr-2 shrink-0" />
+                  {folder.name ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="sidebar-text-truncate">
+                          {folder.name}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" align="center">
+                        {folder.name}
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Input
+                      ref={inputRef}
+                      className="h-5"
+                      autoFocus
+                      onKeyDown={handleNameChange}
+                      onBlur={handleBlur}
+                      placeholder="Enter folder name..."
+                    />
+                  )}
+                </div>
+
+                {/* Add Note Button on Hover */}
+                {isHovered && (
+                  <div
+                    className="absolute right-2 opacity-0 group-hover/collapsible:opacity-100 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <AddNoteButton
+                      folderId={folder.id}
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                    />
+                  </div>
+                )}
+              </SidebarMenuButton>
+            </CollapsibleTrigger>
+            <CollapsibleContent className={`overflow-hidden ${animationClass}`}>
+              <SidebarMenuSub className="animate-slideDownAndFade">
+                <NotesTree notes={folder.children} />
+              </SidebarMenuSub>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarMenuItem>
+      </ContextMenuTrigger>
+
+      {/* Context Menu for right-click */}
+      <ContextMenuContent className="w-52">
+        <ContextMenuItem onClick={handleAddNote} className="cursor-pointer">
+          <FileEdit className="mr-2 h-4 w-4" />
+          <span>{strings.notes.contextMenu.addNote}</span>
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -239,13 +321,44 @@ function NoteNode({
   noteNode: Note;
   onNameChange: (name: string) => void;
 }) {
-  const { selectNote, currentNote } = useNotes();
+  const { selectNote, currentNote, deleteNote } = useNotes();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   function handleNameChange(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
-      onNameChange(event.currentTarget.value);
+      const value = event.currentTarget.value.trim();
+      if (value) {
+        onNameChange(value);
+        // Explicitly select the note after naming it
+        selectNote(noteNode.id);
+      } else {
+        // Delete note if name is empty
+        deleteNote(noteNode.id);
+      }
+    } else if (event.key === "Escape") {
+      // Delete note if user presses Escape
+      deleteNote(noteNode.id);
     }
   }
+
+  function handleBlur(event: React.FocusEvent<HTMLInputElement>) {
+    const value = event.currentTarget.value.trim();
+    if (value) {
+      onNameChange(value);
+      // Explicitly select the note after naming it
+      selectNote(noteNode.id);
+    } else {
+      // Delete note if name is empty on blur
+      deleteNote(noteNode.id);
+    }
+  }
+
+  // Ensure input is focused
+  useEffect(() => {
+    if (!noteNode.name && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [noteNode.name]);
 
   return (
     <SidebarMenuButton
@@ -260,12 +373,19 @@ function NoteNode({
           <TooltipTrigger asChild>
             <span className="sidebar-text-truncate">{noteNode.name}</span>
           </TooltipTrigger>
-          <TooltipContent side="right" align="start">
+          <TooltipContent side="bottom" align="center">
             {noteNode.name}
           </TooltipContent>
         </Tooltip>
       ) : (
-        <Input className="h-7" autoFocus onKeyDown={handleNameChange} />
+        <Input
+          ref={inputRef}
+          className="h-7"
+          autoFocus
+          onKeyDown={handleNameChange}
+          onBlur={handleBlur}
+          placeholder="Enter note name..."
+        />
       )}
     </SidebarMenuButton>
   );

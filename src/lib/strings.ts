@@ -12,6 +12,7 @@ const strings = {
   },
   notes: {
     rootFolderName: "All Notes",
+    noNoteSelected: "No note selected",
     folderView: {
       emptyFolder: {
         title: "This folder is empty",
@@ -23,6 +24,10 @@ const strings = {
       },
       parentButton: {
         ariaLabel: "Go to parent folder",
+      },
+      addNote: {
+        label: "New Note",
+        ariaLabel: "Create new note in this folder",
       },
     },
     deleteDialog: {
@@ -40,6 +45,9 @@ const strings = {
       },
       tooltip: "Copy link to share this note",
       copied: "Link copied!",
+    },
+    contextMenu: {
+      addNote: "New Note",
     },
   },
 };

@@ -128,7 +128,7 @@ function SidebarProvider({
 
   return (
     <SidebarContext.Provider value={contextValue}>
-      <TooltipProvider delayDuration={0}>
+      <TooltipProvider delayDuration={300}>
         <div
           data-slot="sidebar-wrapper"
           style={
@@ -510,6 +510,13 @@ function SidebarMenuButton({
 } & VariantProps<typeof sidebarMenuButtonVariants>) {
   const Comp = asChild ? Slot : "button";
   const { isMobile, state } = useSidebar();
+  const [isHoveringAction, setIsHoveringAction] = React.useState(false);
+
+  // Use context to share hover state with child action buttons
+  const buttonContextValue = React.useMemo(
+    () => ({ isHoveringAction, setIsHoveringAction }),
+    [isHoveringAction, setIsHoveringAction]
+  );
 
   const button = (
     <Comp
@@ -538,7 +545,7 @@ function SidebarMenuButton({
       <TooltipContent
         side="right"
         align="center"
-        hidden={state !== "collapsed" || isMobile}
+        hidden={state !== "collapsed" || isMobile || isHoveringAction}
         {...tooltip}
       />
     </Tooltip>
@@ -555,6 +562,8 @@ function SidebarMenuAction({
   showOnHover?: boolean;
 }) {
   const Comp = asChild ? Slot : "button";
+  // Create a context for action buttons
+  const [isHoveringAction, setIsHoveringAction] = React.useState(false);
 
   return (
     <Comp
@@ -572,6 +581,24 @@ function SidebarMenuAction({
           "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
         className
       )}
+      onMouseEnter={() => {
+        // When hovering over action button, suppress tooltips
+        const parentItem = document.activeElement?.closest(
+          '[data-sidebar="menu-item"]'
+        );
+        if (parentItem) {
+          parentItem.setAttribute("data-suppress-tooltip", "true");
+        }
+      }}
+      onMouseLeave={() => {
+        // When mouse leaves action button, allow tooltips again
+        const parentItem = document.activeElement?.closest(
+          '[data-sidebar="menu-item"]'
+        );
+        if (parentItem) {
+          parentItem.removeAttribute("data-suppress-tooltip");
+        }
+      }}
       {...props}
     />
   );
@@ -643,7 +670,7 @@ function SidebarMenuSub({ className, ...props }: React.ComponentProps<"ul">) {
       data-slot="sidebar-menu-sub"
       data-sidebar="menu-sub"
       className={cn(
-        "border-sidebar-border mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l px-2.5 py-0.5",
+        "border-sidebar-border ml-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l pl-2.5 py-0.5",
         "group-data-[collapsible=icon]:hidden",
         className
       )}
