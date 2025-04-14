@@ -1,3 +1,4 @@
+import { ConfirmProvider } from "@/hooks/use-confirm";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "../components/themes/theme-provider";
@@ -32,7 +33,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <ConfirmProvider>{children}</ConfirmProvider>
         </ThemeProvider>
       </body>
     </html>

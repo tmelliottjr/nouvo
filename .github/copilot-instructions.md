@@ -34,26 +34,6 @@ Noevo is a note-taking application built with modern web technologies. This docu
 
 When controlling navigation, we use the Next.js router for client-side navigation. This allows us to take advantage of Next.js's built-in features like prefetching and dynamic routing. We should avoid using state and `useEffect` for navigation, as it can lead to unnecessary complexity and performance issues.
 
-### 1. Modular Component Structure
-
-- **Single Responsibility**: Each component should focus on one specific functionality
-- **Composability**: Build larger components by composing smaller ones
-- **Reusability**: Create components that can be reused across the application
-
-Example:
-
-```tsx
-// Good: Breaking down a complex UI into modular components
-<NoteView>
-  <NoteHeader />
-  {isViewingFolder ? (
-    <FolderView folder={currentFolder} />
-  ) : (
-    <NoteEditor note={currentNote} />
-  )}
-</NoteView>
-```
-
 ### 2. State Management
 
 - Use React Context for global state shared across multiple components
@@ -130,6 +110,28 @@ Example:
 
 ### Component Design
 
+## Modular Component Structure
+
+- **Single Responsibility**: Each component should focus on one specific functionality
+- **Composability**: Build larger components by composing smaller ones
+- **Reusability**: Create components that can be reused across the application
+
+Example:
+
+```tsx
+// Good: Breaking down a complex UI into modular components
+<NoteView>
+  <NoteHeader />
+  {isViewingFolder ? (
+    <FolderView folder={currentFolder} />
+  ) : (
+    <NoteEditor note={currentNote} />
+  )}
+</NoteView>
+```
+
+## Component Organization
+
 Components follow a domain-based structure:
 
 - ui: Reusable UI elements (buttons, inputs, etc.)
@@ -151,6 +153,7 @@ Components follow a domain-based structure:
 
 - **Avoiding Component Bloat**:
 
+  - When creating components, prefer creating new files over adding to existing ones
   - Keep components under 100-150 lines of code
   - Extract repeated patterns into separate components
   - Split complex rendering logic into smaller components
