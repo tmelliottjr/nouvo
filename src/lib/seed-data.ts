@@ -36,6 +36,41 @@ export type CreationStateMap = {
   [id: string]: NodeCreationState;
 };
 
+// Tag related types
+export interface TagSetting {
+  name: string;
+  color: string;
+}
+
+// Initial tag settings to be used as seed data
+export const seedTagSettings: TagSetting[] = [
+  { name: "work", color: "blue-500" },
+  { name: "personal", color: "green-500" },
+  { name: "ideas", color: "purple-500" },
+  { name: "meeting", color: "yellow-500" },
+  { name: "todo", color: "red-500" },
+  { name: "important", color: "orange-500" },
+  { name: "travel", color: "teal-500" },
+  { name: "project", color: "indigo-500" },
+  { name: "research", color: "cyan-500" },
+  { name: "learning", color: "pink-500" },
+  { name: "frontend", color: "blue-500" },
+  { name: "architecture", color: "indigo-500" },
+  { name: "react", color: "cyan-500" },
+  { name: "vue", color: "green-500" },
+  { name: "react-native", color: "blue-500" },
+  { name: "flutter", color: "blue-500" },
+  { name: "mobile", color: "purple-500" },
+  { name: "planning", color: "yellow-500" },
+  { name: "food", color: "orange-500" },
+  { name: "italian", color: "red-500" },
+  { name: "dessert", color: "pink-500" },
+  { name: "requirements", color: "teal-500" },
+  { name: "meetings", color: "yellow-500" },
+  { name: "shopping", color: "green-500" },
+  { name: "development", color: "blue-500" },
+];
+
 /**
  * Seed data for the notes application.
  * Flat structure with parent/child relationships for efficient operations.

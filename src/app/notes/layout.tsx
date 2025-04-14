@@ -2,6 +2,7 @@
 
 import { NotesSidebar } from "@/components/notes-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { TagSearchProvider } from "@/state-providers/tag-search-provider";
 import { NotesProvider } from "@/state-providers/use-notes";
 import React from "react";
 
@@ -12,10 +13,12 @@ export default function NotesLayout({
 }) {
   return (
     <NotesProvider>
-      <SidebarProvider>
-        <NotesSidebar />
-        <SidebarInset>{children}</SidebarInset>
-      </SidebarProvider>
+      <TagSearchProvider>
+        <SidebarProvider>
+          <NotesSidebar />
+          <SidebarInset>{children}</SidebarInset>
+        </SidebarProvider>
+      </TagSearchProvider>
     </NotesProvider>
   );
 }

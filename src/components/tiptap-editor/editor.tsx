@@ -1,12 +1,13 @@
+import { NoteNode } from "@/lib/seed-data";
 import { EditorContent, EditorEvents, useEditor } from "@tiptap/react";
-import { Note } from "../../state-providers/use-notes";
+import { EditorToolbar } from "./EditorToolbar";
 import { extensions } from "./plugins";
 
 export default function TiptapEditor({
   note,
   onUpdate,
 }: {
-  note: Note;
+  note: NoteNode;
   onUpdate: (content: string) => void;
 }) {
   const handleContentUpdate = ({ editor }: EditorEvents["update"]) => {
@@ -40,5 +41,10 @@ export default function TiptapEditor({
     [note.id, note.name]
   );
 
-  return <EditorContent editor={editor} className="flex justify-center" />;
+  return (
+    <div className="flex flex-col w-full">
+      <EditorToolbar noteId={note.id} tags={note.tags} />
+      <EditorContent editor={editor} className="flex justify-center" />
+    </div>
+  );
 }

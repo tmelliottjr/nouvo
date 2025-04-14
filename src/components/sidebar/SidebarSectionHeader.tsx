@@ -22,22 +22,29 @@ export function SidebarSectionHeader({
   );
 
   return (
-    <>
-      {href ? (
-        <Link
-          href={href}
-          className="flex items-center cursor-pointer hover:bg-stone-100 dark:hover:bg-stone-800 rounded-md px-2 py-1"
-        >
-          <HeaderContent />
-        </Link>
-      ) : (
-        <div className="flex items-center px-2 py-1">
-          <HeaderContent />
-        </div>
+    <div className="flex items-center justify-between w-full gap-2 px-2">
+      <div className="flex-shrink-0">
+        {href ? (
+          <Link
+            href={href}
+            className="flex items-center cursor-pointer hover:bg-stone-100 dark:hover:bg-stone-800 rounded-md py-1"
+          >
+            <HeaderContent />
+          </Link>
+        ) : (
+          <div className="flex items-center py-1">
+            <HeaderContent />
+          </div>
+        )}
+      </div>
+
+      {actions && actions.length > 0 && (
+        <>
+          {actions.map((action, index) => (
+            <React.Fragment key={index}>{action}</React.Fragment>
+          ))}
+        </>
       )}
-      {actions?.map((action, index) => (
-        <React.Fragment key={index}>{action}</React.Fragment>
-      ))}
-    </>
+    </div>
   );
 }
