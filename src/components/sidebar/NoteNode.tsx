@@ -4,7 +4,6 @@ import { useConfirmDeleteNote } from "@/hooks/use-confirm-delete-note";
 import { NoteNode as NoteNodeType } from "@/lib/seed-data";
 import strings from "@/lib/strings";
 import { useNotes } from "@/state-providers/use-notes";
-import { useDraggable } from "@dnd-kit/core";
 import { Pencil, Trash2 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { SidebarLink } from "./SidebarLink";
@@ -14,15 +13,10 @@ import { TreeNodeInput } from "./tree-components/TreeNodeInput";
 
 interface NoteNodeProps {
   noteNode: NoteNodeType;
-  onNameChange: (name: string) => void;
-  isDraggable?: boolean;
+  onNameChange?: (name: string) => void;
 }
 
-export function NoteNode({
-  noteNode,
-  onNameChange,
-  isDraggable = false,
-}: NoteNodeProps) {
+export function NoteNode({ noteNode, onNameChange }: NoteNodeProps) {
   const {
     currentNote,
     deleteNote,
@@ -47,16 +41,6 @@ export function NoteNode({
   // Use creation state from our normalized structure, or fallback to local state
   const showInput = isInCreationState || isRenaming;
 
-  // Set up draggable functionality if enabled
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: noteNode.id,
-    disabled: !isDraggable || isInCreationState || isRenaming,
-    data: {
-      type: "note",
-      id: noteNode.id,
-    },
-  });
-
   // Handle input blur for both rename and creation cases
   function handleInputBlur(event: React.FocusEvent<HTMLInputElement>) {
     const value = event.currentTarget.value.trim();
@@ -73,6 +57,7 @@ export function NoteNode({
       // Regular rename case
       if (value) {
         updateNote(noteNode.id, { name: value });
+        if (onNameChange) onNameChange(value);
       }
       // Clear renaming state
       setIsRenaming(false);
@@ -89,6 +74,7 @@ export function NoteNode({
           completeNodeCreation(noteNode.id, value);
         } else {
           updateNote(noteNode.id, { name: value });
+          if (onNameChange) onNameChange(value);
           setIsRenaming(false);
           // Select note after renaming
           selectNote(noteNode.id);
@@ -164,22 +150,12 @@ export function NoteNode({
   }
 
   return (
-    <div
-      ref={isDraggable ? setNodeRef : undefined}
-      className={`
-        transition-all duration-200
-        ${isDragging ? "opacity-50 scale-95" : ""}
-      `}
-      {...(isDraggable ? attributes : {})}
-      {...(isDraggable ? listeners : {})}
-    >
+    <div className="transition-all duration-200">
       <ContextMenuWrapper menuItems={noteContextMenuItems}>
         <SidebarLink
           href={`/notes/${noteNode.id}`}
           isActive={noteNode.id === currentNote?.id}
-          className={`relative tree-item ${
-            isDraggable ? (isDragging ? "cursor-grabbing" : "cursor-grab") : ""
-          }`}
+          className="relative tree-item"
         >
           <NoteNodeContent noteNode={noteNode} />
         </SidebarLink>

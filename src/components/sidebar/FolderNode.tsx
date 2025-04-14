@@ -15,7 +15,6 @@ import { useFolderExpansion } from "@/hooks/use-folder-expansion";
 import { FolderNode as FolderNodeType } from "@/lib/seed-data";
 import strings from "@/lib/strings";
 import { useNotes } from "@/state-providers/use-notes";
-import { useDraggable, useDroppable } from "@dnd-kit/core";
 import {
   ChevronRight,
   FileEdit,
@@ -31,15 +30,10 @@ import { TreeNodeInput } from "./tree-components/TreeNodeInput";
 
 interface FolderNodeProps {
   folder: FolderNodeType;
-  onNameChange: (name: string) => void;
-  isDraggable?: boolean;
+  onNameChange?: (name: string) => void;
 }
 
-export function FolderNode({
-  folder,
-  onNameChange,
-  isDraggable = false,
-}: FolderNodeProps) {
+export function FolderNode({ folder, onNameChange }: FolderNodeProps) {
   const {
     deleteFolder,
     addNote,
@@ -79,47 +73,6 @@ export function FolderNode({
   // Determine if we should show input based on creation state or rename state
   const showInput = isInCreationState || isRenaming;
 
-  // Set up draggable functionality if enabled
-  const {
-    attributes,
-    listeners,
-    setNodeRef: setDraggableRef,
-    isDragging,
-  } = useDraggable({
-    id: folder.id,
-    disabled: !isDraggable || isInCreationState || isRenaming,
-    data: {
-      type: "folder",
-      id: folder.id,
-    },
-  });
-
-  // Set up droppable functionality
-  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
-    id: folder.id,
-    data: {
-      type: "folder",
-      id: folder.id,
-      accepts: ["folder", "note"],
-    },
-  });
-
-  // Combine droppable and draggable refs
-  const setRefs = (element: HTMLElement | null) => {
-    setDraggableRef(element);
-    setDroppableRef(element);
-  };
-
-  // Auto-expand folder when dragging over it for a short time
-  useEffect(() => {
-    if (isOver && !isExpanded) {
-      const timer = setTimeout(() => {
-        setFolderExpanded(folder.id, true);
-      }, 800); // Wait 800ms before expanding
-      return () => clearTimeout(timer);
-    }
-  }, [isOver, isExpanded, folder.id, setFolderExpanded]);
-
   function handleNameChange(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
       const value = event.currentTarget.value.trim();
@@ -127,14 +80,14 @@ export function FolderNode({
         if (isInCreationState) {
           completeNodeCreation(folder.id, value);
         } else {
-          onNameChange(value);
+          if (onNameChange) onNameChange(value);
           selectFolder(folder.id);
         }
       } else if (event.key === "Escape") {
         if (isInCreationState) {
           completeNodeCreation(folder.id, "New Folder");
         } else {
-          onNameChange("New Folder");
+          if (onNameChange) onNameChange("New Folder");
           selectFolder(folder.id);
         }
       }
@@ -147,14 +100,14 @@ export function FolderNode({
       if (isInCreationState) {
         completeNodeCreation(folder.id, value);
       } else {
-        onNameChange(value);
+        if (onNameChange) onNameChange(value);
         selectFolder(folder.id);
       }
     } else {
       if (isInCreationState) {
         completeNodeCreation(folder.id, "New Folder");
       } else {
-        onNameChange("New Folder");
+        if (onNameChange) onNameChange("New Folder");
         selectFolder(folder.id);
       }
     }
@@ -292,21 +245,7 @@ export function FolderNode({
   }
 
   return (
-    <SidebarMenuItem
-      key={folder.id}
-      ref={setRefs}
-      className={`
-        transition-all duration-200
-        ${isDragging ? "opacity-50" : ""}
-        ${
-          isOver
-            ? "bg-accent/30 border border-primary/40 rounded-md shadow-sm"
-            : ""
-        }
-      `}
-      {...(isDraggable ? attributes : {})}
-      {...(isDraggable ? listeners : {})}
-    >
+    <SidebarMenuItem key={folder.id}>
       <Collapsible
         className={`[&[data-state=open]>button>svg:first-child]:rotate-90 ${animationClass}`}
         open={isExpanded}
@@ -314,18 +253,7 @@ export function FolderNode({
       >
         <ContextMenuWrapper menuItems={folderContextMenuItems}>
           <CollapsibleTrigger asChild>
-            <SidebarMenuButton
-              className={`
-                collapsible-trigger relative 
-                ${
-                  isDraggable
-                    ? isDragging
-                      ? "cursor-grabbing"
-                      : "cursor-grab"
-                    : ""
-                }
-              `}
-            >
+            <SidebarMenuButton className="collapsible-trigger relative">
               <ChevronRight className="h-4 w-4 transition-transform duration-200" />
               <div
                 className="flex items-center flex-1 cursor-pointer"
