@@ -30,8 +30,8 @@ export function NoteNode({ noteNode, onNameChange }: NoteNodeProps) {
   // Local state to manage renaming and new node status
   const [isRenaming, setIsRenaming] = useState(false);
 
-  // Input ref for auto-focus
-  const inputRef = useRef<HTMLInputElement>(null);
+  // Input ref for auto-focus - explicitly defining as non-null
+  const inputRef = useRef<HTMLInputElement>(null!);
 
   // Check if this node is being created or edited
   const creationState = creationStateById?.[noteNode.id];
@@ -137,7 +137,7 @@ export function NoteNode({ noteNode, onNameChange }: NoteNodeProps) {
     return (
       <div className="flex items-center px-3 py-2 text-sm font-medium rounded-md w-full">
         <TreeNodeInput
-          ref={inputRef}
+          inputRef={inputRef}
           autoFocus
           className="flex-1 min-w-0"
           onKeyDown={handleInputKeyDown}

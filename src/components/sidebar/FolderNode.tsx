@@ -56,9 +56,9 @@ export function FolderNode({ folder, onNameChange }: FolderNodeProps) {
   const isInCreationState =
     creationState?.status === "creating" || creationState?.status === "editing";
 
-  // Input refs for better focus management
-  const inputRef = useRef<HTMLInputElement>(null);
-  const renameInputRef = useRef<HTMLInputElement>(null);
+  // Input refs for better focus management - using non-null assertion
+  const inputRef = useRef<HTMLInputElement>(null!);
+  const renameInputRef = useRef<HTMLInputElement>(null!);
 
   const isExpanded = expandedFolderIds.has(folder.id);
   const isInPath = isDirectPathToNote(folder.id);
@@ -83,13 +83,13 @@ export function FolderNode({ folder, onNameChange }: FolderNodeProps) {
           if (onNameChange) onNameChange(value);
           selectFolder(folder.id);
         }
-      } else if (event.key === "Escape") {
-        if (isInCreationState) {
-          completeNodeCreation(folder.id, "New Folder");
-        } else {
-          if (onNameChange) onNameChange("New Folder");
-          selectFolder(folder.id);
-        }
+      }
+    } else if (event.key === "Escape") {
+      if (isInCreationState) {
+        completeNodeCreation(folder.id, "New Folder");
+      } else {
+        if (onNameChange) onNameChange("New Folder");
+        selectFolder(folder.id);
       }
     }
   }
@@ -164,14 +164,13 @@ export function FolderNode({ folder, onNameChange }: FolderNodeProps) {
   async function handleDelete(e: React.MouseEvent) {
     e.stopPropagation();
 
-    const hasChildren = folder.childIds.length > 0;
-    const confirmMessage = hasChildren
-      ? strings.notes.confirmDeleteFolderWithContents
-      : strings.notes.confirmDeleteFolder;
+    const confirmMessage = strings.notes.deleteDialog.folderDescription(
+      folder.name
+    );
 
     const confirmed = await confirm({
-      title: strings.notes.deleteFolder,
-      description: confirmMessage.replace("{name}", folder.name),
+      title: strings.notes.deleteDialog.folderTitle,
+      description: confirmMessage,
       confirmText: strings.common.delete,
       cancelText: strings.common.cancel,
     });
@@ -233,7 +232,7 @@ export function FolderNode({ folder, onNameChange }: FolderNodeProps) {
           <TreeNodeInput
             autoFocus
             className="flex-1 min-w-0"
-            ref={isInCreationState ? inputRef : renameInputRef}
+            inputRef={isInCreationState ? inputRef : renameInputRef}
             onKeyDown={isRenaming ? handleRenameKeyDown : handleNameChange}
             onBlur={isRenaming ? handleRenameBlur : handleBlur}
             initialValue={folder.name}
@@ -271,7 +270,6 @@ export function FolderNode({ folder, onNameChange }: FolderNodeProps) {
                   onAddNote={handleAddNote}
                   onAddFolder={handleAddFolder}
                   onRename={handleRename}
-                  onDelete={handleDelete}
                 />
               </div>
             </SidebarMenuButton>
