@@ -8,11 +8,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { NoteNode } from "@/lib/seed-data";
 import strings from "@/lib/strings";
-import { Note } from "@/state-providers/use-notes";
 
 interface DeleteNoteDialogProps {
-  note: Note | null;
+  note: NoteNode | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;

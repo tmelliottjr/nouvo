@@ -10,8 +10,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { FolderNode } from "@/lib/seed-data";
 import strings from "@/lib/strings";
-import { FolderNode, useNotes } from "@/state-providers/use-notes";
+import { useNotes } from "@/state-providers/use-notes";
 
 interface DeleteFolderDialogProps {
   folder: FolderNode;

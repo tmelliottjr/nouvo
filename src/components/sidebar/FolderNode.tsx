@@ -10,12 +10,12 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
 } from "@/components/ui/sidebar";
+import { useConfirm } from "@/hooks/use-confirm";
 import { useFolderExpansion } from "@/hooks/use-folder-expansion";
+import { FolderNode as FolderNodeType } from "@/lib/seed-data";
 import strings from "@/lib/strings";
-import {
-  FolderNode as FolderNodeType,
-  useNotes,
-} from "@/state-providers/use-notes";
+import { useNotes } from "@/state-providers/use-notes";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 import {
   ChevronRight,
   FileEdit,
@@ -27,66 +27,136 @@ import React, { useEffect, useRef, useState } from "react";
 import { NotesTree } from "./NotesTree";
 import { ContextMenuWrapper } from "./tree-components/ContextMenuWrapper";
 import { FolderNodeContent } from "./tree-components/FolderNodeContent";
+import { TreeNodeInput } from "./tree-components/TreeNodeInput";
 
 interface FolderNodeProps {
   folder: FolderNodeType;
   onNameChange: (name: string) => void;
+  isDraggable?: boolean;
 }
 
-export function FolderNode({ folder, onNameChange }: FolderNodeProps) {
+export function FolderNode({
+  folder,
+  onNameChange,
+  isDraggable = false,
+}: FolderNodeProps) {
   const {
-    selectFolder,
+    deleteFolder,
+    addNote,
+    addFolder: addFolderToFolder,
+    isDirectPathToNote,
     expandedFolderIds,
     setFolderExpanded,
-    isDirectPathToNote,
-    isFromUrl,
-    addNote,
-    addFolder,
+    selectFolder,
     updateFolder,
+    creationStateById,
+    completeNodeCreation,
   } = useNotes();
+  const { confirm } = useConfirm();
 
+  // Local state for rename functionality
   const [isRenaming, setIsRenaming] = useState(false);
-  // Use the global expanded state instead of local state
-  const isOpen = expandedFolderIds.has(folder.id);
+
+  // Check if folder is in creation state
+  const creationState = creationStateById?.[folder.id];
+  const isInCreationState =
+    creationState?.status === "creating" || creationState?.status === "editing";
+
+  // Input refs for better focus management
   const inputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
+
+  const isExpanded = expandedFolderIds.has(folder.id);
+  const isInPath = isDirectPathToNote(folder.id);
 
   // Use our custom hook for folder expansion animation
   const { animationClass } = useFolderExpansion(
     folder.id,
-    isFromUrl,
+    isInPath,
     isDirectPathToNote
   );
+
+  // Determine if we should show input based on creation state or rename state
+  const showInput = isInCreationState || isRenaming;
+
+  // Set up draggable functionality if enabled
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDraggableRef,
+    isDragging,
+  } = useDraggable({
+    id: folder.id,
+    disabled: !isDraggable || isInCreationState || isRenaming,
+    data: {
+      type: "folder",
+      id: folder.id,
+    },
+  });
+
+  // Set up droppable functionality
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    id: folder.id,
+    data: {
+      type: "folder",
+      id: folder.id,
+      accepts: ["folder", "note"],
+    },
+  });
+
+  // Combine droppable and draggable refs
+  const setRefs = (element: HTMLElement | null) => {
+    setDraggableRef(element);
+    setDroppableRef(element);
+  };
+
+  // Auto-expand folder when dragging over it for a short time
+  useEffect(() => {
+    if (isOver && !isExpanded) {
+      const timer = setTimeout(() => {
+        setFolderExpanded(folder.id, true);
+      }, 800); // Wait 800ms before expanding
+      return () => clearTimeout(timer);
+    }
+  }, [isOver, isExpanded, folder.id, setFolderExpanded]);
 
   function handleNameChange(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
       const value = event.currentTarget.value.trim();
       if (value) {
-        onNameChange(value);
-        // Only select the folder after naming it
-        selectFolder(folder.id);
+        if (isInCreationState) {
+          completeNodeCreation(folder.id, value);
+        } else {
+          onNameChange(value);
+          selectFolder(folder.id);
+        }
+      } else if (event.key === "Escape") {
+        if (isInCreationState) {
+          completeNodeCreation(folder.id, "New Folder");
+        } else {
+          onNameChange("New Folder");
+          selectFolder(folder.id);
+        }
       }
-    } else if (event.key === "Escape") {
-      // We don't delete folders on cancel since they might contain notes
-      // Just set a default name instead
-      onNameChange("New Folder");
-      // Select the folder after naming
-      selectFolder(folder.id);
     }
   }
 
   function handleBlur(event: React.FocusEvent<HTMLInputElement>) {
     const value = event.currentTarget.value.trim();
     if (value) {
-      onNameChange(value);
-      // Only select the folder after naming it
-      selectFolder(folder.id);
+      if (isInCreationState) {
+        completeNodeCreation(folder.id, value);
+      } else {
+        onNameChange(value);
+        selectFolder(folder.id);
+      }
     } else {
-      // We don't delete folders on empty name since they might contain notes
-      // Just set a default name instead
-      onNameChange("New Folder");
-      // Select the folder after naming
-      selectFolder(folder.id);
+      if (isInCreationState) {
+        completeNodeCreation(folder.id, "New Folder");
+      } else {
+        onNameChange("New Folder");
+        selectFolder(folder.id);
+      }
     }
   }
 
@@ -115,9 +185,8 @@ export function FolderNode({ folder, onNameChange }: FolderNodeProps) {
     e.stopPropagation();
     // Toggle folder expansion instead of navigation
     if (folder.name) {
-      setFolderExpanded(folder.id, !isOpen);
+      setFolderExpanded(folder.id, !isExpanded);
     }
-    // If it doesn't have a name, do nothing - user needs to name it first
   }
 
   function handleOpenChange(open: boolean) {
@@ -131,7 +200,7 @@ export function FolderNode({ folder, onNameChange }: FolderNodeProps) {
 
   function handleAddFolder(e: React.MouseEvent) {
     e.stopPropagation();
-    addFolder(folder.id);
+    addFolderToFolder(folder.id);
   }
 
   function handleRename(e: React.MouseEvent) {
@@ -139,12 +208,32 @@ export function FolderNode({ folder, onNameChange }: FolderNodeProps) {
     setIsRenaming(true);
   }
 
-  // Ensure input is focused
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+
+    const hasChildren = folder.childIds.length > 0;
+    const confirmMessage = hasChildren
+      ? strings.notes.confirmDeleteFolderWithContents
+      : strings.notes.confirmDeleteFolder;
+
+    const confirmed = await confirm({
+      title: strings.notes.deleteFolder,
+      description: confirmMessage.replace("{name}", folder.name),
+      confirmText: strings.common.delete,
+      cancelText: strings.common.cancel,
+    });
+
+    if (confirmed) {
+      deleteFolder(folder.id);
+    }
+  }
+
+  // Ensure input is focused when in creation state
   useEffect(() => {
-    if (!folder.name && inputRef.current) {
+    if (isInCreationState && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [folder.name]);
+  }, [isInCreationState]);
 
   // Ensure rename input is focused when renaming
   useEffect(() => {
@@ -176,24 +265,67 @@ export function FolderNode({ folder, onNameChange }: FolderNodeProps) {
           {
             icon: <Trash2 className="mr-2 h-4 w-4" />,
             label: strings.notes.contextMenu.delete,
-            // Now the delete action is handled directly in FolderNodeContent
-            onClick: (e) => e.stopPropagation(),
+            onClick: handleDelete,
             destructive: true,
           },
         ]
       : []),
   ];
 
+  // If in creation or rename state, show input
+  if (showInput) {
+    return (
+      <SidebarMenuItem key={folder.id}>
+        <div className="flex items-center px-3 py-2 text-sm font-medium rounded-md w-full">
+          <TreeNodeInput
+            autoFocus
+            className="flex-1 min-w-0"
+            ref={isInCreationState ? inputRef : renameInputRef}
+            onKeyDown={isRenaming ? handleRenameKeyDown : handleNameChange}
+            onBlur={isRenaming ? handleRenameBlur : handleBlur}
+            initialValue={folder.name}
+            placeholder={strings.notes.folderView.rename.placeholder}
+          />
+        </div>
+      </SidebarMenuItem>
+    );
+  }
+
   return (
-    <SidebarMenuItem key={folder.id}>
+    <SidebarMenuItem
+      key={folder.id}
+      ref={setRefs}
+      className={`
+        transition-all duration-200
+        ${isDragging ? "opacity-50" : ""}
+        ${
+          isOver
+            ? "bg-accent/30 border border-primary/40 rounded-md shadow-sm"
+            : ""
+        }
+      `}
+      {...(isDraggable ? attributes : {})}
+      {...(isDraggable ? listeners : {})}
+    >
       <Collapsible
         className={`[&[data-state=open]>button>svg:first-child]:rotate-90 ${animationClass}`}
-        open={isOpen}
+        open={isExpanded}
         onOpenChange={handleOpenChange}
       >
         <ContextMenuWrapper menuItems={folderContextMenuItems}>
           <CollapsibleTrigger asChild>
-            <SidebarMenuButton className="collapsible-trigger relative">
+            <SidebarMenuButton
+              className={`
+                collapsible-trigger relative 
+                ${
+                  isDraggable
+                    ? isDragging
+                      ? "cursor-grabbing"
+                      : "cursor-grab"
+                    : ""
+                }
+              `}
+            >
               <ChevronRight className="h-4 w-4 transition-transform duration-200" />
               <div
                 className="flex items-center flex-1 cursor-pointer"
@@ -211,6 +343,7 @@ export function FolderNode({ folder, onNameChange }: FolderNodeProps) {
                   onAddNote={handleAddNote}
                   onAddFolder={handleAddFolder}
                   onRename={handleRename}
+                  onDelete={handleDelete}
                 />
               </div>
             </SidebarMenuButton>
@@ -218,7 +351,7 @@ export function FolderNode({ folder, onNameChange }: FolderNodeProps) {
         </ContextMenuWrapper>
         <CollapsibleContent className={`overflow-hidden ${animationClass}`}>
           <SidebarMenuSub className="animate-slideDownAndFade">
-            <NotesTree notes={folder.children} />
+            <NotesTree parentId={folder.id} />
           </SidebarMenuSub>
         </CollapsibleContent>
       </Collapsible>

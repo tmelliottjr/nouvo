@@ -8,11 +8,10 @@ import React from "react";
 
 interface AddFolderButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  parentId: string;
+  parentId?: string;
   variant?: "default" | "ghost" | "outline" | "secondary" | "link";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
-  showTooltip?: boolean;
   asChild?: boolean;
 }
 
@@ -24,11 +23,16 @@ export function AddFolderButton({
   asChild = false,
   ...props
 }: AddFolderButtonProps) {
-  const { addFolder } = useNotes();
+  const { addFolder, completeNodeCreation } = useNotes();
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent propagation to parent elements
-    addFolder(parentId);
+    const folderId = addFolder(parentId);
+
+    // After a short delay, we can trigger the naming process
+    setTimeout(() => {
+      completeNodeCreation(folderId, "New Folder");
+    }, 10);
   };
 
   // Always return the button without tooltip

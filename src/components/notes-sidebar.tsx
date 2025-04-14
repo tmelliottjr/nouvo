@@ -19,7 +19,7 @@ import { ThemeSelector } from "./themes/theme-selector";
 export function NotesSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
-  const { noteTree: notes, addNote, addFolder } = useNotes();
+  const { addNote, addFolder } = useNotes();
 
   return (
     <Sidebar {...props}>
@@ -68,7 +68,7 @@ export function NotesSidebar({
 
           <SidebarGroupContent>
             <SidebarMenu>
-              <NotesTree notes={notes} />
+              <NotesTree />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

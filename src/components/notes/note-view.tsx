@@ -1,8 +1,7 @@
+import { FolderNode } from "@/lib/seed-data";
 import strings from "@/lib/strings";
 import { useNotes } from "@/state-providers/use-notes";
 import { FileText } from "lucide-react";
-import { useParams } from "next/navigation";
-import { useEffect } from "react";
 import TiptapEditor from "../tiptap-editor/editor";
 import { EmptyState } from "./empty-state";
 import { FolderView } from "./folder-view";
@@ -15,7 +14,8 @@ export function NoteView() {
     updateNote,
     isViewingFolder,
     selectedItemId,
-    noteTree,
+    rootNodes,
+    rootIds,
     selectNote,
   } = useNotes();
 
@@ -33,16 +33,16 @@ export function NoteView() {
 
     // Show root folder view when nothing is selected
     if (selectedItemId === null) {
-      return (
-        <FolderView
-          isRootView={true}
-          folder={{
-            id: "root",
-            name: strings.notes.rootFolderName,
-            children: noteTree,
-          }}
-        />
-      );
+      // Create a virtual root folder from our rootNodes
+      const rootFolder: FolderNode = {
+        id: "root",
+        name: strings.notes.rootFolderName,
+        type: "folder",
+        parentId: null,
+        childIds: rootIds,
+      };
+
+      return <FolderView isRootView={true} folder={rootFolder} />;
     }
 
     // Show the editor when we have a valid note

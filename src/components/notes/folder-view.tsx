@@ -1,7 +1,8 @@
 "use client";
+import { FolderNode, NoteNode, TreeNode } from "@/lib/seed-data";
 import strings from "@/lib/strings";
 import { cn } from "@/lib/utils";
-import { FolderNode, Note, useNotes } from "@/state-providers/use-notes";
+import { useNotes } from "@/state-providers/use-notes";
 import {
   closestCenter,
   DndContext,
@@ -39,7 +40,8 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
   const {
     selectNote,
     selectFolder,
-    noteTree,
+    treeData,
+    getChildNodes,
     currentPath,
     deleteNote,
     moveNode,
@@ -47,10 +49,10 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
   const [expandedFolders, setExpandedFolders] = React.useState<
     Record<string, boolean>
   >({});
-  const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
+  const [noteToDelete, setNoteToDelete] = useState<NoteNode | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
-  const [activeItem, setActiveItem] = useState<Node | null>(null);
+  const [activeItem, setActiveItem] = useState<TreeNode | null>(null);
   const [hoveredFolderId, setHoveredFolderId] = useState<string | null>(null);
 
   // Set up drag sensors
@@ -63,19 +65,9 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
     useSensor(KeyboardSensor)
   );
 
-  // Helper function to find an item by ID
-  const findItemById = (
-    id: string,
-    items: FolderNode["children"]
-  ): Node | null => {
-    for (const item of items) {
-      if (item.id === id) return item;
-      if ("children" in item) {
-        const result = findItemById(id, item.children);
-        if (result) return result;
-      }
-    }
-    return null;
+  // Helper function to find an item by ID - now much simpler with flat structure
+  const findItemById = (id: string): TreeNode | null => {
+    return treeData[id] || null;
   };
 
   // Drag event handlers
@@ -83,8 +75,8 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
     const { active } = event;
     setActiveId(active.id);
 
-    // Find the dragged item in our tree
-    const item = findItemById(active.id.toString(), noteTree);
+    // Find the dragged item in our flat structure
+    const item = findItemById(active.id.toString());
     if (item) setActiveItem(item);
 
     // Auto-expand folders when dragging over them
@@ -101,8 +93,8 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
     if (over) {
       const overId = over.id.toString();
       // If hovering over a folder, store its ID for potential auto-expansion
-      const hoverItem = findItemById(overId, noteTree);
-      if (hoverItem && "children" in hoverItem) {
+      const hoverItem = findItemById(overId);
+      if (hoverItem && hoverItem.type === "folder") {
         setHoveredFolderId(overId);
       } else {
         setHoveredFolderId(null);
@@ -118,14 +110,13 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
       const overId = over.id.toString();
 
       // Check if we're dropping into a folder or onto an item
-      const overItem = findItemById(overId, noteTree);
+      const overItem = findItemById(overId);
 
       // If dropping onto a folder, move inside the folder
-      if (overItem && "children" in overItem) {
+      if (overItem && overItem.type === "folder") {
         moveNode(activeId, overId);
       } else {
-        // If dropping onto a note or outside a folder, find its parent
-        // For simplicity in this implementation, we'll move to the current folder
+        // If dropping onto a note or outside a folder, move to the current folder
         moveNode(activeId, folder.id);
       }
     }
@@ -161,6 +152,16 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
     // Track hover state for showing the add note button
     const [isHovered, setIsHovered] = useState(false);
 
+    // Get child nodes for this folder
+    const children = getChildNodes(folder.id);
+
+    // Count notes and folders
+    const folderCount = children.filter(
+      (node) => node.type === "folder"
+    ).length;
+    const noteCount = children.filter((node) => node.type === "note").length;
+    const childCount = folderCount + noteCount;
+
     return (
       <div
         ref={combinedRef}
@@ -194,7 +195,7 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
             </h3>
           </div>
           <span className="text-xs text-primary/80 font-semibold ml-2 px-1.5 py-0.5 rounded-full bg-primary/10">
-            {folder.children.length}
+            {childCount}
           </span>
 
           {/* Add Note Button on Hover */}
@@ -213,10 +214,11 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
         </div>
 
         {/* Render children only if folder is expanded */}
-        {expandedFolders[folder.id] && folder.children.length > 0 && (
+        {expandedFolders[folder.id] && childCount > 0 && (
           <div className={cn("pl-5 border-l border-border space-y-1.5")}>
-            {folder.children
-              .filter((node) => "children" in node)
+            {/* Display subfolders first */}
+            {children
+              .filter((node) => node.type === "folder")
               .map((subfolder) => (
                 <DraggableFolder
                   key={subfolder.id}
@@ -224,12 +226,13 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
                   depth={depth + 1}
                 />
               ))}
-            {folder.children
-              .filter((node) => !("children" in node))
-              .map((file) => (
+            {/* Then display notes */}
+            {children
+              .filter((node) => node.type === "note")
+              .map((note) => (
                 <DraggableNote
-                  key={file.id}
-                  note={file as Note}
+                  key={note.id}
+                  note={note as NoteNode}
                   depth={depth + 1}
                 />
               ))}
@@ -239,7 +242,13 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
     );
   };
 
-  const DraggableNote = ({ note, depth }: { note: Note; depth: number }) => {
+  const DraggableNote = ({
+    note,
+    depth,
+  }: {
+    note: NoteNode;
+    depth: number;
+  }) => {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
       id: note.id,
     });
@@ -297,7 +306,7 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
   const DragOverlayContent = () => {
     if (!activeItem) return null;
 
-    if ("children" in activeItem) {
+    if (activeItem.type === "folder") {
       // Folder overlay
       return (
         <div className="flex items-center p-2 rounded-md border border-dashed border-primary bg-background shadow-md">
@@ -328,7 +337,7 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
   };
 
   // Handle note deletion
-  const handleDeleteNote = (note: Note, e: React.MouseEvent) => {
+  const handleDeleteNote = (note: NoteNode, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent note selection when clicking delete
     setNoteToDelete(note);
     setDeleteDialogOpen(true);
@@ -347,36 +356,18 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
   const navigateToParent = () => {
     if (!currentPath || currentPath.length <= 1) return;
 
-    // Get the parent path (all but the last element)
-    const parentPath = currentPath.slice(0, currentPath.length - 1);
-
-    // Find the parent folder
-    let currentNodes = noteTree;
-    let parentNode = null;
-
-    for (let i = 0; i < parentPath.length; i++) {
-      const nodeName = parentPath[i];
-      const node = currentNodes.find((n) => n.name === nodeName);
-
-      if (node && "children" in node) {
-        if (i === parentPath.length - 1) {
-          // This is the parent folder
-          parentNode = node;
-        } else {
-          // Continue traversing
-          currentNodes = node.children;
-        }
-      }
-    }
-
-    // If parent found, select it
-    if (parentNode) {
-      selectFolder(parentNode.id);
+    // With the flat structure, we can just get the parentId directly
+    const parentId = folder.parentId;
+    if (parentId) {
+      selectFolder(parentId);
     }
   };
 
   // Check if this folder has a parent (not at root level)
-  const hasParent = !isRootView && currentPath && currentPath.length > 1;
+  const hasParent = !isRootView && folder.parentId !== null;
+
+  // Get folder's children using the getChildNodes helper
+  const folderChildren = getChildNodes(folder.id);
 
   return (
     <DndContext
@@ -417,10 +408,11 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
           </div>
         </div>
 
-        {folder.children.length > 0 ? (
+        {folderChildren.length > 0 ? (
           <div className="bg-background space-y-1.5">
-            {folder.children
-              .filter((node) => "children" in node)
+            {/* Display folders first */}
+            {folderChildren
+              .filter((node) => node.type === "folder")
               .map((subfolder) => (
                 <DraggableFolder
                   key={subfolder.id}
@@ -428,10 +420,15 @@ export function FolderView({ folder, isRootView = false }: FolderViewProps) {
                   depth={0}
                 />
               ))}
-            {folder.children
-              .filter((node) => !("children" in node))
-              .map((file) => (
-                <DraggableNote key={file.id} note={file as Note} depth={0} />
+            {/* Then display notes */}
+            {folderChildren
+              .filter((node) => node.type === "note")
+              .map((note) => (
+                <DraggableNote
+                  key={note.id}
+                  note={note as NoteNode}
+                  depth={0}
+                />
               ))}
           </div>
         ) : (

@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Note, NoteTree, useNotes } from "@/state-providers/use-notes";
+import { NoteNode, TreeNode } from "@/lib/seed-data";
+import { useNotes } from "@/state-providers/use-notes";
 import {
   addMonths,
   eachDayOfInterval,
@@ -20,7 +21,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export function NoteCalendar() {
   const router = useRouter();
-  const { noteTree } = useNotes();
+  const { treeData } = useNotes();
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [notesOnDates, setNotesOnDates] = useState<Map<string, number>>(
@@ -32,26 +33,24 @@ export function NoteCalendar() {
     return format(date, "yyyy-MM-dd");
   };
 
-  // Get all notes from the tree including those in subfolders
-  const getAllNotes = useCallback((tree: NoteTree): Note[] => {
-    let allNotes: Note[] = [];
+  // Get all notes from the flat tree structure
+  const getAllNotes = useCallback((): NoteNode[] => {
+    const allNotes: NoteNode[] = [];
 
-    tree.forEach((node) => {
-      if ("children" in node) {
-        // This is a folder, recurse into it
-        allNotes = [...allNotes, ...getAllNotes(node.children)];
-      } else {
-        // This is a note
-        allNotes.push(node);
+    // Iterate through all items in the flat structure
+    Object.values(treeData).forEach((node: TreeNode) => {
+      // Only include notes, not folders
+      if (node.type === "note") {
+        allNotes.push(node as NoteNode);
       }
     });
 
     return allNotes;
-  }, []);
+  }, [treeData]);
 
   // Count notes by creation date
   useEffect(() => {
-    const notes = getAllNotes(noteTree);
+    const notes = getAllNotes();
     const dateMap = new Map<string, number>();
 
     notes.forEach((note) => {
@@ -63,7 +62,7 @@ export function NoteCalendar() {
     });
 
     setNotesOnDates(dateMap);
-  }, [noteTree, getAllNotes]);
+  }, [treeData, getAllNotes]);
 
   // Handle date selection
   const handleSelect = (date: Date) => {
