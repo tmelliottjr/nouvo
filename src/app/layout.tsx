@@ -1,3 +1,5 @@
+import { ConfirmProvider } from "@/hooks/use-confirm";
+import { TagsSettingsProvider } from "@/state-providers/use-tags-settings";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "../components/themes/theme-provider";
@@ -32,7 +34,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <TagsSettingsProvider>
+            <ConfirmProvider>{children}</ConfirmProvider>
+          </TagsSettingsProvider>
         </ThemeProvider>
       </body>
     </html>

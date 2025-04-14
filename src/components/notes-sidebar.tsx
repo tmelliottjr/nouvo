@@ -1,177 +1,104 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import {
-  ChevronRight,
-  File,
-  FileEdit,
-  Folder,
-  FolderPlusIcon,
-} from "lucide-react";
-import * as React from "react";
-
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { NotesTree } from "@/components/sidebar";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupAction,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import {
-  Note,
-  useNotes,
-  type FolderNode,
-  type NoteTree,
-} from "../state-providers/use-notes";
-import { ThemeToggle } from "./themes/theme-toggle";
+import { useNotes } from "@/state-providers/use-notes";
+import { FileEdit, FolderPlus, Search, Settings } from "lucide-react";
+import Link from "next/link";
+import React, { useState } from "react";
+import { NoteCalendar } from "./notes/note-calendar";
+import { TagSearchDialog } from "./notes/tag-search-dialog/TagSearchDialog";
+import { ThemeSelector } from "./themes/theme-selector";
 
 export function NotesSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
-  const { noteTree: notes, addNote, addFolder } = useNotes();
+  const { addNote, addFolder } = useNotes();
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
 
   return (
     <Sidebar {...props}>
+      <TagSearchDialog
+        open={searchDialogOpen}
+        onOpenChange={setSearchDialogOpen}
+      />
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Nouvo</SidebarGroupLabel>
-          <ThemeToggle />
-          <SidebarGroupContent>
-            <SidebarMenu>testst</SidebarMenu>
-          </SidebarGroupContent>
+          <div className="flex items-center justify-between px-2">
+            <h1 className="text-xl font-bold tracking-tight">Nouvo</h1>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/settings"
+                className="p-2 rounded-md hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                title="Settings"
+              >
+                <Settings className="h-5 w-5" />
+              </Link>
+              <ThemeSelector />
+            </div>
+          </div>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Notes</SidebarGroupLabel>
 
-          <SidebarGroupAction
-            title="New Note"
-            className="mr-6 cursor-pointer"
-            onClick={() => addNote()}
-          >
-            <FileEdit /> <span className="sr-only">New Note</span>
-          </SidebarGroupAction>
-          <SidebarGroupAction
-            title="New Folder"
-            className="cursor-pointer"
-            onClick={() => addFolder()}
-          >
-            <FolderPlusIcon />{" "}
-            <span className="sr-only cursor-pointer">New Folder</span>
-          </SidebarGroupAction>
+        {/* Calendar Component */}
+        <SidebarGroup>
+          <div className="px-0 py-2">
+            <NoteCalendar />
+          </div>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <div className="flex items-center justify-between px-2">
+            <h1 className="text-xl font-bold tracking-tight">Nouvo</h1>
+            <div className="flex items-center gap-2">
+              <SidebarGroupAction
+                key="search-notes"
+                title="Search by Tags"
+                className="cursor-pointer p-0 h-8 w-8 cursor-pointer"
+                onClick={() => setSearchDialogOpen(true)}
+              >
+                <Search className="h-5 w-5" />{" "}
+                <span className="sr-only">Search by Tags</span>
+              </SidebarGroupAction>
+              ,
+              <SidebarGroupAction
+                key="new-note"
+                title="New Note"
+                className="p-0 h-8 w-8 cursor-pointer"
+                onClick={() => addNote()}
+              >
+                <FileEdit className="h-5 w-5" />{" "}
+                <span className="sr-only">New Note</span>
+              </SidebarGroupAction>
+              ,
+              <SidebarGroupAction
+                key="new-folder"
+                title="New Folder"
+                className="p-0 h-8 w-8 cursor-pointer"
+                onClick={() => addFolder()}
+              >
+                <FolderPlus className="h-5 w-5" />{" "}
+                <span className="sr-only cursor-pointer">New Folder</span>
+              </SidebarGroupAction>
+            </div>
+          </div>
+          {/* <SidebarSectionHeader title="Notes" href="/notes" actions={[,]} /> */}
 
           <SidebarGroupContent>
             <SidebarMenu>
-              <NotesTree notes={notes} />
+              <NotesTree />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
-  );
-}
-
-function NotesTree({ notes }: { notes: NoteTree }) {
-  const { updateNote, updateFolder } = useNotes();
-
-  return notes.map((noteOrFolder) => {
-    if ("children" in noteOrFolder) {
-      return (
-        <FolderNode
-          folder={noteOrFolder}
-          key={noteOrFolder.id}
-          onNameChange={(name) => updateFolder(noteOrFolder.id, { name })}
-        />
-      );
-    }
-
-    return (
-      <NoteNode
-        noteNode={noteOrFolder}
-        key={noteOrFolder.id}
-        onNameChange={(name) => updateNote(noteOrFolder.id, { name })}
-      />
-    );
-  });
-}
-
-function FolderNode({
-  folder,
-  onNameChange,
-}: {
-  folder: FolderNode;
-  onNameChange: (name: string) => void;
-}) {
-  function handleNameChange(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Enter") {
-      onNameChange(event.currentTarget.value);
-    }
-  }
-
-  return (
-    <SidebarMenuItem key={folder.id}>
-      <Collapsible className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90">
-        <CollapsibleTrigger asChild>
-          <SidebarMenuButton>
-            <ChevronRight className="transition-transform" />
-            <Folder />
-            {folder.name ? (
-              folder.name
-            ) : (
-              <Input className="h-5" autoFocus onKeyDown={handleNameChange} />
-            )}
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <SidebarMenuSub>
-            <NotesTree notes={folder.children} />
-          </SidebarMenuSub>
-        </CollapsibleContent>
-      </Collapsible>
-    </SidebarMenuItem>
-  );
-}
-
-function NoteNode({
-  noteNode,
-  onNameChange,
-}: {
-  noteNode: Note;
-  onNameChange: (name: string) => void;
-}) {
-  const { selectNote, currentNote } = useNotes();
-
-  function handleNameChange(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Enter") {
-      onNameChange(event.currentTarget.value);
-    }
-  }
-
-  return (
-    <SidebarMenuButton
-      isActive={noteNode.id === currentNote?.id}
-      className="data-[active=true]:bg-stone-400"
-      key={noteNode.id}
-      onClick={() => selectNote(noteNode.id)}
-    >
-      {/* TODO: Make file / folder edit name component w/ icons */}
-      <File />
-      {noteNode.name ? (
-        noteNode.name
-      ) : (
-        <Input className="h-7" autoFocus onKeyDown={handleNameChange} />
-      )}
-    </SidebarMenuButton>
   );
 }
