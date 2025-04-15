@@ -22,7 +22,7 @@ import { TagBadge } from "@/components/ui/tag-badge";
 import { TokenizedInput } from "@/components/ui/tokenized-input";
 import { SearchField, useSearch } from "@/state-providers/tag-search-provider";
 import { useNotes } from "@/state-providers/use-notes";
-import { useTagsSettings } from "@/state-providers/use-tags-settings";
+import { useTagsSettings, getDefaultTagColor } from "@/state-providers/use-tags-settings";
 import { format } from "date-fns";
 import { CalendarIcon, FolderIcon, InfoIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -107,6 +107,19 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
   const { selectNote, treeData } = useNotes();
   const router = useRouter();
+
+  // Find tag settings and get color (similar to EditorToolbar)
+  const getTagColor = (tagName: string): string => {
+    const tagSetting = tags.find((t) => t.name === tagName);
+
+    if (tagSetting) {
+      return tagSetting.color;
+    }
+
+    // Use default color if tag doesn't have settings yet
+    const tagIndex = tags.length;
+    return getDefaultTagColor(tagIndex);
+  };
 
   const [state, setState] = useState({
     inputValue: "",
@@ -280,15 +293,12 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
   // Map tags to suggestion items
   const tagSuggestions: SuggestionItem[] = useMemo(() => {
-    return (state.filteredTags || []).map((tag) => {
-      const tagSetting = tags.find((t) => t.name === tag);
-      return {
-        id: tag,
-        label: tag,
-        color: tagSetting?.color || "#8b5cf6",
-      };
-    });
-  }, [state.filteredTags, tags]);
+    return (state.filteredTags || []).map((tag) => ({
+      id: tag,
+      label: tag,
+      color: getTagColor(tag),
+    }));
+  }, [state.filteredTags, getTagColor]);
 
   // Map date operators to suggestion items
   const dateOperatorSuggestions: SuggestionItem[] = useMemo(() => {
@@ -908,9 +918,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                             <TagBadge
                               key={tagName}
                               name={tagName}
-                              color={
-                                tags.find((t) => t.name === tagName)?.color
-                              }
+                              color={getTagColor(tagName)}
                               className="text-xs py-0 px-2 h-5"
                             />
                           ))}

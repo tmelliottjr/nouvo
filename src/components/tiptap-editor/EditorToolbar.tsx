@@ -27,7 +27,7 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
   const { tags: tagSettings } = useTagsSettings();
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
-  const { addTag: addTagToSearch, clearTags, setSearchText } = useTagSearch();
+  const { clearTags, setSearchText } = useTagSearch();
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   // State for keyboard navigation
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
