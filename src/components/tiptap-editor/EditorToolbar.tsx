@@ -1,6 +1,6 @@
 "use client";
 
-import { TagSearchDialog } from "@/components/notes/tag-search-dialog/TagSearchDialog";
+import { SearchDialog } from "@/components/notes/search-dialog/SearchDialog";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -27,7 +27,7 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
   const { tags: tagSettings } = useTagsSettings();
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
-  const { addTag: addTagToSearch, clearTags } = useTagSearch();
+  const { addTag: addTagToSearch, clearTags, setSearchText } = useTagSearch();
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   // State for keyboard navigation
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
@@ -38,8 +38,8 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
   const handleTagClick = (tagName: string) => {
     // Clear any existing search first
     clearTags();
-    // Add this tag to the search criteria
-    addTagToSearch(tagName);
+    // Add this tag to the search criteria using the new format
+    setSearchText(`tag:${tagName}`);
     // Open the search dialog
     setSearchDialogOpen(true);
   };
@@ -139,7 +139,7 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
 
   return (
     <div className="border-b p-2 flex flex-wrap items-center gap-2">
-      <TagSearchDialog
+      <SearchDialog
         open={searchDialogOpen}
         onOpenChange={setSearchDialogOpen}
       />
