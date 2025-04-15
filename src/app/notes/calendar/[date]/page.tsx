@@ -2,11 +2,12 @@
 
 import { EmptyState } from "@/components/notes/empty-state";
 import { Button } from "@/components/ui/button";
-import { Note, useNotes } from "@/state-providers/use-notes";
-import { ChevronLeft } from "lucide-react";
+import { NoteNode } from "@/lib/seed-data";
+import { useNotes } from "@/state-providers/use-notes";
+import { ChevronLeft, FileText } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 interface CalendarDayPageProps {
   params: Promise<{
@@ -16,9 +17,9 @@ interface CalendarDayPageProps {
 
 export default function CalendarDayPage({ params }: CalendarDayPageProps) {
   const { date } = React.use(params);
-  const { noteTree } = useNotes();
+  const { treeData } = useNotes();
 
-  const [notesForDate, setNotesForDate] = useState<Note[]>([]);
+  const [notesForDate, setNotesForDate] = useState<NoteNode[]>([]);
 
   // Format date for display
   const formatDisplayDate = (dateString: string): string => {
@@ -30,31 +31,29 @@ export default function CalendarDayPage({ params }: CalendarDayPageProps) {
         day: "numeric",
         year: "numeric",
       });
-    } catch (error) {
+    } catch {
       return "Invalid date";
     }
   };
 
-  // Get all notes from the tree including those in subfolders
-  const getAllNotes = (tree: any[]): any[] => {
-    let allNotes: any[] = [];
+  // Get all notes from the flat tree structure
+  const getAllNotes = useCallback(() => {
+    const allNotes: NoteNode[] = [];
 
-    tree.forEach((node) => {
-      if ("children" in node) {
-        // This is a folder, recurse into it
-        allNotes = [...allNotes, ...getAllNotes(node.children)];
-      } else {
-        // This is a note
-        allNotes.push(node);
+    // Iterate through all items in the flat structure
+    Object.values(treeData).forEach((node) => {
+      // Only include notes, not folders
+      if (node.type === "note") {
+        allNotes.push(node as NoteNode);
       }
     });
 
     return allNotes;
-  };
+  }, [treeData]);
 
   // Find notes created on the specified date
   useEffect(() => {
-    const notes = getAllNotes(noteTree);
+    const notes = getAllNotes();
     const matchingNotes = notes.filter((note) => {
       if (!note.creationDate) return false;
 
@@ -64,7 +63,7 @@ export default function CalendarDayPage({ params }: CalendarDayPageProps) {
     });
 
     setNotesForDate(matchingNotes);
-  }, [noteTree, date]);
+  }, [date, getAllNotes]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -90,7 +89,7 @@ export default function CalendarDayPage({ params }: CalendarDayPageProps) {
         ) : (
           <EmptyState
             message={`No notes found for ${formatDisplayDate(date)}`}
-            description="Try creating a new note today"
+            icon={<FileText className="h-8 w-8 text-stone-400" />}
           />
         )}
       </div>
@@ -99,7 +98,7 @@ export default function CalendarDayPage({ params }: CalendarDayPageProps) {
 }
 
 // A card component to display note previews
-function NoteCard({ note }: { note: Note }) {
+function NoteCard({ note }: { note: NoteNode }) {
   const router = useRouter();
 
   const handleClick = () => {
@@ -124,21 +123,29 @@ function NoteCard({ note }: { note: Note }) {
 function getPlainTextFromContent(content: string): string {
   try {
     const contentObj = JSON.parse(content);
+
+    // Define types for Tiptap JSON structure
+    interface TiptapNode {
+      type: string;
+      text?: string;
+      content?: TiptapNode[];
+    }
+
     // Simple extraction of text from Tiptap JSON structure
-    const extractText = (node: any): string => {
+    const extractText = (node: TiptapNode): string => {
       if (node.text) {
         return node.text;
       }
 
       if (node.content) {
-        return node.content.map((child: any) => extractText(child)).join(" ");
+        return node.content.map((child) => extractText(child)).join(" ");
       }
 
       return "";
     };
 
     return extractText(contentObj);
-  } catch (error) {
+  } catch {
     return "Could not load content preview";
   }
 }
