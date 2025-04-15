@@ -1,3 +1,4 @@
+import { SearchProvider } from "@/state-providers/tag-search-provider";
 import { NotesProvider } from "@/state-providers/use-notes";
 import { TagsSettingsProvider } from "@/state-providers/use-tags-settings";
 import type { Metadata } from "next";
@@ -19,7 +20,9 @@ export default function SettingsLayout({
   return (
     <NotesProvider>
       <TagsSettingsProvider>
-        <SettingsLayoutClient>{children}</SettingsLayoutClient>
+        <SearchProvider>
+          <SettingsLayoutClient>{children}</SettingsLayoutClient>
+        </SearchProvider>
       </TagsSettingsProvider>
     </NotesProvider>
   );
