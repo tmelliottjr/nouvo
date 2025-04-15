@@ -513,7 +513,6 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
         // Handle navigation in the appropriate suggestions list
-        // Handle navigation in the appropriate suggestions list
         if (state.showFieldSuggestions) {
           setState((prevState) => ({
             ...prevState,
@@ -593,8 +592,8 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-3xl max-h-[85vh] h-[600px] flex flex-col overflow-hidden p-0">
+        <DialogHeader className="px-6 pt-6">
           <DialogTitle className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4" />
             <span>Search Notes</span>
@@ -604,9 +603,9 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col space-y-2 py-4 relative">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
+        <div className="flex flex-col space-y-2 px-6 py-4 relative">
+          <div className="flex items-center gap-2 flex-col sm:flex-row">
+            <div className="relative flex-1 w-full">
               <TokenizedInput
                 value={state.inputValue}
                 tokens={searchTokens}
@@ -658,6 +657,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                   setState((prevState) => ({ ...prevState, inputValue: "" }));
                 }
               }}
+              className="w-full sm:w-auto"
             >
               Search
             </Button>
@@ -665,7 +665,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
           {/* Field suggestions */}
           {state.showFieldSuggestions && (
-            <div className="absolute top-12 left-0 z-10 w-64">
+            <div className="absolute top-[calc(100%-0.5rem)] left-0 z-10 w-64">
               <SuggestionsDropdown
                 items={fieldSuggestions}
                 onSelect={handleFieldSelection}
@@ -683,7 +683,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
           {/* Tag suggestions */}
           {state.showTagSuggestions && (
-            <div className="absolute top-12 left-0 z-10 w-64">
+            <div className="absolute top-[calc(100%-0.5rem)] left-0 z-10 w-64">
               <SuggestionsDropdown
                 items={tagSuggestions}
                 onSelect={handleTagSelection}
@@ -701,7 +701,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
           {/* Date operator selection */}
           {state.showDateOperators && (
-            <div className="absolute top-12 left-0 z-10 w-64">
+            <div className="absolute top-[calc(100%-0.5rem)] left-0 z-10 w-64">
               <SuggestionsDropdown
                 items={dateOperatorSuggestions}
                 onSelect={handleDateOperatorSelect}
@@ -719,7 +719,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
           {/* Date picker for date selection */}
           {state.showDatePicker && (
-            <div className="absolute top-12 left-0 z-10 bg-popover rounded-md border shadow-md">
+            <div className="absolute top-[calc(100%-0.5rem)] left-0 z-10 bg-popover rounded-md border shadow-md">
               <div className="p-2 border-b">
                 <div className="text-sm font-medium">
                   {state.selectedDateOperator === "between"
@@ -857,22 +857,22 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
           )}
         </div>
 
-        {/* Search Results Section */}
-        {isSearching && (
-          <div className="overflow-y-auto flex-1 border-t pt-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium">Search Results</h3>
-              {results.length > 0 && (
-                <Badge variant="outline">
-                  {results.length} {results.length === 1 ? "note" : "notes"}{" "}
-                  found
-                </Badge>
-              )}
-            </div>
+        {/* Search Results Section - Now with consistent height */}
+        <div className={`flex-1 border-t px-6 flex flex-col overflow-hidden ${isSearching ? "" : "hidden"}`}>
+          <div className="flex items-center justify-between py-4">
+            <h3 className="text-lg font-medium">Search Results</h3>
+            {results.length > 0 && (
+              <Badge variant="outline">
+                {results.length} {results.length === 1 ? "note" : "notes"}{" "}
+                found
+              </Badge>
+            )}
+          </div>
 
-            <div className="space-y-3 pr-1">
+          <div className="overflow-y-auto flex-1 pr-2 min-h-[250px]">
+            <div className="space-y-3">
               {results.length === 0 ? (
-                <div className="flex flex-col items-center justify-center text-center py-8">
+                <div className="flex flex-col items-center justify-center text-center py-8 h-[250px]">
                   <InfoIcon className="h-8 w-8 text-muted-foreground mb-2" />
                   <p className="text-muted-foreground">
                     No notes found with the current search criteria.
@@ -890,7 +890,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                   >
                     <CardContent className="p-3">
                       <div className="flex flex-col">
-                        <div className="flex justify-between items-start">
+                        <div className="flex justify-between items-start flex-wrap gap-1">
                           <h3 className="font-medium">{note.name}</h3>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <CalendarIcon className="h-3 w-3" />
@@ -900,7 +900,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
                         <div className="flex items-center text-xs text-muted-foreground mt-1">
                           <FolderIcon className="h-3 w-3 mr-1" />
-                          <span>{notePaths[note.id]}</span>
+                          <span className="truncate">{notePaths[note.id]}</span>
                         </div>
 
                         <div className="flex flex-wrap gap-1 mt-2">
@@ -920,6 +920,27 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                   </Card>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* Empty State - Show when not searching */}
+        {!isSearching && (
+          <div className="flex-1 flex items-center justify-center border-t">
+            <div className="text-center p-8">
+              <CalendarIcon className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Search Your Notes</h3>
+              <p className="text-muted-foreground max-w-md">
+                Enter search terms above to find notes by title, content, tags, or creation date.
+              </p>
+              <div className="mt-4 text-sm text-muted-foreground">
+                <p className="mb-1"><strong>Examples:</strong></p>
+                <ul className="text-left inline-block">
+                  <li><code>title:meeting</code> - Find notes with "meeting" in the title</li>
+                  <li><code>tag:important</code> - Find notes with the "important" tag</li>
+                  <li><code>created:>04/01/2025</code> - Find notes created after April 1, 2025</li>
+                </ul>
+              </div>
             </div>
           </div>
         )}
