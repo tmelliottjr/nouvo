@@ -1,11 +1,11 @@
 "use client";
 
+import { SearchDialog } from "@/components/notes/search-dialog";
 import { NotesTree } from "@/components/sidebar";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupContent,
   SidebarMenu,
   SidebarRail,
@@ -15,7 +15,8 @@ import { FileEdit, FolderPlus, Search, Settings } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
 import { NoteCalendar } from "./notes/note-calendar";
-import { TagSearchDialog } from "./notes/tag-search-dialog/TagSearchDialog";
+import { SidebarSectionHeader } from "./sidebar/SidebarSectionHeader";
+import { TreeNodeAction } from "./sidebar/tree-components/TreeNodeAction";
 import { ThemeSelector } from "./themes/theme-selector";
 
 export function NotesSidebar({
@@ -26,7 +27,7 @@ export function NotesSidebar({
 
   return (
     <Sidebar {...props}>
-      <TagSearchDialog
+      <SearchDialog
         open={searchDialogOpen}
         onOpenChange={setSearchDialogOpen}
       />
@@ -55,41 +56,30 @@ export function NotesSidebar({
         </SidebarGroup>
 
         <SidebarGroup>
-          <div className="flex items-center justify-between px-2">
-            <h1 className="text-xl font-bold tracking-tight">Nouvo</h1>
-            <div className="flex items-center gap-2">
-              <SidebarGroupAction
+          <SidebarSectionHeader
+            title="Notes"
+            href="/notes"
+            actions={[
+              <TreeNodeAction
                 key="search-notes"
-                title="Search by Tags"
-                className="cursor-pointer p-0 h-8 w-8 cursor-pointer"
+                icon={<Search className="h-4 w-4" />}
                 onClick={() => setSearchDialogOpen(true)}
-              >
-                <Search className="h-5 w-5" />{" "}
-                <span className="sr-only">Search by Tags</span>
-              </SidebarGroupAction>
-              ,
-              <SidebarGroupAction
+                ariaLabel="Search Notes"
+              />,
+              <TreeNodeAction
                 key="new-note"
-                title="New Note"
-                className="p-0 h-8 w-8 cursor-pointer"
+                icon={<FileEdit className="h-4 w-4" />}
                 onClick={() => addNote()}
-              >
-                <FileEdit className="h-5 w-5" />{" "}
-                <span className="sr-only">New Note</span>
-              </SidebarGroupAction>
-              ,
-              <SidebarGroupAction
+                ariaLabel="New Note"
+              />,
+              <TreeNodeAction
                 key="new-folder"
-                title="New Folder"
-                className="p-0 h-8 w-8 cursor-pointer"
+                icon={<FolderPlus className="h-4 w-4" />}
                 onClick={() => addFolder()}
-              >
-                <FolderPlus className="h-5 w-5" />{" "}
-                <span className="sr-only cursor-pointer">New Folder</span>
-              </SidebarGroupAction>
-            </div>
-          </div>
-          {/* <SidebarSectionHeader title="Notes" href="/notes" actions={[,]} /> */}
+                ariaLabel="New Folder"
+              />,
+            ]}
+          />
 
           <SidebarGroupContent>
             <SidebarMenu>

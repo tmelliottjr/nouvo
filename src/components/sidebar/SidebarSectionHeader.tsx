@@ -3,6 +3,7 @@
 import { SidebarGroupLabel } from "@/components/ui/sidebar";
 import Link from "next/link";
 import React from "react";
+import { TreeNodeActions } from "./tree-components/TreeNodeActions";
 
 interface SidebarSectionHeaderProps {
   title: string;
@@ -22,7 +23,7 @@ export function SidebarSectionHeader({
   );
 
   return (
-    <div className="flex items-center justify-between w-full gap-2 px-2">
+    <div className="flex items-center justify-between w-full gap-2 px-2 relative">
       <div className="flex-shrink-0">
         {href ? (
           <Link
@@ -39,11 +40,7 @@ export function SidebarSectionHeader({
       </div>
 
       {actions && actions.length > 0 && (
-        <>
-          {actions.map((action, index) => (
-            <React.Fragment key={index}>{action}</React.Fragment>
-          ))}
-        </>
+        <TreeNodeActions>{actions}</TreeNodeActions>
       )}
     </div>
   );

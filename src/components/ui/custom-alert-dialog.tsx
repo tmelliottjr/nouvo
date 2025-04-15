@@ -1,21 +1,23 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { animated, useSpring, useTransition } from "@react-spring/web";
-import React, { useEffect, useRef } from "react";
+import { useSpring, useTransition } from "@react-spring/web";
+import React, { ReactNode, useEffect, useRef } from "react";
 import { Button } from "./button";
 
 // Types for the components
 interface AlertDialogProps {
-  children: React.ReactNode;
+  children: ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
 interface AlertDialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  open?: boolean;
 }
 
 interface AlertDialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -63,17 +65,20 @@ export function AlertDialog({
   return transitions(
     (styles, item) =>
       item !== undefined && (
-        <animated.div style={styles} className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-50">
           {React.Children.map(children, (child) => {
             if (React.isValidElement(child)) {
-              return React.cloneElement(child as React.ReactElement<any>, {
-                onOpenChange,
-                open,
-              });
+              return React.cloneElement(
+                child as React.ReactElement<AlertDialogContentProps>,
+                {
+                  onOpenChange,
+                  open,
+                }
+              );
             }
             return child;
           })}
-        </animated.div>
+        </div>
       )
   );
 }
@@ -83,28 +88,29 @@ export function AlertDialogContent({
   children,
   className,
   open,
+  onOpenChange,
   ...props
 }: AlertDialogContentProps & { open?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
 
   // Handle clicks outside the dialog
   const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && props.onOpenChange) {
-      props.onOpenChange(false);
+    if (e.target === e.currentTarget && onOpenChange) {
+      onOpenChange(false);
     }
   };
 
   // Handle escape key
   useEffect(() => {
     const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && props.onOpenChange) {
-        props.onOpenChange(false);
+      if (event.key === "Escape" && onOpenChange) {
+        onOpenChange(false);
       }
     };
 
     document.addEventListener("keydown", handleEscapeKey);
     return () => document.removeEventListener("keydown", handleEscapeKey);
-  }, [props]);
+  }, [onOpenChange]);
 
   // Use springs for both the backdrop and content
   const backdropSpring = useSpring({
@@ -128,23 +134,26 @@ export function AlertDialogContent({
   });
 
   return (
-    <animated.div
-      style={backdropSpring}
+    <div
       className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] flex items-center justify-center"
       onClick={handleOverlayClick}
+      style={{ opacity: backdropSpring.opacity.toString() }}
     >
-      <animated.div
+      <div
         ref={ref}
-        style={contentSpring}
         className={cn(
           "grid w-full max-w-lg gap-4 border bg-background p-6 shadow-lg sm:rounded-lg md:w-full",
           className
         )}
+        style={{
+          opacity: contentSpring.opacity.toString(),
+          transform: contentSpring.transform.toString(),
+        }}
         {...props}
       >
         {children}
-      </animated.div>
-    </animated.div>
+      </div>
+    </div>
   );
 }
 

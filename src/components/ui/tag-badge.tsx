@@ -44,6 +44,11 @@ export interface TagBadgeProps {
    * Optional custom content instead of the tag name
    */
   children?: ReactNode;
+
+  /**
+   * Whether this badge is compact (for inside inputs)
+   */
+  compact?: boolean;
 }
 
 /**
@@ -56,6 +61,7 @@ export function TagBadge({
   onClick,
   onRemove,
   children,
+  compact = false,
 }: TagBadgeProps) {
   // Get styling classes based on color
   const bgClass = color ? getBackgroundColorClass(color) : "";
@@ -88,6 +94,7 @@ export function TagBadge({
         textClass,
         onClick && "cursor-pointer",
         onRemove && "flex items-center gap-1",
+        compact && "text-xs py-0.5 px-1.5 h-5",
         className
       )}
       style={style}
@@ -98,13 +105,16 @@ export function TagBadge({
         <Button
           variant="ghost"
           size="icon"
-          className="h-4 w-4 p-0 hover:bg-transparent"
+          className={cn(
+            "hover:bg-transparent",
+            compact ? "h-3 w-3 p-0 ml-0.5" : "h-4 w-4 p-0"
+          )}
           onClick={(e) => {
             e.stopPropagation();
             onRemove();
           }}
         >
-          <X className="h-3 w-3" />
+          <X className={compact ? "h-2 w-2" : "h-3 w-3"} />
         </Button>
       )}
     </Badge>

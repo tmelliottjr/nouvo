@@ -3,12 +3,6 @@
 import { TagSearchDialog } from "@/components/notes/tag-search-dialog/TagSearchDialog";
 import { Button } from "@/components/ui/button";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-} from "@/components/ui/command";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -21,7 +15,7 @@ import {
   useTagsSettings,
 } from "@/state-providers/use-tags-settings";
 import { Plus, Tag } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface EditorToolbarProps {
   noteId: string;
@@ -35,6 +29,10 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
   const [inputValue, setInputValue] = useState("");
   const { addTag: addTagToSearch, clearTags } = useTagSearch();
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
+  // State for keyboard navigation
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
+  const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Handle clicking on a tag to search
   const handleTagClick = (tagName: string) => {
@@ -57,6 +55,7 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
     }
     setOpen(false);
     setInputValue("");
+    setHighlightedIndex(-1);
   };
 
   const removeTag = (tag: string) => {
@@ -75,6 +74,68 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
     const tagIndex = tagSettings.length;
     return getDefaultTagColor(tagIndex);
   };
+
+  // Filter tags based on input
+  const filteredTags = availableTags.filter((tag) =>
+    tag.toLowerCase().includes(inputValue.toLowerCase())
+  );
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setHighlightedIndex((prevIndex) => {
+          const newIndex =
+            prevIndex < filteredTags.length - 1
+              ? prevIndex + 1
+              : inputValue && filteredTags.length === 0
+              ? 0
+              : prevIndex;
+          return newIndex;
+        });
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setHighlightedIndex((prevIndex) =>
+          prevIndex > 0 ? prevIndex - 1 : prevIndex
+        );
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (highlightedIndex >= 0 && highlightedIndex < filteredTags.length) {
+          addTag(filteredTags[highlightedIndex]);
+        } else if (
+          inputValue &&
+          filteredTags.length === 0 &&
+          highlightedIndex === 0
+        ) {
+          addTag(inputValue);
+        } else if (inputValue && filteredTags.length === 0) {
+          addTag(inputValue);
+        }
+        break;
+      case "Escape":
+        setOpen(false);
+        break;
+    }
+  };
+
+  // Reset highlighted index when input changes
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [inputValue]);
+
+  // Reset highlighted index when dropdown opens
+  useEffect(() => {
+    if (open) {
+      setHighlightedIndex(-1);
+      // Focus the input when the dropdown opens
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }
+  }, [open]);
 
   return (
     <div className="border-b p-2 flex flex-wrap items-center gap-2">
@@ -103,50 +164,76 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
             <span>Add Tag</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-[200px]" align="start" side="bottom">
-          <Command>
-            <CommandInput
-              placeholder="Search or add tag..."
-              value={inputValue}
-              onValueChange={setInputValue}
-            />
-            <CommandEmpty>
-              {inputValue && (
-                <div className="px-2 py-1.5">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => addTag(inputValue)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create &quot;{inputValue}&quot;
-                  </Button>
+        <PopoverContent className="p-2 w-[200px]" align="start" side="bottom">
+          <div className="space-y-2">
+            <div className="flex">
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Search or add tag..."
+                className="w-full px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-stone-300"
+                aria-label="Search or add tag"
+                role="combobox"
+                aria-expanded={open}
+                aria-controls="tag-suggestion-list"
+                aria-autocomplete="list"
+                aria-activedescendant={
+                  highlightedIndex >= 0 ? `tag-item-${highlightedIndex}` : ""
+                }
+              />
+            </div>
+
+            {inputValue && filteredTags.length === 0 && (
+              <div className="py-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  id="create-tag-option"
+                  className={`w-full justify-start ${
+                    highlightedIndex === 0
+                      ? "bg-accent/50 text-accent-foreground"
+                      : ""
+                  }`}
+                  onClick={() => addTag(inputValue)}
+                  tabIndex={-1}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create &quot;{inputValue}&quot;
+                </Button>
+              </div>
+            )}
+
+            <div
+              className="max-h-[150px] overflow-y-auto space-y-1"
+              ref={listRef}
+              id="tag-suggestion-list"
+              role="listbox"
+            >
+              {filteredTags.map((tag, index) => (
+                <div
+                  key={tag}
+                  id={`tag-item-${index}`}
+                  role="option"
+                  aria-selected={highlightedIndex === index}
+                  className={`cursor-pointer p-1 rounded ${
+                    highlightedIndex === index
+                      ? "bg-accent/50 text-accent-foreground"
+                      : "hover:bg-accent/50"
+                  }`}
+                  onClick={() => addTag(tag)}
+                >
+                  <TagBadge
+                    name={tag}
+                    color={getTagColor(tag)}
+                    className="inline-flex w-auto"
+                  />
                 </div>
-              )}
-            </CommandEmpty>
-            <CommandGroup className="p-1.5 gap-1 flex flex-col">
-              {availableTags
-                .filter((tag) =>
-                  tag.toLowerCase().includes(inputValue.toLowerCase())
-                )
-                .map((tag) => (
-                  <Button
-                    key={tag}
-                    variant="ghost"
-                    size="sm"
-                    className="justify-start h-auto px-2 py-1 w-full cursor-pointer"
-                    onClick={() => addTag(tag)}
-                  >
-                    <TagBadge
-                      name={tag}
-                      color={getTagColor(tag)}
-                      className="inline-flex w-auto"
-                    />
-                  </Button>
-                ))}
-            </CommandGroup>
-          </Command>
+              ))}
+            </div>
+          </div>
         </PopoverContent>
       </Popover>
     </div>
