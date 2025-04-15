@@ -78,11 +78,12 @@ const SEARCH_FIELDS: Array<{
 ];
 
 // Field colors for tokens
-const FIELD_COLORS: Record<SearchField, string> = {
+const FIELD_COLORS: Record<SearchField & { default: string }, string> = {
   title: "#3b82f6",
   content: "#10b981",
   tag: "#8b5cf6",
   created: "#f59e0b",
+  default: "#615fff", // A bright color for default tokens
 };
 
 // Date operator options

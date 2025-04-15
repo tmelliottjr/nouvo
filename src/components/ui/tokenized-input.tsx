@@ -6,10 +6,11 @@ import {
   SearchToken,
 } from "@/state-providers/tag-search-provider";
 import React from "react";
+import { useTagsSettings } from "../../state-providers/use-tags-settings";
 
 interface SearchTokenBadgeProps {
   token: SearchToken;
-  fieldColors: Record<SearchField, string>;
+  fieldColors: Record<SearchField | 'default', string>;
   onRemove: () => void;
 }
 
@@ -18,7 +19,12 @@ export function SearchTokenBadge({
   fieldColors,
   onRemove,
 }: SearchTokenBadgeProps) {
-  const color = fieldColors[token.field];
+  const { tags } = useTagsSettings();
+  let color = fieldColors["default"];
+
+  if (token.field === "tag") {
+    color = tags.filter((tag) => tag.name === token.value)[0]?.color;
+  }
 
   return (
     <TagBadge
