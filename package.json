@@ -4,9 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:with-db": "docker-compose up -d mysql && next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:start": "docker-compose up -d mysql",
+    "db:stop": "docker-compose down",
+    "db:reset": "docker-compose down -v && docker-compose up -d mysql",
+    "db:logs": "docker-compose logs -f mysql"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -32,6 +37,7 @@
     "@tiptap/pm": "^2.11.7",
     "@tiptap/react": "^2.11.7",
     "@tiptap/starter-kit": "^2.11.7",
+    "better-auth": "^1.2.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -40,12 +46,13 @@
     "immer": "^10.1.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.485.0",
-    "next": "15.2.4",
+    "mysql2": "^3.14.0",
+    "next": "^15.3.1-canary.9",
     "next-themes": "^0.4.6",
     "postcss": "^8.5.3",
-    "react": "^19.0.0",
+    "react": "^19.1.0",
     "react-day-picker": "^8.10.1",
-    "react-dom": "^19.0.0",
+    "react-dom": "^19.1.0",
     "tailwind-merge": "^3.0.2",
     "tailwind-scrollbar-hide": "^2.0.0",
     "tailwindcss": "^4.0.17",
@@ -54,14 +61,20 @@
     "use-immer": "^0.11.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.26.10",
+    "@better-auth/cli": "^1.2.7",
     "@eslint/eslintrc": "^3",
     "@simbathesailor/use-what-changed": "^2.0.0",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "19.1.2",
+    "@types/react-dom": "19.1.2",
     "eslint": "^9",
-    "eslint-config-next": "15.2.4",
+    "eslint-config-next": "^15.3.0",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@types/react": "19.1.2",
+    "@types/react-dom": "19.1.2"
   }
 }

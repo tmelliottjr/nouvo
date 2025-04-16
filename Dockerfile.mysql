@@ -1,0 +1,16 @@
+FROM mysql:8.0
+
+# Environment variables for MySQL configuration
+ENV MYSQL_ROOT_PASSWORD=rootpassword
+ENV MYSQL_DATABASE=noevo
+ENV MYSQL_USER=noevo
+ENV MYSQL_PASSWORD=noevopassword
+
+# Copy initialization scripts
+COPY ./db/init.sql /docker-entrypoint-initdb.d/
+
+# Expose MySQL port
+EXPOSE 3306
+
+# Health check
+HEALTHCHECK --interval=5s --timeout=5s --retries=3 CMD mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD}

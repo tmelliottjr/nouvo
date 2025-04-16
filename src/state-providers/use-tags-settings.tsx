@@ -4,128 +4,127 @@ import { seedTagSettings, TagSetting } from "@/lib/seed-data";
 import { createContext, PropsWithChildren, useContext, useEffect } from "react";
 import { useImmer } from "use-immer";
 
-interface TagsSettingsContext {
+type TagsSettingsContext = {
   tags: TagSetting[];
-  addTag: (tag: TagSetting) => void;
-  updateTag: (name: string, tag: Partial<TagSetting>) => void;
-  removeTag: (name: string) => void;
+  addTag: (tag: TagSetting) => Promise<void>;
+  updateTag: (name: string, updatedTag: Partial<TagSetting>) => Promise<void>;
+  removeTag: (name: string) => Promise<void>;
   getTagSettings: (name: string) => TagSetting | undefined;
-}
+  isLoading: boolean;
+};
 
-// Default tag colors - keeping these in the app as system-defined colors
-export const DEFAULT_TAG_COLORS: string[] = [
-  "#6366F1", // Indigo (brighter)
-  "#3B82F6", // Blue (brighter)
-  "#06B6D4", // Cyan (brighter)
-  "#10B981", // Emerald (brighter)
-  "#84CC16", // Lime (brighter)
-  "#FACC15", // Yellow (brighter)
-  "#F97316", // Orange (brighter)
-  "#EF4444", // Red (brighter)
-  "#EC4899", // Pink (brighter)
-  "#A855F7", // Purple (brighter)
-];
-
-// Get a default color for a tag
-export function getDefaultTagColor(index: number): string {
-  return DEFAULT_TAG_COLORS[index % DEFAULT_TAG_COLORS.length];
-}
-
-// Helper function to derive background color from color
-export function getBackgroundColorClass(color: string): string {
-  if (!color) {
-    return ""; // Handle undefined or empty color
-  }
-
-  if (color.startsWith("#")) {
-    // For custom hex colors, return an empty string - we'll handle this with inline styles
-    return "";
-  }
-
-  // For named colors like "blue-500", return the corresponding bg class
-  const colorBase = color.split("-")[0];
-  return `bg-${colorBase}-100 dark:bg-${colorBase}-950`;
-}
-
-// Helper function to get the border color class
-export function getBorderColorClass(color: string): string {
-  if (!color) {
-    return "border-gray-300"; // Default border for undefined or empty color
-  }
-
-  if (color.startsWith("#")) {
-    return `border-[${color}]`;
-  }
-  return `border-${color}`;
-}
-
-// Helper function to get the text color class
-export function getTextColorClass(color: string): string {
-  if (!color) {
-    return "text-gray-500"; // Default text color for undefined or empty color
-  }
-
-  if (color.startsWith("#")) {
-    return ""; // Will use inline style
-  }
-  return `text-${color}`;
-}
-
-const TagsSettingsContext = createContext<TagsSettingsContext | undefined>(
-  undefined
-);
+const TagsSettingsContext = createContext<TagsSettingsContext>({
+  tags: [],
+  addTag: async () => {},
+  updateTag: async () => {},
+  removeTag: async () => {},
+  getTagSettings: () => undefined,
+  isLoading: false,
+});
 
 export function TagsSettingsProvider({ children }: PropsWithChildren) {
-  // Try to load tags from localStorage, or use seedTagSettings if not available
-  const [tags, setTags] = useImmer<TagSetting[]>(() => {
-    if (typeof window !== "undefined") {
-      const savedTags = localStorage.getItem("tagSettings");
-      if (savedTags) {
-        try {
-          return JSON.parse(savedTags);
-        } catch (error) {
-          console.error(
-            "Failed to parse tag settings from localStorage",
-            error
-          );
-        }
-      }
-    }
-    return seedTagSettings;
-  });
+  // State for tags and loading state
+  const [tags, setTags] = useImmer<TagSetting[]>(seedTagSettings);
+  const [isLoading, setIsLoading] = useImmer<boolean>(true);
 
-  // Save tags to localStorage when they change
+  // Fetch tags from API on mount
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("tagSettings", JSON.stringify(tags));
+    const fetchTags = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/tags");
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch tags");
+        }
+
+        const tagsData = await response.json();
+
+        if (Array.isArray(tagsData)) {
+          setTags(tagsData);
+        }
+      } catch (error) {
+        console.error("Error fetching tags:", error);
+        // Keep seed tags if fetch fails
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTags();
+  }, [setTags, setIsLoading]);
+
+  const addTag = async (tag: TagSetting) => {
+    try {
+      // Update local state first for responsive UI
+      setTags((draft) => {
+        if (!draft.some((t) => t.name === tag.name)) {
+          draft.push(tag);
+        }
+      });
+
+      // Send to API
+      await fetch("/api/tags", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(tag),
+      });
+    } catch (error) {
+      console.error("Error adding tag to API:", error);
     }
-  }, [tags]);
-
-  const addTag = (tag: TagSetting) => {
-    setTags((draft) => {
-      if (!draft.some((t) => t.name === tag.name)) {
-        draft.push(tag);
-      }
-    });
   };
 
-  const updateTag = (name: string, updatedTag: Partial<TagSetting>) => {
-    setTags((draft) => {
-      const index = draft.findIndex((t) => t.name === name);
-      if (index !== -1) {
-        const newTag = { ...draft[index], ...updatedTag };
-        draft[index] = newTag;
-      }
-    });
+  const updateTag = async (name: string, updatedTag: Partial<TagSetting>) => {
+    try {
+      // Update local state first for responsive UI
+      setTags((draft) => {
+        const index = draft.findIndex((t) => t.name === name);
+        if (index !== -1) {
+          const newTag = { ...draft[index], ...updatedTag };
+          draft[index] = newTag;
+        }
+      });
+
+      // Get the full updated tag from state
+      const fullTag = tags.find((t) => t.name === name);
+      if (!fullTag) return;
+
+      // Send to API
+      await fetch("/api/tags", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: name, // Using name as the ID for tags
+          ...fullTag,
+          ...updatedTag,
+        }),
+      });
+    } catch (error) {
+      console.error("Error updating tag in API:", error);
+    }
   };
 
-  const removeTag = (name: string) => {
-    setTags((draft) => {
-      const index = draft.findIndex((t) => t.name === name);
-      if (index !== -1) {
-        draft.splice(index, 1);
-      }
-    });
+  const removeTag = async (name: string) => {
+    try {
+      // Update local state first for responsive UI
+      setTags((draft) => {
+        const index = draft.findIndex((t) => t.name === name);
+        if (index !== -1) {
+          draft.splice(index, 1);
+        }
+      });
+
+      // Delete from API
+      await fetch(`/api/tags?id=${name}`, {
+        method: "DELETE",
+      });
+    } catch (error) {
+      console.error("Error removing tag from API:", error);
+    }
   };
 
   const getTagSettings = (name: string): TagSetting | undefined => {
@@ -138,6 +137,7 @@ export function TagsSettingsProvider({ children }: PropsWithChildren) {
     updateTag,
     removeTag,
     getTagSettings,
+    isLoading,
   };
 
   return (

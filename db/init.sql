@@ -1,0 +1,100 @@
+-- Create database if it doesn't exist
+CREATE DATABASE IF NOT EXISTS noevo;
+USE noevo;
+
+-- Authentication Tables
+CREATE TABLE IF NOT EXISTS auth_users (
+  id VARCHAR(36) PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  email_verified BOOLEAN DEFAULT FALSE,
+  password VARCHAR(255),
+  name VARCHAR(255),
+  image VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS auth_sessions (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES auth_users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS auth_verification_tokens (
+  identifier VARCHAR(255) NOT NULL,
+  token VARCHAR(255) NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  PRIMARY KEY (identifier, token)
+);
+
+-- Application Tables
+CREATE TABLE IF NOT EXISTS users (
+  id VARCHAR(36) PRIMARY KEY,
+  name VARCHAR(255),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Create notes table
+CREATE TABLE IF NOT EXISTS notes (
+  id VARCHAR(36) PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  content TEXT,
+  user_id VARCHAR(36) NOT NULL,
+  folder_id VARCHAR(36),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  is_pinned BOOLEAN DEFAULT FALSE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Create folders table
+CREATE TABLE IF NOT EXISTS folders (
+  id VARCHAR(36) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
+  parent_id VARCHAR(36),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE
+);
+
+-- Create tags table
+CREATE TABLE IF NOT EXISTS tags (
+  id VARCHAR(36) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY user_tag_unique (user_id, name),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Create note_tags junction table
+CREATE TABLE IF NOT EXISTS note_tags (
+  note_id VARCHAR(36) NOT NULL,
+  tag_id VARCHAR(36) NOT NULL,
+  PRIMARY KEY (note_id, tag_id),
+  FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE,
+  FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+);
+
+-- Create shares table
+CREATE TABLE IF NOT EXISTS shares (
+  id VARCHAR(36) PRIMARY KEY,
+  note_id VARCHAR(36) NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
+  share_id VARCHAR(36) UNIQUE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP NULL,
+  FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Add foreign key to notes table for folder_id
+ALTER TABLE notes
+ADD CONSTRAINT fk_notes_folder
+FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE SET NULL;

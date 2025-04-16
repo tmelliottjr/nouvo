@@ -1,0 +1,320 @@
+"use client";
+
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+import React, { createContext, useCallback, useContext, useState } from "react";
+
+// Types for note sharing
+export interface NoteShare {
+  noteId: string;
+  userId: string;
+  userEmail: string;
+  permission: "read" | "write";
+  createdAt: string;
+}
+
+// User type (using better-auth's session user type)
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  image?: string;
+}
+
+// Authentication context type
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, name?: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  shareNote: (
+    noteId: string,
+    userEmail: string,
+    permission: "read" | "write"
+  ) => Promise<boolean>;
+  revokeAccess: (noteId: string, userId: string) => Promise<boolean>;
+  getSharedNoteAccess: (noteId: string) => Promise<NoteShare[]>;
+  getNoteAccessByUser: (userId: string) => Promise<NoteShare[]>;
+}
+
+// Create auth context with default values
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  login: async () => false,
+  signup: async () => false,
+  logout: async () => {},
+  shareNote: async () => false,
+  revokeAccess: async () => false,
+  getSharedNoteAccess: async () => [],
+  getNoteAccessByUser: async () => [],
+});
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+
+  // Function to fetch session when component mounts or auth state changes
+  const fetchSession = useCallback(async () => {
+    try {
+      const { data: session, error } = await authClient.getSession();
+
+      if (session?.user) {
+        setUser(session.user as User);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Error fetching session:", error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Login function
+  const login = useCallback(
+    async (email: string, password: string): Promise<boolean> => {
+      try {
+        const { data, error } = await authClient.signIn.email({
+          email,
+          password,
+          rememberMe: true,
+        });
+
+        if (error) {
+          console.error("Login error:", error);
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error("Login error:", error);
+        return false;
+      }
+    },
+    []
+  );
+
+  // Signup function
+  const signup = useCallback(
+    async (
+      email: string,
+      password: string,
+      name?: string
+    ): Promise<boolean> => {
+      try {
+        console.log("Starting signup process with email:", email);
+
+        // Check that API URL is properly configured
+        const apiBaseUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/auth";
+        console.log("Using API base URL:", apiBaseUrl);
+
+        // Use Better Auth's signup functionality
+        const { data, error } = await authClient.signUp.email({
+          email,
+          password,
+          name,
+        });
+
+        if (error) {
+          console.error("Signup error:", error);
+          // Log detailed error information
+          console.error("Signup error details:", {
+            message: error.message,
+            code: error.code,
+            status: error.status,
+            details: error.details,
+          });
+          return false;
+        }
+
+        // Log success data to help with debugging
+        console.log(
+          "Signup successful:",
+          data ? "User data received" : "No user data"
+        );
+
+        return Boolean(data);
+      } catch (error: any) {
+        // Enhanced error logging to capture network or unexpected errors
+        console.error("Signup exception:", {
+          message: error?.message,
+          name: error?.name,
+          stack: error?.stack,
+          // Check for response details if available
+          response: error?.response?.data,
+          // For fetch errors
+          status: error?.status || error?.statusCode,
+        });
+        return false;
+      }
+    },
+    []
+  );
+
+  // Logout function
+  const logout = useCallback(async () => {
+    try {
+      await authClient.signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            router.push("/");
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  }, [router]);
+
+  // Share note functionality
+  const shareNote = useCallback(
+    async (
+      noteId: string,
+      userEmail: string,
+      permission: "read" | "write"
+    ): Promise<boolean> => {
+      try {
+        // Call the API to share the note
+        const response = await fetch("/api/shared-notes", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            noteId,
+            userEmail,
+            permission,
+          }),
+        });
+
+        if (!response.ok) {
+          console.error("Error sharing note:", response.statusText);
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error("Error sharing note:", error);
+        return false;
+      }
+    },
+    []
+  );
+
+  // Revoke access function
+  const revokeAccess = useCallback(
+    async (noteId: string, userId: string): Promise<boolean> => {
+      try {
+        // Call the API to revoke access
+        const response = await fetch(
+          `/api/shared-notes?id=${userId}&noteId=${noteId}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        if (!response.ok) {
+          console.error("Error revoking access:", response.statusText);
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error("Error revoking access:", error);
+        return false;
+      }
+    },
+    []
+  );
+
+  // Get shared note access by note ID
+  const getSharedNoteAccess = useCallback(
+    async (noteId: string): Promise<NoteShare[]> => {
+      try {
+        // Call the API to get shared note access
+        const response = await fetch(`/api/shared-notes?noteId=${noteId}`);
+
+        if (!response.ok) {
+          console.error(
+            "Error fetching shared note access:",
+            response.statusText
+          );
+          return [];
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error("Error fetching shared note access:", error);
+        return [];
+      }
+    },
+    []
+  );
+
+  // Get note access by user ID
+  const getNoteAccessByUser = useCallback(
+    async (userId: string): Promise<NoteShare[]> => {
+      try {
+        // Call the API to get user's note access
+        const response = await fetch(`/api/shared-notes?userId=${userId}`);
+
+        if (!response.ok) {
+          console.error(
+            "Error fetching user's note access:",
+            response.statusText
+          );
+          return [];
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error("Error fetching user's note access:", error);
+        return [];
+      }
+    },
+    []
+  );
+
+  // Compute authentication status
+  const isAuthenticated = Boolean(user);
+
+  // Provide auth context to children
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated,
+        isLoading,
+        login,
+        signup,
+        logout,
+        shareNote,
+        revokeAccess,
+        getSharedNoteAccess,
+        getNoteAccessByUser,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// Custom hook to use the auth context
+export function useAuth() {
+  const context = useContext(AuthContext);
+
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+
+  return context;
+}

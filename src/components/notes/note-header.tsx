@@ -212,7 +212,7 @@ export function NoteHeader() {
 
       {/* Share button - only show when viewing a note (not a folder) */}
       {!isViewingFolder && currentNote && (
-        <ShareNoteButton noteId={currentNote.id} />
+        <ShareNoteButton noteId={currentNote.id} noteTitle={currentNote.name} />
       )}
     </header>
   );

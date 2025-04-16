@@ -3,11 +3,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  getBackgroundColorClass,
-  getBorderColorClass,
-  getTextColorClass,
-} from "@/state-providers/use-tags-settings";
+// import {
+//   getBackgroundColorClass,
+//   getBorderColorClass,
+//   getTextColorClass,
+// } from "@/state-providers/use-tags-settings";
 import { X } from "lucide-react";
 import { ReactNode } from "react";
 
@@ -64,9 +64,9 @@ export function TagBadge({
   compact = false,
 }: TagBadgeProps) {
   // Get styling classes based on color
-  const bgClass = color ? getBackgroundColorClass(color) : "";
-  const borderClass = color ? getBorderColorClass(color) : "";
-  const textClass = color ? getTextColorClass(color) : "";
+  const bgClass = color;
+  const borderClass = color;
+  const textClass = color;
 
   // Style object for custom hex colors
   const style: React.CSSProperties = {};

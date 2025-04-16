@@ -1,22 +1,16 @@
-import { NoteNode } from "@/lib/seed-data";
-import { EditorContent, EditorEvents, useEditor } from "@tiptap/react";
-import { EditorToolbar } from "./EditorToolbar";
+"use client";
+
+import { EditorContent, useEditor } from "@tiptap/react";
 import { extensions } from "./plugins";
 
-export default function TiptapEditor({
+// A simplified version of TiptapEditor that doesn't depend on NotesProvider
+export function SimpleTiptapEditor({
   note,
-  onUpdate,
   readOnly = false,
 }: {
-  note: NoteNode;
-  onUpdate: (content: string) => void;
+  note: any;
   readOnly?: boolean;
 }) {
-  const handleContentUpdate = ({ editor }: EditorEvents["update"]) => {
-    const serialized = JSON.stringify(editor.getJSON());
-    onUpdate(serialized);
-  };
-
   let deserialized;
   try {
     deserialized = JSON.parse(note.content);
@@ -29,7 +23,6 @@ export default function TiptapEditor({
       content: deserialized,
       immediatelyRender: false,
       extensions,
-      onUpdate: handleContentUpdate,
       shouldRerenderOnTransaction: false,
       autofocus: !readOnly,
       editable: !readOnly,
@@ -45,7 +38,13 @@ export default function TiptapEditor({
 
   return (
     <div className="flex flex-col w-full">
-      {!readOnly && <EditorToolbar noteId={note.id} tags={note.tags} />}
+      <div className="border-b px-4 py-2 bg-muted/30">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">
+            {readOnly ? "Read-only View" : "Edit Mode"}
+          </span>
+        </div>
+      </div>
       <EditorContent editor={editor} className="flex justify-center" />
     </div>
   );

@@ -22,7 +22,7 @@ import { TagBadge } from "@/components/ui/tag-badge";
 import { TokenizedInput } from "@/components/ui/tokenized-input";
 import { SearchField, useSearch } from "@/state-providers/tag-search-provider";
 import { useNotes } from "@/state-providers/use-notes";
-import { useTagsSettings, getDefaultTagColor } from "@/state-providers/use-tags-settings";
+import { useTagsSettings } from "@/state-providers/use-tags-settings";
 import { format } from "date-fns";
 import { CalendarIcon, FolderIcon, InfoIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -119,7 +119,8 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
     // Use default color if tag doesn't have settings yet
     const tagIndex = tags.length;
-    return getDefaultTagColor(tagIndex);
+    // 
+    return "#615fff"; // Default color for tags
   };
 
   const [state, setState] = useState({

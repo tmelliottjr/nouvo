@@ -27,16 +27,16 @@ type NotesContext = {
   // Tree data structure - flat map of nodes
   treeData: TreeData;
   // Operations
-  addNote: (parentId?: string | null) => string;
-  addFolder: (parentId?: string | null) => string;
+  addNote: (parentId?: string | null) => Promise<string>;
+  addFolder: (parentId?: string | null) => Promise<string>;
   updateNote: (
     id: string,
     updateProps: Partial<{ name: string; content: string; tags: string[] }>
-  ) => void;
-  updateFolder: (id: string, updateProps: { name: string }) => void;
-  deleteNote: (id: string) => void;
-  deleteFolder: (id: string) => void;
-  moveNode: (nodeId: string, destinationFolderId: string) => void;
+  ) => Promise<void>;
+  updateFolder: (id: string, updateProps: { name: string }) => Promise<void>;
+  deleteNote: (id: string) => Promise<void>;
+  deleteFolder: (id: string) => Promise<void>;
+  moveNode: (nodeId: string, destinationFolderId: string) => Promise<void>;
   // Selection state
   selectNote: (id: string) => void;
   deselectNote: () => void;
@@ -60,10 +60,12 @@ type NotesContext = {
   isFromUrl: boolean;
   // Creation state
   creationStateById: CreationStateMap;
-  completeNodeCreation: (id: string, name: string) => void;
+  completeNodeCreation: (id: string, name: string) => Promise<void>;
   // Derived data
   rootNodes: TreeNode[];
   getChildNodes: (folderId: string) => TreeNode[];
+  // Data loading state
+  isLoading: boolean;
 };
 
 const NotesContext = createContext<NotesContext | undefined>(undefined);
@@ -94,6 +96,107 @@ function NotesProvider({ children }: PropsWithChildren) {
   const [directPathFolderIds, setDirectPathFolderIds] = useImmer<Set<string>>(
     new Set()
   );
+  const [isLoading, setIsLoading] = useImmer<boolean>(true);
+
+  // Fetch notes from API on component mount
+  useEffect(() => {
+    const fetchNotes = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch notes from our API
+        const notesResponse = await fetch("/api/notes");
+
+        if (!notesResponse.ok) {
+          throw new Error("Failed to fetch notes");
+        }
+
+        const notes = await notesResponse.json();
+
+        // Fetch folders from our API
+        const foldersResponse = await fetch("/api/folders");
+
+        if (!foldersResponse.ok) {
+          throw new Error("Failed to fetch folders");
+        }
+
+        const folders = await foldersResponse.json();
+
+        // Process and convert to our tree data structure
+        const newTreeData: TreeData = {};
+        const newRootIds: string[] = [];
+
+        // Add folders to tree data
+        folders.forEach(
+          (folder: {
+            id: string;
+            name: string;
+            parentId: string | null;
+            childIds: string[];
+          }) => {
+            const folderNode: FolderNode = {
+              id: folder.id,
+              name: folder.name,
+              type: "folder",
+              parentId: folder.parentId,
+              childIds: folder.childIds || [],
+            };
+
+            newTreeData[folder.id] = folderNode;
+
+            if (!folder.parentId) {
+              newRootIds.push(folder.id);
+            }
+          }
+        );
+
+        // Add notes to tree data
+        notes.forEach(
+          (note: {
+            id: string;
+            name: string;
+            parentId: string | null;
+            content: string;
+            tags: string[];
+            creationDate: string;
+          }) => {
+            const noteNode: NoteNode = {
+              id: note.id,
+              name: note.name,
+              type: "note",
+              parentId: note.parentId,
+              childIds: [],
+              content: note.content,
+              tags: note.tags || [],
+              creationDate: note.creationDate || new Date().toISOString(),
+            };
+
+            newTreeData[note.id] = noteNode;
+
+            if (!note.parentId) {
+              newRootIds.push(note.id);
+            } else if (newTreeData[note.parentId]) {
+              // Add note to parent's childIds if parent exists
+              const parent = newTreeData[note.parentId] as FolderNode;
+              if (!parent.childIds.includes(note.id)) {
+                parent.childIds.push(note.id);
+              }
+            }
+          }
+        );
+
+        // Update state with fetched data
+        setTreeData(newTreeData);
+        setRootIds(newRootIds);
+      } catch (error) {
+        console.error("Error fetching notes and folders:", error);
+        // Keep existing seed data if fetch fails
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchNotes();
+  }, [setTreeData, setRootIds, setIsLoading]);
 
   /**
    * Gets all child nodes for a given folder ID
@@ -121,8 +224,7 @@ function NotesProvider({ children }: PropsWithChildren) {
   const getNodePath = useCallback(
     (nodeId: string): string[] => {
       const path: string[] = [];
-      const currentId = nodeId;
-      let node = treeData[currentId];
+      let node = treeData[nodeId];
 
       if (!node) return path;
 
@@ -165,132 +267,218 @@ function NotesProvider({ children }: PropsWithChildren) {
   );
 
   /**
+   * Removes a node and updates the parent's children
+   */
+  const removeNode = useCallback(
+    (nodeId: string): void => {
+      const node = treeData[nodeId];
+      if (!node) return;
+
+      // Get parent info
+      const parentId = node.parentId;
+
+      // Remove node from parent's children
+      if (parentId) {
+        setTreeData((draft) => {
+          const parent = draft[parentId];
+          if (parent && parent.type === "folder") {
+            parent.childIds = parent.childIds.filter((id) => id !== nodeId);
+          }
+        });
+      } else {
+        // Remove from root
+        setRootIds((draft) => {
+          return draft.filter((id) => id !== nodeId);
+        });
+      }
+
+      // Remove node from tree data
+      setTreeData((draft) => {
+        delete draft[nodeId];
+      });
+
+      // Clear creation state
+      setCreationStateById((draft) => {
+        delete draft[nodeId];
+      });
+    },
+    [treeData, setTreeData, setRootIds, setCreationStateById]
+  );
+
+  /**
    * Adds a note under the provided parent ID
    */
-  const addNote = (parentId: string | null = null): string => {
-    const noteId = crypto.randomUUID();
+  const addNote = useCallback(
+    async (parentId: string | null = null): Promise<string> => {
+      const noteId = crypto.randomUUID();
 
-    // Create empty note
-    const note: NoteNode = {
-      id: noteId,
-      name: "", // Empty name initially
-      type: "note",
-      parentId: parentId,
-      childIds: [],
-      content: JSON.stringify({
-        type: "doc",
-        content: [
-          {
-            type: "paragraph",
-            content: [{ text: "", type: "text" }],
-          },
-        ],
-      }),
-      tags: [],
-      creationDate: new Date().toISOString(),
-    };
-
-    // Add note to tree data
-    setTreeData((draft) => {
-      draft[noteId] = note;
-    });
-
-    // Add note to parent's children or root
-    if (parentId) {
-      setTreeData((draft) => {
-        const parent = draft[parentId];
-        if (parent && parent.type === "folder") {
-          parent.childIds.unshift(noteId);
-        }
-      });
-
-      // Auto-expand parent folder
-      setExpandedFolderIds((draft) => {
-        draft.add(parentId);
-      });
-    } else {
-      // Add to root if no parent specified
-      setRootIds((draft) => {
-        draft.unshift(noteId);
-      });
-    }
-
-    // Track creation state
-    setCreationStateById((draft) => {
-      draft[noteId] = {
-        status: "creating",
-        parentId,
+      // Create empty note
+      const note: NoteNode = {
+        id: noteId,
+        name: "", // Empty name initially
+        type: "note",
+        parentId: parentId,
+        childIds: [],
+        content: JSON.stringify({
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ text: "", type: "text" }],
+            },
+          ],
+        }),
+        tags: [],
+        creationDate: new Date().toISOString(),
       };
-    });
 
-    return noteId;
-  };
+      // Add note to tree data
+      setTreeData((draft) => {
+        draft[noteId] = note;
+      });
+
+      // Add note to parent's children or root
+      if (parentId) {
+        setTreeData((draft) => {
+          const parent = draft[parentId];
+          if (parent && parent.type === "folder") {
+            parent.childIds.unshift(noteId);
+          }
+        });
+
+        // Auto-expand parent folder
+        setExpandedFolderIds((draft) => {
+          draft.add(parentId);
+        });
+      } else {
+        // Add to root if no parent specified
+        setRootIds((draft) => {
+          draft.unshift(noteId);
+        });
+      }
+
+      // Track creation state
+      setCreationStateById((draft) => {
+        draft[noteId] = {
+          status: "creating",
+          parentId,
+        };
+      });
+
+      // Create note in the API
+      try {
+        await fetch("/api/notes", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: noteId,
+            name: "",
+            parentId,
+            content: note.content,
+            tags: note.tags,
+            creationDate: note.creationDate,
+          }),
+        });
+      } catch (error) {
+        console.error("Error creating note in API:", error);
+      }
+
+      return noteId;
+    },
+    [setTreeData, setRootIds, setExpandedFolderIds, setCreationStateById]
+  );
 
   /**
    * Adds a folder under the provided parent ID
    */
-  const addFolder = (parentId: string | null = null): string => {
-    const folderId = crypto.randomUUID();
+  const addFolder = useCallback(
+    async (parentId: string | null = null): Promise<string> => {
+      const folderId = crypto.randomUUID();
 
-    // Create empty folder
-    const folder: FolderNode = {
-      id: folderId,
-      name: "", // Empty name initially
-      type: "folder",
-      parentId: parentId,
-      childIds: [],
-    };
-
-    // Add folder to tree data
-    setTreeData((draft) => {
-      draft[folderId] = folder;
-    });
-
-    // Add folder to parent's children or root
-    if (parentId) {
-      setTreeData((draft) => {
-        const parent = draft[parentId];
-        if (parent && parent.type === "folder") {
-          parent.childIds.unshift(folderId);
-        }
-      });
-
-      // Auto-expand parent folder
-      setExpandedFolderIds((draft) => {
-        draft.add(parentId);
-      });
-    } else {
-      // Add to root if no parent specified
-      setRootIds((draft) => {
-        draft.unshift(folderId);
-      });
-    }
-
-    // Track creation state
-    setCreationStateById((draft) => {
-      draft[folderId] = {
-        status: "creating",
-        parentId,
+      // Create empty folder
+      const folder: FolderNode = {
+        id: folderId,
+        name: "", // Empty name initially
+        type: "folder",
+        parentId: parentId,
+        childIds: [],
       };
-    });
 
-    return folderId;
-  };
+      // Add folder to tree data
+      setTreeData((draft) => {
+        draft[folderId] = folder;
+      });
+
+      // Add folder to parent's children or root
+      if (parentId) {
+        setTreeData((draft) => {
+          const parent = draft[parentId];
+          if (parent && parent.type === "folder") {
+            parent.childIds.unshift(folderId);
+          }
+        });
+
+        // Auto-expand parent folder
+        setExpandedFolderIds((draft) => {
+          draft.add(parentId);
+        });
+      } else {
+        // Add to root if no parent specified
+        setRootIds((draft) => {
+          draft.unshift(folderId);
+        });
+      }
+
+      // Track creation state
+      setCreationStateById((draft) => {
+        draft[folderId] = {
+          status: "creating",
+          parentId,
+        };
+      });
+
+      // Create folder in the API
+      try {
+        await fetch("/api/folders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: folderId,
+            name: "",
+            parentId,
+            childIds: [],
+          }),
+        });
+      } catch (error) {
+        console.error("Error creating folder in API:", error);
+      }
+
+      return folderId;
+    },
+    [setTreeData, setRootIds, setExpandedFolderIds, setCreationStateById]
+  );
 
   /**
    * Completes the creation process for a node by setting its name
    */
-  const completeNodeCreation = (id: string, name: string): void => {
-    const state = creationStateById[id];
-    if (!state) return;
+  const completeNodeCreation = useCallback(
+    async (id: string, name: string): Promise<void> => {
+      const state = creationStateById[id];
+      if (!state) return;
 
-    const node = treeData[id];
-    if (!node) return;
+      const node = treeData[id];
+      if (!node) return;
 
-    if (name.trim() === "") {
-      // If name is empty, remove the node
-      removeNode(id);
-    } else {
+      if (name.trim() === "") {
+        // If name is empty, remove the node
+        removeNode(id);
+        return;
+      }
+
       // Update name
       setTreeData((draft) => {
         if (draft[id]) {
@@ -303,360 +491,496 @@ function NotesProvider({ children }: PropsWithChildren) {
         delete draft[id];
       });
 
+      // Update in API
+      try {
+        if (node.type === "note") {
+          await fetch("/api/notes", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id,
+              name,
+            }),
+          });
+        } else if (node.type === "folder") {
+          await fetch("/api/folders", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id,
+              name,
+            }),
+          });
+        }
+      } catch (error) {
+        console.error(`Error updating ${node.type} name in API:`, error);
+      }
+
       // Select the node if it's a note
       if (node.type === "note") {
-        setIsViewingFolder(false);
         selectNote(id);
       }
-    }
-  };
-
-  /**
-   * Removes a node and updates the parent's children
-   */
-  const removeNode = (nodeId: string): void => {
-    const node = treeData[nodeId];
-    if (!node) return;
-
-    // Get parent info
-    const parentId = node.parentId;
-
-    // Remove node from parent's children
-    if (parentId) {
-      setTreeData((draft) => {
-        const parent = draft[parentId];
-        if (parent && parent.type === "folder") {
-          parent.childIds = parent.childIds.filter((id) => id !== nodeId);
-        }
-      });
-    } else {
-      // Remove from root
-      setRootIds((draft) => {
-        return draft.filter((id) => id !== nodeId);
-      });
-    }
-
-    // Remove node from tree data
-    setTreeData((draft) => {
-      delete draft[nodeId];
-    });
-
-    // Clear creation state
-    setCreationStateById((draft) => {
-      delete draft[nodeId];
-    });
-  };
-
-  /**
-   * Moves a node to a new parent
-   */
-  const moveNode = (nodeId: string, destinationFolderId: string): void => {
-    const node = treeData[nodeId];
-    if (!node) {
-      console.warn(`Could not find node with id: ${nodeId}`);
-      return;
-    }
-
-    // Get current parent
-    const sourceParentId = node.parentId;
-
-    // Prevent moving a folder into itself or its descendants
-    if (node.type === "folder" && destinationFolderId !== "root") {
-      if (isDescendantOf(destinationFolderId, nodeId)) {
-        console.warn("Cannot move a folder into itself or its descendants");
-        return;
-      }
-    }
-
-    // Remove from current parent's children
-    if (sourceParentId) {
-      setTreeData((draft) => {
-        const sourceParent = draft[sourceParentId];
-        if (sourceParent && sourceParent.type === "folder") {
-          sourceParent.childIds = sourceParent.childIds.filter(
-            (id) => id !== nodeId
-          );
-        }
-      });
-    } else {
-      // Remove from root
-      setRootIds((draft) => draft.filter((id) => id !== nodeId));
-    }
-
-    // Update node's parent reference
-    setTreeData((draft) => {
-      if (draft[nodeId]) {
-        draft[nodeId].parentId =
-          destinationFolderId === "root" ? null : destinationFolderId;
-      }
-    });
-
-    // Add to new parent
-    if (destinationFolderId === "root") {
-      // Add to root
-      setRootIds((draft) => [...draft, nodeId]);
-    } else {
-      // Add to destination folder's children
-      setTreeData((draft) => {
-        const destFolder = draft[destinationFolderId];
-        if (destFolder && destFolder.type === "folder") {
-          destFolder.childIds.push(nodeId);
-        }
-      });
-    }
-  };
-
-  /**
-   * Updates a note's properties
-   */
-  const updateNote = (
-    id: string,
-    updateProps: Partial<{ name: string; content: string; tags: string[] }>
-  ): void => {
-    const note = treeData[id];
-    if (!note || note.type !== "note") {
-      console.warn(`Could not find note with id: ${id}`);
-      return;
-    }
-
-    setTreeData((draft) => {
-      const noteToUpdate = draft[id] as NoteNode;
-
-      // Update each property if provided
-      if (updateProps.name !== undefined) {
-        noteToUpdate.name = updateProps.name;
-      }
-
-      if (updateProps.content !== undefined) {
-        noteToUpdate.content = updateProps.content;
-      }
-
-      if (updateProps.tags !== undefined) {
-        noteToUpdate.tags = updateProps.tags;
-      }
-    });
-
-    // If we're updating the name from empty to something, select the note to ensure focus
-    if (updateProps.name && updateProps.name !== "" && note.name === "") {
-      // Ensure we're in note view mode after naming the note
-      setIsViewingFolder(false);
-      selectNote(id);
-    }
-  };
-
-  /**
-   * Updates a folder's properties
-   */
-  const updateFolder = (id: string, updateProps: { name: string }): void => {
-    const folder = treeData[id];
-    if (!folder || folder.type !== "folder") {
-      console.warn(`Could not find folder with id: ${id}`);
-      return;
-    }
-
-    setTreeData((draft) => {
-      const folderToUpdate = draft[id];
-
-      if (updateProps.name !== undefined) {
-        folderToUpdate.name = updateProps.name;
-      }
-    });
-  };
-
-  /**
-   * Deletes a note and handles navigation if needed
-   */
-  const deleteNote = (id: string): void => {
-    const note = treeData[id];
-    if (!note || note.type !== "note") {
-      console.warn(`Could not find note with id: ${id}`);
-      return;
-    }
-
-    // Check if we're currently viewing this note
-    const isCurrentlyViewing = selectedItemId === id && !isViewingFolder;
-
-    // If we're currently viewing this note, reset selection
-    if (selectedItemId === id) {
-      setSelectedItemId(null);
-      setIsViewingFolder(true);
-    }
-
-    // Remove the note
-    removeNode(id);
-
-    // If we were viewing the note, navigate to main notes view
-    if (isCurrentlyViewing) {
-      router.push("/notes");
-    }
-  };
-
-  /**
-   * Recursively deletes a folder and all its contents
-   */
-  const deleteFolder = (id: string): void => {
-    const folder = treeData[id];
-    if (!folder || folder.type !== "folder") {
-      console.warn(`Could not find folder with id: ${id}`);
-      return;
-    }
-
-    // If we're currently viewing this folder, reset selection
-    if (selectedItemId === id) {
-      setSelectedItemId(null);
-      setIsViewingFolder(true);
-    }
-
-    // Delete all children first
-    const childIds = [...folder.childIds]; // Create a copy to avoid mutation issues
-    for (const childId of childIds) {
-      const childNode = treeData[childId];
-      if (childNode) {
-        if (childNode.type === "folder") {
-          deleteFolder(childId);
-        } else {
-          deleteNote(childId);
-        }
-      }
-    }
-
-    // Finally remove the folder itself
-    removeNode(id);
-  };
+    },
+    [creationStateById, treeData, setTreeData, setCreationStateById, removeNode]
+  );
 
   /**
    * Gets a note by ID
    */
-  const getNote = (id: string): NoteNode | undefined => {
-    const node = treeData[id];
-    if (!node || node.type !== "note") {
-      console.warn(`Could not find note with id: ${id}`);
-      return undefined;
-    }
-
-    return node as NoteNode;
-  };
+  const getNote = useCallback(
+    (id: string): NoteNode | undefined => {
+      const node = treeData[id];
+      if (!node || node.type !== "note") {
+        return undefined;
+      }
+      return node as NoteNode;
+    },
+    [treeData]
+  );
 
   /**
    * Gets a folder by ID
    */
-  const getFolder = (id: string): FolderNode | undefined => {
-    const node = treeData[id];
-    if (!node || node.type !== "folder") {
-      console.warn(`Could not find folder with id: ${id}`);
-      return undefined;
-    }
-
-    return node as FolderNode;
-  };
+  const getFolder = useCallback(
+    (id: string): FolderNode | undefined => {
+      const node = treeData[id];
+      if (!node || node.type !== "folder") {
+        return undefined;
+      }
+      return node as FolderNode;
+    },
+    [treeData]
+  );
 
   /**
    * Selects a note and updates UI state
    */
-  const selectNote = (id: string): void => {
-    if (!id) {
-      deselectNote();
-      return;
-    }
+  const selectNote = useCallback(
+    (id: string): void => {
+      if (!id) {
+        deselectNote();
+        return;
+      }
 
-    const note = treeData[id];
-    if (!note || note.type !== "note") {
-      console.warn(`Could not find note with id: ${id}`);
-      return;
-    }
+      const note = treeData[id];
+      if (!note || note.type !== "note") {
+        console.warn(`Could not find note with id: ${id}`);
+        return;
+      }
 
-    setSelectedItemId(id);
+      setSelectedItemId(id);
 
-    // Calculate path for UI display
-    const path = getNodePath(id);
-    setCurrentPath(path);
+      // Calculate path for UI display
+      const path = getNodePath(id);
+      setCurrentPath(path);
 
-    // Ensure we're in note view mode
-    setIsViewingFolder(false);
+      // Ensure we're in note view mode
+      setIsViewingFolder(false);
 
-    // Calculate and expand all folders in the path to this note
-    const folderIds = findFolderIdsInPathToNote(id);
-    setDirectPathFolderIds(new Set(folderIds));
+      // Calculate and expand all folders in the path to this note
+      const folderIds = findFolderIdsInPathToNote(id);
+      setDirectPathFolderIds(new Set(folderIds));
 
-    // Expand all folders in the path
-    setExpandedFolderIds((draft) => {
-      folderIds.forEach((folderId) => draft.add(folderId));
-      return draft;
-    });
-  };
-
-  /**
-   * Selects a folder and updates UI state
-   */
-  const selectFolder = (id: string): void => {
-    const folder = treeData[id];
-    if (!folder || folder.type !== "folder") {
-      console.warn(`Could not find folder with id: ${id}`);
-      return;
-    }
-
-    setSelectedItemId(id);
-
-    // Calculate path for UI display
-    const path = getNodePath(id);
-    setCurrentPath(path);
-
-    // Ensure we're in folder view mode
-    setIsViewingFolder(true);
-  };
-
-  /**
-   * Deselects the current note/folder
-   */
-  const deselectNote = (): void => {
-    setSelectedItemId(null);
-    setCurrentPath(null);
-    setIsFromUrl(false);
-  };
+      // Expand all folders in the path
+      setExpandedFolderIds((draft) => {
+        folderIds.forEach((folderId) => draft.add(folderId));
+        return draft;
+      });
+    },
+    [
+      treeData,
+      setSelectedItemId,
+      getNodePath,
+      setCurrentPath,
+      setIsViewingFolder,
+      findFolderIdsInPathToNote,
+      setDirectPathFolderIds,
+      setExpandedFolderIds,
+    ]
+  );
 
   /**
    * Finds all folder IDs in the path to a note
    */
-  const findFolderIdsInPathToNote = (noteId: string): string[] => {
-    const note = treeData[noteId];
-    if (!note) return [];
+  const findFolderIdsInPathToNote = useCallback(
+    (noteId: string): string[] => {
+      const note = treeData[noteId];
+      if (!note) return [];
 
-    const folderPath: string[] = [];
+      const folderPath: string[] = [];
 
-    // Start with the direct parent
-    let currentId = note.parentId;
-    while (currentId) {
-      folderPath.push(currentId);
+      // Start with the direct parent
+      let currentId = note.parentId;
+      while (currentId) {
+        folderPath.push(currentId);
 
-      // Move up to the next parent
-      const parent = treeData[currentId];
-      currentId = parent?.parentId || null;
-    }
+        // Move up to the next parent
+        const parent = treeData[currentId];
+        currentId = parent?.parentId || null;
+      }
 
-    return folderPath;
-  };
+      return folderPath;
+    },
+    [treeData]
+  );
 
   /**
-   * Checks if a folder is in the direct path to the current note
+   * Deselects the current note/folder
    */
-  const isDirectPathToNote = (folderId: string): boolean => {
-    return directPathFolderIds.has(folderId);
-  };
+  const deselectNote = useCallback((): void => {
+    setSelectedItemId(null);
+    setCurrentPath(null);
+    setIsFromUrl(false);
+  }, [setSelectedItemId, setCurrentPath, setIsFromUrl]);
+
+  /**
+   * Selects a folder and updates UI state
+   */
+  const selectFolder = useCallback(
+    (id: string): void => {
+      const folder = treeData[id];
+      if (!folder || folder.type !== "folder") {
+        console.warn(`Could not find folder with id: ${id}`);
+        return;
+      }
+
+      setSelectedItemId(id);
+
+      // Calculate path for UI display
+      const path = getNodePath(id);
+      setCurrentPath(path);
+
+      // Ensure we're in folder view mode
+      setIsViewingFolder(true);
+    },
+    [
+      treeData,
+      setSelectedItemId,
+      getNodePath,
+      setCurrentPath,
+      setIsViewingFolder,
+    ]
+  );
+
+  /**
+   * Updates a note's properties
+   */
+  const updateNote = useCallback(
+    async (
+      id: string,
+      updateProps: Partial<{ name: string; content: string; tags: string[] }>
+    ): Promise<void> => {
+      const note = treeData[id];
+      if (!note || note.type !== "note") {
+        console.warn(`Could not find note with id: ${id}`);
+        return;
+      }
+
+      setTreeData((draft) => {
+        const noteToUpdate = draft[id] as NoteNode;
+
+        // Update each property if provided
+        if (updateProps.name !== undefined) {
+          noteToUpdate.name = updateProps.name;
+        }
+
+        if (updateProps.content !== undefined) {
+          noteToUpdate.content = updateProps.content;
+        }
+
+        if (updateProps.tags !== undefined) {
+          noteToUpdate.tags = updateProps.tags;
+        }
+      });
+
+      // If we're updating the name from empty to something, select the note to ensure focus
+      if (updateProps.name && updateProps.name !== "" && note.name === "") {
+        // Ensure we're in note view mode after naming the note
+        setIsViewingFolder(false);
+        selectNote(id);
+      }
+
+      // Update note in the API
+      try {
+        await fetch("/api/notes", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id,
+            ...updateProps,
+          }),
+        });
+      } catch (error) {
+        console.error("Error updating note in API:", error);
+      }
+    },
+    [treeData, setTreeData, setIsViewingFolder, selectNote]
+  );
+
+  /**
+   * Updates a folder's properties
+   */
+  const updateFolder = useCallback(
+    async (id: string, updateProps: { name: string }): Promise<void> => {
+      const folder = treeData[id];
+      if (!folder || folder.type !== "folder") {
+        console.warn(`Could not find folder with id: ${id}`);
+        return;
+      }
+
+      setTreeData((draft) => {
+        const folderToUpdate = draft[id];
+
+        if (updateProps.name !== undefined) {
+          folderToUpdate.name = updateProps.name;
+        }
+      });
+
+      // Update folder in the API
+      try {
+        await fetch("/api/folders", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id,
+            ...updateProps,
+          }),
+        });
+      } catch (error) {
+        console.error("Error updating folder in API:", error);
+      }
+    },
+    [treeData, setTreeData]
+  );
+
+  /**
+   * Deletes a note and handles navigation if needed
+   */
+  const deleteNote = useCallback(
+    async (id: string): Promise<void> => {
+      const note = treeData[id];
+      if (!note || note.type !== "note") {
+        console.warn(`Could not find note with id: ${id}`);
+        return;
+      }
+
+      // Check if we're currently viewing this note
+      const isCurrentlyViewing = selectedItemId === id && !isViewingFolder;
+
+      // If we're currently viewing this note, reset selection
+      if (selectedItemId === id) {
+        setSelectedItemId(null);
+        setIsViewingFolder(true);
+      }
+
+      // Remove the note
+      removeNode(id);
+
+      // If we were viewing the note, navigate to main notes view
+      if (isCurrentlyViewing) {
+        router.push("/notes");
+      }
+
+      // Delete note from the API
+      try {
+        await fetch(`/api/notes?id=${id}`, {
+          method: "DELETE",
+        });
+      } catch (error) {
+        console.error("Error deleting note in API:", error);
+      }
+    },
+    [
+      treeData,
+      selectedItemId,
+      isViewingFolder,
+      setSelectedItemId,
+      setIsViewingFolder,
+      removeNode,
+      router,
+    ]
+  );
+
+  /**
+   * Recursively deletes a folder and all its contents
+   */
+  const deleteFolder = useCallback(
+    async (id: string): Promise<void> => {
+      const folder = treeData[id];
+      if (!folder || folder.type !== "folder") {
+        console.warn(`Could not find folder with id: ${id}`);
+        return;
+      }
+
+      // If we're currently viewing this folder, reset selection
+      if (selectedItemId === id) {
+        setSelectedItemId(null);
+        setIsViewingFolder(true);
+      }
+
+      // Delete all children first
+      const childIds = [...folder.childIds]; // Create a copy to avoid mutation issues
+      for (const childId of childIds) {
+        const childNode = treeData[childId];
+        if (childNode) {
+          if (childNode.type === "folder") {
+            await deleteFolder(childId);
+          } else {
+            await deleteNote(childId);
+          }
+        }
+      }
+
+      // Finally remove the folder itself
+      removeNode(id);
+
+      // Delete folder from the API
+      try {
+        await fetch(`/api/folders?id=${id}`, {
+          method: "DELETE",
+        });
+      } catch (error) {
+        console.error("Error deleting folder in API:", error);
+      }
+    },
+    [
+      treeData,
+      selectedItemId,
+      setSelectedItemId,
+      setIsViewingFolder,
+      deleteNote,
+      removeNode,
+    ]
+  );
+
+  /**
+   * Moves a node to a new parent
+   */
+  const moveNode = useCallback(
+    async (nodeId: string, destinationFolderId: string): Promise<void> => {
+      const node = treeData[nodeId];
+      if (!node) {
+        console.warn(`Could not find node with id: ${nodeId}`);
+        return;
+      }
+
+      // Get current parent
+      const sourceParentId = node.parentId;
+
+      // Prevent moving a folder into itself or its descendants
+      if (node.type === "folder" && destinationFolderId !== "root") {
+        if (isDescendantOf(destinationFolderId, nodeId)) {
+          console.warn("Cannot move a folder into itself or its descendants");
+          return;
+        }
+      }
+
+      // Remove from current parent's children
+      if (sourceParentId) {
+        setTreeData((draft) => {
+          const sourceParent = draft[sourceParentId];
+          if (sourceParent && sourceParent.type === "folder") {
+            sourceParent.childIds = sourceParent.childIds.filter(
+              (id) => id !== nodeId
+            );
+          }
+        });
+      } else {
+        // Remove from root
+        setRootIds((draft) => draft.filter((id) => id !== nodeId));
+      }
+
+      // Update node's parent reference
+      setTreeData((draft) => {
+        if (draft[nodeId]) {
+          draft[nodeId].parentId =
+            destinationFolderId === "root" ? null : destinationFolderId;
+        }
+      });
+
+      // Add to new parent
+      if (destinationFolderId === "root") {
+        // Add to root
+        setRootIds((draft) => [...draft, nodeId]);
+      } else {
+        // Add to destination folder's children
+        setTreeData((draft) => {
+          const destFolder = draft[destinationFolderId];
+          if (destFolder && destFolder.type === "folder") {
+            destFolder.childIds.push(nodeId);
+          }
+        });
+      }
+
+      // Update in API
+      try {
+        if (node.type === "note") {
+          await fetch("/api/notes", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: nodeId,
+              parentId:
+                destinationFolderId === "root" ? null : destinationFolderId,
+            }),
+          });
+        } else if (node.type === "folder") {
+          await fetch("/api/folders", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: nodeId,
+              parentId:
+                destinationFolderId === "root" ? null : destinationFolderId,
+            }),
+          });
+        }
+      } catch (error) {
+        console.error(`Error moving ${node.type} in API:`, error);
+      }
+    },
+    [treeData, setTreeData, setRootIds, isDescendantOf]
+  );
 
   /**
    * Sets a folder's expanded state
    */
-  const setFolderExpanded = (id: string, expanded: boolean): void => {
-    setExpandedFolderIds((prev) => {
-      const newSet = new Set(prev);
-      if (expanded) {
-        newSet.add(id);
-      } else {
-        newSet.delete(id);
-      }
-      return newSet;
-    });
-  };
+  const setFolderExpanded = useCallback(
+    (id: string, expanded: boolean): void => {
+      setExpandedFolderIds((prev) => {
+        const newSet = new Set(prev);
+        if (expanded) {
+          newSet.add(id);
+        } else {
+          newSet.delete(id);
+        }
+        return newSet;
+      });
+    },
+    [setExpandedFolderIds]
+  );
+
+  /**
+   * Checks if a folder is in the direct path to the current note
+   */
+  const isDirectPathToNote = useCallback(
+    (folderId: string): boolean => {
+      return directPathFolderIds.has(folderId);
+    },
+    [directPathFolderIds]
+  );
 
   /**
    * Gets the current note based on selection state
@@ -682,18 +1006,18 @@ function NotesProvider({ children }: PropsWithChildren) {
    * Handles navigation via URL params
    */
   useEffect(() => {
-    if (!params.noteId) {
+    const noteId = params?.noteId;
+    if (!noteId) {
       deselectNote();
       return;
     }
 
     // If the noteId in the URL doesn't match the current note, select it
-    if (params.noteId && currentNote?.id !== params.noteId) {
-      selectNote(params.noteId as string);
+    if (noteId && typeof noteId === "string" && currentNote?.id !== noteId) {
+      selectNote(noteId);
       setIsFromUrl(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.noteId]);
+  }, [params, currentNote, selectNote, deselectNote, setIsFromUrl]);
 
   // Context value to be provided
   const contextValue: NotesContext = {
@@ -723,8 +1047,9 @@ function NotesProvider({ children }: PropsWithChildren) {
     isFromUrl,
     creationStateById,
     completeNodeCreation,
-    rootNodes, // Derived data
-    getChildNodes, // Helper function
+    rootNodes,
+    getChildNodes,
+    isLoading,
   };
 
   return (
