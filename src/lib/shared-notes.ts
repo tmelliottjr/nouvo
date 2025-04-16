@@ -1,4 +1,5 @@
 import { createPool } from "mysql2/promise";
+import { camelize } from "./utils";
 
 // Create a MySQL connection pool
 const pool = createPool({
@@ -22,10 +23,9 @@ export type SharedNote = {
  * Get all shared notes for a specific user
  */
 export async function getSharedNotes(userId: string): Promise<SharedNote[]> {
-  const [rows] = await pool.query(
-    `SELECT * FROM shares WHERE user_id = ?`,
-    [userId]
-  );
+  const [rows] = await pool.query(`SELECT * FROM shares WHERE user_id = ?`, [
+    userId,
+  ]);
   return rows as SharedNote[];
 }
 
@@ -35,11 +35,21 @@ export async function getSharedNotes(userId: string): Promise<SharedNote[]> {
 export async function getSharedNoteUsers(
   noteId: string
 ): Promise<SharedNote[]> {
-  const [rows] = await pool.query(
-    `SELECT * FROM shares WHERE note_id = ?`,
-    [noteId]
-  );
-  return rows as SharedNote[];
+  const [rows] = await pool.query(`SELECT * FROM shares WHERE note_id = ?`, [
+    noteId,
+  ]);
+
+  const camelCasedRows = (rows as any[]).map((share) => {
+    const camelCasedKeys = Object.fromEntries(
+      Object.entries(share).map(([key, value]) => [camelize(key), value])
+    );
+    return {
+      ...camelCasedKeys,
+      permission: share.permission || "read", // Default to "read" if not included
+    };
+  });
+
+  return camelCasedRows as SharedNote[];
 }
 
 /**

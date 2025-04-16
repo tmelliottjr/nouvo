@@ -6,10 +6,11 @@ export const metadata: Metadata = {
   description: "View a shared note",
 };
 
-export default function SharedNotePage({
+export default async function SharedNotePage({
   params,
 }: {
   params: { shareId: string };
 }) {
-  return <ShareNoteSkeleton shareId={params.shareId} />;
+  const { shareId } = await params;
+  return <ShareNoteSkeleton shareId={shareId} />;
 }

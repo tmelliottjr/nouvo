@@ -25,88 +25,92 @@ export function ShareNoteSkeleton({ shareId }: ShareNoteSkeletonProps) {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<NoteNode | null>(null);
   const [permission, setPermission] = useState<"read" | "write">("read");
-  const [isAccessVerified, setIsAccessVerified] = useState(false);
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
-  // Check if user is authenticated
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.replace(`/login?returnUrl=/shared/${shareId}`);
-    }
-  }, [authLoading, isAuthenticated, router, shareId]);
 
-  // Only fetch note data if user is authenticated
+
+  // Fetch shared note when user is authenticated
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (!user) return;
 
     const fetchSharedNote = async () => {
       setIsLoading(true);
       try {
-        // In a real implementation, we would make an API call to check
-        // if the user has access to this note and fetch its contents
-        // For now, we'll simulate this with a timeout
+        // Step 1: Fetch the note data and verify access
+        const response = await fetch(`/api/notes/${shareId}`);
 
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (!response.ok) {
+          // If not found, check if it's a shared note
+          const sharedResponse = await fetch(
+            `/api/shared-notes?noteId=${shareId}`
+          );
 
-        // Check if user has access to this note
-        // This would be a server-side check in a real implementation
-        const hasAccess = true; // Simulate access check
+          console.log(sharedResponse)
 
-        if (!hasAccess) {
-          setError("You don't have access to this note");
-          setIsLoading(false);
-          return;
+          if (!sharedResponse.ok) {
+            setError("This note doesn't exist or you don't have access to it");
+            setIsLoading(false);
+            return;
+          }
+
+          // Check if the current user has access to this note
+          const sharedData = await sharedResponse.json();
+          const hasAccess = sharedData.some(
+            (share: any) => share.userId === user.id
+          );
+
+          if (!hasAccess) {
+            setError("You don't have access to this note");
+            setIsLoading(false);
+            return;
+          }
+
+          // Get the note content through the shared note endpoint
+          const noteResponse = await fetch(`/api/notes/${shareId}?shared=true`);
+
+          if (!noteResponse.ok) {
+            setError("Failed to load the shared note");
+            setIsLoading(false);
+            return;
+          }
+
+          const noteData = await noteResponse.json();
+
+          // Get the user's permission for this note
+          const userShare = sharedData.find(
+            (share: any) => share.userId === user.id
+          );
+          setPermission(userShare?.permission || "read");
+          console.log(noteData)
+          // Create a proper note object
+          setNote({
+            id: noteData.id,
+            name: noteData.name || "Shared Note",
+            content: noteData.content,
+            type: "note",
+            parentId: null,
+            childIds: [],
+            creationDate: noteData.creationDate || new Date().toISOString(),
+            tags: noteData.tags || [],
+          });
+        } else {
+          // The user owns this note
+          const noteData = await response.json();
+          setPermission("write"); // Owner has write permission
+
+          setNote({
+            id: noteData.id,
+            name: noteData.name || "My Note",
+            content: noteData.content,
+            type: "note",
+            parentId: null,
+            childIds: [],
+            creationDate: noteData.creationDate || new Date().toISOString(),
+            tags: noteData.tags || [],
+          });
         }
 
-        // Create a properly formatted note content string
-        const noteContent = JSON.stringify({
-          type: "doc",
-          content: [
-            {
-              type: "heading",
-              attrs: { level: 1 },
-              content: [{ type: "text", text: "Shared Note Example" }],
-            },
-            {
-              type: "paragraph",
-              content: [
-                {
-                  type: "text",
-                  text: "This is a sample shared note that represents content shared with you. ",
-                },
-              ],
-            },
-            {
-              type: "paragraph",
-              content: [
-                { type: "text", text: "Note ID: " },
-                { type: "text", text: shareId, marks: [{ type: "code" }] },
-              ],
-            },
-            {
-              type: "paragraph",
-              content: [
-                { type: "text", text: "Shared with: " },
-                { type: "text", text: user.email, marks: [{ type: "bold" }] },
-              ],
-            },
-          ],
-        });
-
-        setNote({
-          id: shareId,
-          name: "Shared Meeting Notes",
-          content: noteContent,
-          createdBy: "another-user",
-          creationDate: new Date().toISOString(),
-          tags: [],
-        });
-
-        // Randomly set permission for demo purposes
-        // In a real app, this would be determined by the database record
-        setPermission(Math.random() > 0.5 ? "read" : "write");
-        setIsAccessVerified(true);
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching shared note:", error);
@@ -116,7 +120,7 @@ export function ShareNoteSkeleton({ shareId }: ShareNoteSkeletonProps) {
     };
 
     fetchSharedNote();
-  }, [isAuthenticated, shareId, user]);
+  }, [shareId, user]);
 
   // Show auth loading state
   if (authLoading) {
@@ -131,7 +135,7 @@ export function ShareNoteSkeleton({ shareId }: ShareNoteSkeletonProps) {
   }
 
   // If not authenticated, don't render anything (will redirect)
-  if (!isAuthenticated) {
+  if (!user) {
     return null;
   }
 
