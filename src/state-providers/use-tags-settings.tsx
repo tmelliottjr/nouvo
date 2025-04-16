@@ -4,6 +4,23 @@ import { seedTagSettings, TagSetting } from "@/lib/seed-data";
 import { createContext, PropsWithChildren, useContext, useEffect } from "react";
 import { useImmer } from "use-immer";
 
+// Define a set of default colors that will be used when a tag doesn't have a specified color
+export const DEFAULT_TAG_COLORS = [
+  "bg-blue-100 text-blue-800",
+  "bg-green-100 text-green-800",
+  "bg-yellow-100 text-yellow-800",
+  "bg-red-100 text-red-800",
+  "bg-purple-100 text-purple-800",
+  "bg-pink-100 text-pink-800",
+  "bg-indigo-100 text-indigo-800",
+  "bg-gray-100 text-gray-800",
+];
+
+// Export the default tag colors as a constant for use in other components
+export const getDefaultTagColor = (index: number): string => {
+  return DEFAULT_TAG_COLORS[index % DEFAULT_TAG_COLORS.length];
+};
+
 type TagsSettingsContext = {
   tags: TagSetting[];
   addTag: (tag: TagSetting) => Promise<void>;

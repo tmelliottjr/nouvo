@@ -58,15 +58,15 @@ export async function POST(request: NextRequest) {
     const noteData = await request.json();
 
     // Validate required fields
-    if (!noteData.title) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    if (!noteData.name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
     // Create a new note in the database
     const note = await createNote(user.id, {
-      title: noteData.title,
+      name: noteData.name,
       content: noteData.content || "",
-      folderId: noteData.folderId,
+      parentId: noteData.parentId,
       tags: noteData.tags,
     });
 

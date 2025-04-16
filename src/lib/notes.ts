@@ -11,10 +11,10 @@ const pool = createPool({
 
 export type Note = {
   id: string;
-  title: string;
+  name: string;
   content: string;
   userId: string;
-  folderId: string | null;
+  parentId: string | null;
   createdAt: string;
   updatedAt: string;
   tags?: string[];
@@ -81,7 +81,7 @@ export async function getNoteById(
  */
 export async function createNote(
   userId: string,
-  data: { title: string; content: string; folderId?: string; tags?: string[] }
+  data: { name: string; content: string; parentId?: string; tags?: string[] }
 ): Promise<Note> {
   // Generate a unique ID
   const id = generateId();
@@ -89,9 +89,9 @@ export async function createNote(
 
   // Insert the note
   await pool.query(
-    `INSERT INTO notes (id, title, content, user_id, folder_id)
+    `INSERT INTO notes (id, name, content, user_id, parent_id)
      VALUES (?, ?, ?, ?, ?)`,
-    [id, data.title, data.content, userId, data.folderId || null]
+    [id, data.name, data.content, userId, data.parentId || null]
   );
 
   // Add tags if provided
@@ -111,10 +111,10 @@ export async function createNote(
   // Return the created note
   return {
     id,
-    title: data.title,
+    name: data.name,
     content: data.content,
     userId,
-    folderId: data.folderId || null,
+    parentId: data.parentId || null,
     createdAt: now,
     updatedAt: now,
     tags: data.tags || [],
@@ -128,9 +128,9 @@ export async function updateNote(
   userId: string,
   data: {
     id: string;
-    title?: string;
+    name?: string;
     content?: string;
-    folderId?: string | null;
+    parentId?: string | null;
     tags?: string[];
   }
 ): Promise<Note | null> {
@@ -151,9 +151,9 @@ export async function updateNote(
   const updateFields = [];
   const params = [];
 
-  if (data.title !== undefined) {
-    updateFields.push("title = ?");
-    params.push(data.title);
+  if (data.name !== undefined) {
+    updateFields.push("name = ?");
+    params.push(data.name);
   }
 
   if (data.content !== undefined) {
@@ -161,9 +161,9 @@ export async function updateNote(
     params.push(data.content);
   }
 
-  if (data.folderId !== undefined) {
-    updateFields.push("folder_id = ?");
-    params.push(data.folderId);
+  if (data.parentId !== undefined) {
+    updateFields.push("parent_id = ?");
+    params.push(data.parentId);
   }
 
   updateFields.push("updated_at = ?");
@@ -241,7 +241,7 @@ export async function deleteNote(
 }
 
 /**
- * Search notes by title, content, or tags
+ * Search notes by name, content, or tags
  */
 export async function searchNotes(
   userId: string,
@@ -255,7 +255,7 @@ export async function searchNotes(
      LEFT JOIN note_tags nt ON n.id = nt.note_id
      LEFT JOIN tags t ON nt.tag_id = t.id
      WHERE n.user_id = ? AND (
-       n.title LIKE ? OR n.content LIKE ? OR t.name LIKE ?
+       n.name LIKE ? OR n.content LIKE ? OR t.name LIKE ?
      )
      GROUP BY n.id`,
     [userId, searchTerm, searchTerm, searchTerm]

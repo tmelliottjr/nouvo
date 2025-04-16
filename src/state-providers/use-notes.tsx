@@ -366,24 +366,24 @@ function NotesProvider({ children }: PropsWithChildren) {
       });
 
       // Create note in the API
-      try {
-        await fetch("/api/notes", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id: noteId,
-            name: "",
-            parentId,
-            content: note.content,
-            tags: note.tags,
-            creationDate: note.creationDate,
-          }),
-        });
-      } catch (error) {
-        console.error("Error creating note in API:", error);
-      }
+      // try {
+      //   await fetch("/api/notes", {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({
+      //       id: noteId,
+      //       name: "",
+      //       parentId,
+      //       content: note.content,
+      //       tags: note.tags,
+      //       creationDate: note.creationDate,
+      //     }),
+      //   });
+      // } catch (error) {
+      //   console.error("Error creating note in API:", error);
+      // }
 
       return noteId;
     },
@@ -561,13 +561,14 @@ function NotesProvider({ children }: PropsWithChildren) {
       try {
         if (node.type === "note") {
           await fetch("/api/notes", {
-            method: "PUT", // Use PUT to update existing note or create with ID
+            method: "POST", // Use PUT to update existing note or create with ID
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
               id,
               name,
+              parentId: node.parentId,
             }),
           });
         } else if (node.type === "folder") {
