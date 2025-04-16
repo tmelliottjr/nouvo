@@ -2,7 +2,13 @@
 
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
-import React, { createContext, useCallback, useContext, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 // Types for note sharing
 export interface NoteShare {
@@ -57,6 +63,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    // Fetch session when component mounts
+    fetchSession();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Function to fetch session when component mounts or auth state changes
   const fetchSession = useCallback(async () => {

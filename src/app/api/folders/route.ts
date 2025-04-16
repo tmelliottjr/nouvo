@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const folderData = await request.json();
 
     // Validate required fields
-    if (!folderData.name) {
+    if (!folderData.name || folderData.name.trim() === "") {
       return NextResponse.json(
         { error: "Folder name is required" },
         { status: 400 }

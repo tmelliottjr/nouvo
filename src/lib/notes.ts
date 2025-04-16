@@ -28,9 +28,9 @@ export async function getNotes(userId: string): Promise<Note[]> {
   const [rows] = await pool.query(
     `SELECT n.*, GROUP_CONCAT(t.name) as tagList
      FROM notes n
-     LEFT JOIN note_tags nt ON n.id = nt.noteId
-     LEFT JOIN tags t ON nt.tagId = t.id
-     WHERE n.userId = ?
+     LEFT JOIN note_tags nt ON n.id = nt.note_id
+     LEFT JOIN tags t ON nt.tag_id = t.id
+     WHERE n.user_id = ?
      GROUP BY n.id`,
     [userId]
   );
@@ -56,9 +56,9 @@ export async function getNoteById(
   const [rows] = await pool.query(
     `SELECT n.*, GROUP_CONCAT(t.name) as tagList
      FROM notes n
-     LEFT JOIN note_tags nt ON n.id = nt.noteId
-     LEFT JOIN tags t ON nt.tagId = t.id
-     WHERE n.userId = ? AND n.id = ?
+     LEFT JOIN note_tags nt ON n.id = nt.note_id
+     LEFT JOIN tags t ON nt.tag_id = t.id
+     WHERE n.user_id = ? AND n.id = ?
      GROUP BY n.id`,
     [userId, noteId]
   );
@@ -89,9 +89,9 @@ export async function createNote(
 
   // Insert the note
   await pool.query(
-    `INSERT INTO notes (id, title, content, userId, folderId, createdAt, updatedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [id, data.title, data.content, userId, data.folderId || null, now, now]
+    `INSERT INTO notes (id, title, content, user_id, folder_id)
+     VALUES (?, ?, ?, ?, ?)`,
+    [id, data.title, data.content, userId, data.folderId || null]
   );
 
   // Add tags if provided
@@ -101,10 +101,10 @@ export async function createNote(
       const tagId = await getOrCreateTag(userId, tagName);
 
       // Link the tag to the note
-      await pool.query(`INSERT INTO note_tags (noteId, tagId) VALUES (?, ?)`, [
-        id,
-        tagId,
-      ]);
+      await pool.query(
+        `INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)`,
+        [id, tagId]
+      );
     }
   }
 
@@ -136,7 +136,7 @@ export async function updateNote(
 ): Promise<Note | null> {
   // Get the current note to ensure it exists and belongs to the user
   const [rows] = await pool.query(
-    `SELECT * FROM notes WHERE id = ? AND userId = ?`,
+    `SELECT * FROM notes WHERE id = ? AND user_id = ?`,
     [data.id, userId]
   );
 
@@ -162,11 +162,11 @@ export async function updateNote(
   }
 
   if (data.folderId !== undefined) {
-    updateFields.push("folderId = ?");
+    updateFields.push("folder_id = ?");
     params.push(data.folderId);
   }
 
-  updateFields.push("updatedAt = ?");
+  updateFields.push("updated_at = ?");
   params.push(now);
 
   // Add the id and userId for the WHERE clause
@@ -175,7 +175,7 @@ export async function updateNote(
 
   // Update the note
   await pool.query(
-    `UPDATE notes SET ${updateFields.join(", ")} WHERE id = ? AND userId = ?`,
+    `UPDATE notes SET ${updateFields.join(", ")} WHERE id = ? AND user_id = ?`,
     params
   );
 
@@ -184,8 +184,8 @@ export async function updateNote(
     // Remove existing tags
     await pool.query(
       `DELETE nt FROM note_tags nt
-       JOIN tags t ON nt.tagId = t.id
-       WHERE nt.noteId = ? AND t.userId = ?`,
+       JOIN tags t ON nt.tag_id = t.id
+       WHERE nt.note_id = ? AND t.user_id = ?`,
       [data.id, userId]
     );
 
@@ -197,7 +197,7 @@ export async function updateNote(
 
         // Link the tag to the note
         await pool.query(
-          `INSERT INTO note_tags (noteId, tagId) VALUES (?, ?)`,
+          `INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)`,
           [data.id, tagId]
         );
       }
@@ -218,22 +218,22 @@ export async function deleteNote(
   // Delete note tags first due to foreign key constraint
   await pool.query(
     `DELETE nt FROM note_tags nt
-     JOIN notes n ON nt.noteId = n.id
-     WHERE n.id = ? AND n.userId = ?`,
+     JOIN notes n ON nt.note_id = n.id
+     WHERE n.id = ? AND n.user_id = ?`,
     [noteId, userId]
   );
 
   // Delete shared notes related to this note
   await pool.query(
-    `DELETE FROM shared_notes WHERE noteId = ? AND (
-      SELECT COUNT(*) FROM notes WHERE id = ? AND userId = ?
+    `DELETE FROM shared_notes WHERE note_id = ? AND (
+      SELECT COUNT(*) FROM notes WHERE id = ? AND user_id = ?
     ) > 0`,
     [noteId, noteId, userId]
   );
 
   // Delete the note
   const [result] = (await pool.query(
-    `DELETE FROM notes WHERE id = ? AND userId = ?`,
+    `DELETE FROM notes WHERE id = ? AND user_id = ?`,
     [noteId, userId]
   )) as any;
 
@@ -252,9 +252,9 @@ export async function searchNotes(
   const [rows] = await pool.query(
     `SELECT DISTINCT n.*, GROUP_CONCAT(t.name) as tagList
      FROM notes n
-     LEFT JOIN note_tags nt ON n.id = nt.noteId
-     LEFT JOIN tags t ON nt.tagId = t.id
-     WHERE n.userId = ? AND (
+     LEFT JOIN note_tags nt ON n.id = nt.note_id
+     LEFT JOIN tags t ON nt.tag_id = t.id
+     WHERE n.user_id = ? AND (
        n.title LIKE ? OR n.content LIKE ? OR t.name LIKE ?
      )
      GROUP BY n.id`,
@@ -280,7 +280,7 @@ async function getOrCreateTag(
 ): Promise<string> {
   // Try to find the tag first
   const [tags] = await pool.query(
-    `SELECT id FROM tags WHERE userId = ? AND name = ?`,
+    `SELECT id FROM tags WHERE user_id = ? AND name = ?`,
     [userId, tagName]
   );
 
@@ -290,7 +290,7 @@ async function getOrCreateTag(
 
   // Create a new tag if it doesn't exist
   const tagId = generateId();
-  await pool.query(`INSERT INTO tags (id, name, userId) VALUES (?, ?, ?)`, [
+  await pool.query(`INSERT INTO tags (id, name, user_id) VALUES (?, ?, ?)`, [
     tagId,
     tagName,
     userId,

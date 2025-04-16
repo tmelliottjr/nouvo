@@ -439,23 +439,7 @@ function NotesProvider({ children }: PropsWithChildren) {
         };
       });
 
-      // Create folder in the API
-      try {
-        await fetch("/api/folders", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id: folderId,
-            name: "",
-            parentId,
-            childIds: [],
-          }),
-        });
-      } catch (error) {
-        console.error("Error creating folder in API:", error);
-      }
+      // Don't create folder in API yet - wait until a name is provided
 
       return folderId;
     },
@@ -463,98 +447,38 @@ function NotesProvider({ children }: PropsWithChildren) {
   );
 
   /**
-   * Completes the creation process for a node by setting its name
+   * Finds all folder IDs in the path to a note
    */
-  const completeNodeCreation = useCallback(
-    async (id: string, name: string): Promise<void> => {
-      const state = creationStateById[id];
-      if (!state) return;
+  const findFolderIdsInPathToNote = useCallback(
+    (noteId: string): string[] => {
+      const note = treeData[noteId];
+      if (!note) return [];
 
-      const node = treeData[id];
-      if (!node) return;
+      const folderPath: string[] = [];
 
-      if (name.trim() === "") {
-        // If name is empty, remove the node
-        removeNode(id);
-        return;
+      // Start with the direct parent
+      let currentId = note.parentId;
+      while (currentId) {
+        folderPath.push(currentId);
+
+        // Move up to the next parent
+        const parent = treeData[currentId];
+        currentId = parent?.parentId || null;
       }
 
-      // Update name
-      setTreeData((draft) => {
-        if (draft[id]) {
-          draft[id].name = name;
-        }
-      });
-
-      // Clear creation state
-      setCreationStateById((draft) => {
-        delete draft[id];
-      });
-
-      // Update in API
-      try {
-        if (node.type === "note") {
-          await fetch("/api/notes", {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              id,
-              name,
-            }),
-          });
-        } else if (node.type === "folder") {
-          await fetch("/api/folders", {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              id,
-              name,
-            }),
-          });
-        }
-      } catch (error) {
-        console.error(`Error updating ${node.type} name in API:`, error);
-      }
-
-      // Select the node if it's a note
-      if (node.type === "note") {
-        selectNote(id);
-      }
-    },
-    [creationStateById, treeData, setTreeData, setCreationStateById, removeNode]
-  );
-
-  /**
-   * Gets a note by ID
-   */
-  const getNote = useCallback(
-    (id: string): NoteNode | undefined => {
-      const node = treeData[id];
-      if (!node || node.type !== "note") {
-        return undefined;
-      }
-      return node as NoteNode;
+      return folderPath;
     },
     [treeData]
   );
 
   /**
-   * Gets a folder by ID
+   * Deselects the current note/folder
    */
-  const getFolder = useCallback(
-    (id: string): FolderNode | undefined => {
-      const node = treeData[id];
-      if (!node || node.type !== "folder") {
-        return undefined;
-      }
-      return node as FolderNode;
-    },
-    [treeData]
-  );
+  const deselectNote = useCallback((): void => {
+    setSelectedItemId(null);
+    setCurrentPath(null);
+    setIsFromUrl(false);
+  }, [setSelectedItemId, setCurrentPath, setIsFromUrl]);
 
   /**
    * Selects a note and updates UI state
@@ -600,42 +524,111 @@ function NotesProvider({ children }: PropsWithChildren) {
       findFolderIdsInPathToNote,
       setDirectPathFolderIds,
       setExpandedFolderIds,
+      deselectNote,
     ]
   );
 
   /**
-   * Finds all folder IDs in the path to a note
+   * Completes the creation process for a node by setting its name
    */
-  const findFolderIdsInPathToNote = useCallback(
-    (noteId: string): string[] => {
-      const note = treeData[noteId];
-      if (!note) return [];
+  const completeNodeCreation = useCallback(
+    async (id: string, name: string): Promise<void> => {
+      const state = creationStateById[id];
+      if (!state) return;
 
-      const folderPath: string[] = [];
+      const node = treeData[id];
+      if (!node) return;
 
-      // Start with the direct parent
-      let currentId = note.parentId;
-      while (currentId) {
-        folderPath.push(currentId);
-
-        // Move up to the next parent
-        const parent = treeData[currentId];
-        currentId = parent?.parentId || null;
+      if (name.trim() === "") {
+        // If name is empty, remove the node
+        removeNode(id);
+        return;
       }
 
-      return folderPath;
+      // Update name
+      setTreeData((draft) => {
+        if (draft[id]) {
+          draft[id].name = name;
+        }
+      });
+
+      // Clear creation state
+      setCreationStateById((draft) => {
+        delete draft[id];
+      });
+
+      // Update in API
+      try {
+        if (node.type === "note") {
+          await fetch("/api/notes", {
+            method: "PUT", // Use PUT to update existing note or create with ID
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id,
+              name,
+            }),
+          });
+        } else if (node.type === "folder") {
+          await fetch("/api/folders", {
+            method: "POST", // First-time creation with proper name
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id,
+              name,
+              parentId: node.parentId,
+            }),
+          });
+        }
+      } catch (error) {
+        console.error(`Error creating ${node.type} in API:`, error);
+      }
+
+      // Select the node if it's a note
+      if (node.type === "note") {
+        selectNote(id);
+      }
+    },
+    [
+      creationStateById,
+      treeData,
+      setTreeData,
+      setCreationStateById,
+      removeNode,
+      selectNote,
+    ]
+  );
+
+  /**
+   * Gets a note by ID
+   */
+  const getNote = useCallback(
+    (id: string): NoteNode | undefined => {
+      const node = treeData[id];
+      if (!node || node.type !== "note") {
+        return undefined;
+      }
+      return node as NoteNode;
     },
     [treeData]
   );
 
   /**
-   * Deselects the current note/folder
+   * Gets a folder by ID
    */
-  const deselectNote = useCallback((): void => {
-    setSelectedItemId(null);
-    setCurrentPath(null);
-    setIsFromUrl(false);
-  }, [setSelectedItemId, setCurrentPath, setIsFromUrl]);
+  const getFolder = useCallback(
+    (id: string): FolderNode | undefined => {
+      const node = treeData[id];
+      if (!node || node.type !== "folder") {
+        return undefined;
+      }
+      return node as FolderNode;
+    },
+    [treeData]
+  );
 
   /**
    * Selects a folder and updates UI state

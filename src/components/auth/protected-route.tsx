@@ -5,18 +5,18 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     // If authentication check is complete and user is not authenticated
-    if (!isLoading && !isAuthenticated) {
+    if (!isLoading && !user) {
       router.replace("/login");
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isLoading, router, user]);
 
   // Show loading state or nothing while checking authentication
-  if (isLoading || !isAuthenticated) {
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center gap-4">

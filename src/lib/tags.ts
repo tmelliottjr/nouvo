@@ -26,14 +26,14 @@ export async function getTags(
   userId: string,
   includeNoteCounts = false
 ): Promise<Tag[]> {
-  let query = `SELECT * FROM tags WHERE userId = ? ORDER BY name`;
+  let query = `SELECT * FROM tags WHERE user_id = ? ORDER BY name`;
 
   if (includeNoteCounts) {
     query = `
-      SELECT t.*, COUNT(nt.noteId) as noteCount
+      SELECT t.*, COUNT(nt.note_id) as noteCount
       FROM tags t
-      LEFT JOIN note_tags nt ON t.id = nt.tagId
-      WHERE t.userId = ?
+      LEFT JOIN note_tags nt ON t.id = nt.tag_id
+      WHERE t.user_id = ?
       GROUP BY t.id
       ORDER BY t.name
     `;
@@ -51,7 +51,7 @@ export async function getTagById(
   tagId: string
 ): Promise<Tag | null> {
   const [rows] = await pool.query(
-    `SELECT * FROM tags WHERE id = ? AND userId = ?`,
+    `SELECT * FROM tags WHERE id = ? AND user_id = ?`,
     [tagId, userId]
   );
 
@@ -68,7 +68,7 @@ export async function getTagById(
 export async function createTag(userId: string, name: string): Promise<Tag> {
   // Check if tag already exists
   const [existingTags] = await pool.query(
-    `SELECT * FROM tags WHERE name = ? AND userId = ?`,
+    `SELECT * FROM tags WHERE name = ? AND user_id = ?`,
     [name, userId]
   );
 
@@ -82,9 +82,9 @@ export async function createTag(userId: string, name: string): Promise<Tag> {
 
   // Insert the tag
   await pool.query(
-    `INSERT INTO tags (id, name, userId, createdAt, updatedAt)
-     VALUES (?, ?, ?, ?, ?)`,
-    [id, name, userId, now, now]
+    `INSERT INTO tags (id, name, user_id)
+     VALUES (?, ?, ?)`,
+    [id, name, userId]
   );
 
   // Return the created tag
@@ -114,7 +114,7 @@ export async function updateTag(
 
   // Update the tag
   await pool.query(
-    `UPDATE tags SET name = ?, updatedAt = ? WHERE id = ? AND userId = ?`,
+    `UPDATE tags SET name = ?, updated_at = ? WHERE id = ? AND user_id = ?`,
     [data.name, now, data.id, userId]
   );
 
@@ -143,14 +143,14 @@ export async function deleteTag(
     // Delete note-tag associations first
     await connection.query(
       `DELETE nt FROM note_tags nt
-       JOIN tags t ON nt.tagId = t.id
-       WHERE t.id = ? AND t.userId = ?`,
+       JOIN tags t ON nt.tag_id = t.id
+       WHERE t.id = ? AND t.user_id = ?`,
       [tagId, userId]
     );
 
     // Delete the tag
     const [result] = (await connection.query(
-      `DELETE FROM tags WHERE id = ? AND userId = ?`,
+      `DELETE FROM tags WHERE id = ? AND user_id = ?`,
       [tagId, userId]
     )) as any;
 
@@ -174,9 +174,9 @@ export async function getNotesByTag(
   const [rows] = await pool.query(
     `SELECT n.*, GROUP_CONCAT(t.name) as tagList
      FROM notes n
-     JOIN note_tags nt ON n.id = nt.noteId
-     JOIN tags t ON nt.tagId = t.id
-     WHERE n.userId = ? AND t.name = ?
+     JOIN note_tags nt ON n.id = nt.note_id
+     JOIN tags t ON nt.tag_id = t.id
+     WHERE n.user_id = ? AND t.name = ?
      GROUP BY n.id`,
     [userId, tagName]
   );
@@ -201,7 +201,7 @@ export async function addTagToNote(
 ): Promise<boolean> {
   // Verify note exists and belongs to user
   const [noteRows] = await pool.query(
-    `SELECT id FROM notes WHERE id = ? AND userId = ?`,
+    `SELECT id FROM notes WHERE id = ? AND user_id = ?`,
     [noteId, userId]
   );
 
@@ -214,7 +214,7 @@ export async function addTagToNote(
 
   // Check if note already has this tag
   const [existingRows] = await pool.query(
-    `SELECT * FROM note_tags WHERE noteId = ? AND tagId = ?`,
+    `SELECT * FROM note_tags WHERE note_id = ? AND tag_id = ?`,
     [noteId, tag.id]
   );
 
@@ -223,7 +223,7 @@ export async function addTagToNote(
   }
 
   // Add tag to note
-  await pool.query(`INSERT INTO note_tags (noteId, tagId) VALUES (?, ?)`, [
+  await pool.query(`INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)`, [
     noteId,
     tag.id,
   ]);
@@ -241,7 +241,7 @@ export async function removeTagFromNote(
 ): Promise<boolean> {
   // Verify note exists and belongs to user
   const [noteRows] = await pool.query(
-    `SELECT id FROM notes WHERE id = ? AND userId = ?`,
+    `SELECT id FROM notes WHERE id = ? AND user_id = ?`,
     [noteId, userId]
   );
 
@@ -251,7 +251,7 @@ export async function removeTagFromNote(
 
   // Find the tag
   const [tagRows] = await pool.query(
-    `SELECT id FROM tags WHERE name = ? AND userId = ?`,
+    `SELECT id FROM tags WHERE name = ? AND user_id = ?`,
     [tagName, userId]
   );
 
@@ -264,8 +264,8 @@ export async function removeTagFromNote(
   // Remove tag from note
   const [result] = (await pool.query(
     `DELETE FROM note_tags 
-     WHERE noteId = ? AND tagId = ? AND (
-       SELECT COUNT(*) FROM notes WHERE id = ? AND userId = ?
+     WHERE note_id = ? AND tag_id = ? AND (
+       SELECT COUNT(*) FROM notes WHERE id = ? AND user_id = ?
      ) > 0`,
     [noteId, tagId, noteId, userId]
   )) as any;

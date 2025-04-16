@@ -27,14 +27,14 @@ export async function getFolders(
   userId: string,
   includeNoteCounts = false
 ): Promise<Folder[]> {
-  let query = `SELECT f.* FROM folders f WHERE f.userId = ?`;
+  let query = `SELECT f.* FROM folders f WHERE f.user_id = ?`;
 
   if (includeNoteCounts) {
     query = `
       SELECT f.*, COUNT(n.id) as noteCount 
       FROM folders f 
-      LEFT JOIN notes n ON f.id = n.folderId
-      WHERE f.userId = ?
+      LEFT JOIN notes n ON f.id = n.folder_id
+      WHERE f.user_id = ?
       GROUP BY f.id
     `;
   }
@@ -51,7 +51,7 @@ export async function getFolderById(
   folderId: string
 ): Promise<Folder | null> {
   const [rows] = await pool.query(
-    `SELECT * FROM folders WHERE id = ? AND userId = ?`,
+    `SELECT * FROM folders WHERE id = ? AND user_id = ?`,
     [folderId, userId]
   );
 
@@ -115,9 +115,9 @@ export async function createFolder(
 
   // Insert the folder
   await pool.query(
-    `INSERT INTO folders (id, name, userId, parentId, createdAt, updatedAt)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, data.name, userId, data.parentId || null, now, now]
+    `INSERT INTO folders (id, name, user_id, parent_id)
+     VALUES (?, ?, ?, ?)`,
+    [id, data.name, userId, data.parentId || null]
   );
 
   // Return the created folder
@@ -169,11 +169,11 @@ export async function updateFolder(
   }
 
   if (data.parentId !== undefined) {
-    updateFields.push("parentId = ?");
+    updateFields.push("parent_id = ?");
     params.push(data.parentId);
   }
 
-  updateFields.push("updatedAt = ?");
+  updateFields.push("updated_at = ?");
   params.push(now);
 
   // Add the id and userId for the WHERE clause
@@ -182,7 +182,7 @@ export async function updateFolder(
 
   // Update the folder
   await pool.query(
-    `UPDATE folders SET ${updateFields.join(", ")} WHERE id = ? AND userId = ?`,
+    `UPDATE folders SET ${updateFields.join(", ")} WHERE id = ? AND user_id = ?`,
     params
   );
 
@@ -206,7 +206,7 @@ export async function deleteFolder(
 
   // Get all notes in this folder
   const [noteRows] = await pool.query(
-    `SELECT id FROM notes WHERE folderId = ? AND userId = ?`,
+    `SELECT id FROM notes WHERE folder_id = ? AND user_id = ?`,
     [folderId, userId]
   );
 
@@ -214,7 +214,7 @@ export async function deleteFolder(
 
   // Get all child folders
   const [childFolderRows] = await pool.query(
-    `SELECT id FROM folders WHERE parentId = ? AND userId = ?`,
+    `SELECT id FROM folders WHERE parent_id = ? AND user_id = ?`,
     [folderId, userId]
   );
 
@@ -244,35 +244,35 @@ export async function deleteFolder(
         // Delete note tags first
         await connection.query(
           `DELETE nt FROM note_tags nt
-           JOIN notes n ON nt.noteId = n.id
-           WHERE n.folderId = ? AND n.userId = ?`,
+           JOIN notes n ON nt.note_id = n.id
+           WHERE n.folder_id = ? AND n.user_id = ?`,
           [folderId, userId]
         );
 
         // Delete shared notes
         await connection.query(
           `DELETE FROM shared_notes 
-           WHERE noteId IN (SELECT id FROM notes WHERE folderId = ? AND userId = ?)`,
+           WHERE note_id IN (SELECT id FROM notes WHERE folder_id = ? AND user_id = ?)`,
           [folderId, userId]
         );
 
         // Delete notes
         await connection.query(
-          `DELETE FROM notes WHERE folderId = ? AND userId = ?`,
+          `DELETE FROM notes WHERE folder_id = ? AND user_id = ?`,
           [folderId, userId]
         );
       }
     } else {
       // If not recursive, move notes to root
       await connection.query(
-        `UPDATE notes SET folderId = NULL, updatedAt = ? WHERE folderId = ? AND userId = ?`,
+        `UPDATE notes SET folder_id = NULL, updated_at = ? WHERE folder_id = ? AND user_id = ?`,
         [new Date().toISOString(), folderId, userId]
       );
     }
 
     // Delete the folder
     const [result] = (await connection.query(
-      `DELETE FROM folders WHERE id = ? AND userId = ?`,
+      `DELETE FROM folders WHERE id = ? AND user_id = ?`,
       [folderId, userId]
     )) as any;
 
