@@ -110,13 +110,12 @@ export async function updateTag(
     return null;
   }
 
-  const now = new Date().toISOString();
-
   // Update the tag
-  await pool.query(
-    `UPDATE tags SET name = ?, updated_at = ? WHERE id = ? AND user_id = ?`,
-    [data.name, now, data.id, userId]
-  );
+  await pool.query(`UPDATE tags SET name = ? WHERE id = ? AND user_id = ?`, [
+    data.name,
+    data.id,
+    userId,
+  ]);
 
   // Return the updated tag
   return getTagById(userId, data.id);

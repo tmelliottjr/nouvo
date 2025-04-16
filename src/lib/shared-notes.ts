@@ -23,7 +23,7 @@ export type SharedNote = {
  */
 export async function getSharedNotes(userId: string): Promise<SharedNote[]> {
   const [rows] = await pool.query(
-    `SELECT * FROM shared_notes WHERE userId = ?`,
+    `SELECT * FROM shares WHERE user_id = ?`,
     [userId]
   );
   return rows as SharedNote[];
@@ -36,7 +36,7 @@ export async function getSharedNoteUsers(
   noteId: string
 ): Promise<SharedNote[]> {
   const [rows] = await pool.query(
-    `SELECT * FROM shared_notes WHERE noteId = ?`,
+    `SELECT * FROM shares WHERE note_id = ?`,
     [noteId]
   );
   return rows as SharedNote[];
@@ -49,9 +49,9 @@ export async function getNotesSharedWithUser(
   userId: string
 ): Promise<SharedNote[]> {
   const [rows] = await pool.query(
-    `SELECT sn.* FROM shared_notes sn
-     JOIN notes n ON sn.noteId = n.id
-     WHERE sn.userId = ?`,
+    `SELECT sn.* FROM shares sn
+     JOIN notes n ON sn.note_id = n.id
+     WHERE sn.user_id = ?`,
     [userId]
   );
   return rows as SharedNote[];
@@ -66,7 +66,7 @@ export async function shareNote(
 ): Promise<SharedNote> {
   // First verify that the current user owns the note
   const [noteRows] = await pool.query(
-    `SELECT * FROM notes WHERE id = ? AND userId = ?`,
+    `SELECT * FROM notes WHERE id = ? AND user_id = ?`,
     [data.noteId, ownerId]
   );
 
@@ -76,7 +76,7 @@ export async function shareNote(
   }
 
   // Find the target user by email
-  const [userRows] = await pool.query(`SELECT id FROM users WHERE email = ?`, [
+  const [userRows] = await pool.query(`SELECT id FROM user WHERE email = ?`, [
     data.userEmail,
   ]);
 
@@ -89,7 +89,7 @@ export async function shareNote(
 
   // Check if the note is already shared with this user
   const [existingRows] = await pool.query(
-    `SELECT * FROM shared_notes WHERE noteId = ? AND userId = ?`,
+    `SELECT * FROM shares WHERE note_id = ? AND user_id = ?`,
     [data.noteId, targetUserId]
   );
 
@@ -97,7 +97,7 @@ export async function shareNote(
   if (existingShares.length > 0) {
     // Update the existing share instead of creating a new one
     await pool.query(
-      `UPDATE shared_notes SET permission = ? WHERE noteId = ? AND userId = ?`,
+      `UPDATE shares SET permission = ? WHERE note_id = ? AND user_id = ?`,
       [data.permission, data.noteId, targetUserId]
     );
 
@@ -112,9 +112,9 @@ export async function shareNote(
   const createdAt = new Date().toISOString();
 
   await pool.query(
-    `INSERT INTO shared_notes (id, noteId, userId, userEmail, permission, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, data.noteId, targetUserId, data.userEmail, data.permission, createdAt]
+    `INSERT INTO shares (id, note_id, user_id, permission)
+     VALUES (?, ?, ?, ?)`,
+    [id, data.noteId, targetUserId, data.permission]
   );
 
   return {
@@ -137,7 +137,7 @@ export async function revokeShare(
 ): Promise<boolean> {
   // First verify that the current user owns the note
   const [noteRows] = await pool.query(
-    `SELECT * FROM notes WHERE id = ? AND userId = ?`,
+    `SELECT * FROM notes WHERE id = ? AND user_id = ?`,
     [noteId, ownerId]
   );
 
@@ -150,7 +150,7 @@ export async function revokeShare(
 
   // Delete the shared note record
   const [result] = (await pool.query(
-    `DELETE FROM shared_notes WHERE id = ? AND noteId = ?`,
+    `DELETE FROM shares WHERE id = ? AND note_id = ?`,
     [sharedNoteId, noteId]
   )) as any;
 

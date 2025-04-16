@@ -20,3 +20,9 @@ export function getShareableNoteUrl(noteId: string): string {
   // Create the URL with the note ID as a query parameter
   return `${baseUrl}?id=${encodeURIComponent(noteId)}`;
 }
+
+export function camelize(str) {
+  return str
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase());
+}

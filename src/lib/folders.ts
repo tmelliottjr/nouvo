@@ -1,4 +1,5 @@
 import { createPool } from "mysql2/promise";
+import { camelize } from "./utils";
 
 // Create a MySQL connection pool
 const pool = createPool({
@@ -40,7 +41,21 @@ export async function getFolders(
   }
 
   const [rows] = await pool.query(query, [userId]);
-  return rows as Folder[];
+
+  // Process the results to convert camelCase keys
+  const camelCasedRows = (rows as any[]).map((folder) => {
+    const camelCasedKeys = Object.fromEntries(
+      Object.entries(folder).map(([key, value]) => [camelize(key), value])
+    );
+    return {
+      ...camelCasedKeys,
+      noteCount: folder.noteCount || 0, // Default to 0 if not included
+    };
+  });
+
+  console.log(camelize("note_count"));
+
+  return camelCasedRows as Folder[];
 }
 
 /**
@@ -173,7 +188,6 @@ export async function updateFolder(
     params.push(data.parentId);
   }
 
-  updateFields.push("updated_at = ?");
   params.push(now);
 
   // Add the id and userId for the WHERE clause
@@ -265,8 +279,8 @@ export async function deleteFolder(
     } else {
       // If not recursive, move notes to root
       await connection.query(
-        `UPDATE notes SET folder_id = NULL, updated_at = ? WHERE folder_id = ? AND user_id = ?`,
-        [new Date().toISOString(), folderId, userId]
+        `UPDATE notes SET folder_id = NULL WHERE folder_id = ? AND user_id = ?`,
+        [folderId, userId]
       );
     }
 

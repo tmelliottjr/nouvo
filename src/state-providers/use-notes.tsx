@@ -125,6 +125,9 @@ function NotesProvider({ children }: PropsWithChildren) {
         const newTreeData: TreeData = {};
         const newRootIds: string[] = [];
 
+        // First pass: Add all folders and notes to the tree data without setting childIds
+        // This ensures all nodes exist in the tree before we establish relationships
+
         // Add folders to tree data
         folders.forEach(
           (folder: {
@@ -138,7 +141,7 @@ function NotesProvider({ children }: PropsWithChildren) {
               name: folder.name,
               type: "folder",
               parentId: folder.parentId,
-              childIds: folder.childIds || [],
+              childIds: [], // Initialize with empty array, we'll populate in second pass
             };
 
             newTreeData[folder.id] = folderNode;
@@ -174,15 +177,24 @@ function NotesProvider({ children }: PropsWithChildren) {
 
             if (!note.parentId) {
               newRootIds.push(note.id);
-            } else if (newTreeData[note.parentId]) {
-              // Add note to parent's childIds if parent exists
-              const parent = newTreeData[note.parentId] as FolderNode;
-              if (!parent.childIds.includes(note.id)) {
-                parent.childIds.push(note.id);
-              }
             }
           }
         );
+
+        // Second pass: Establish parent-child relationships by populating childIds arrays
+        // Process both folders and notes to ensure all relationships are established
+        Object.values(newTreeData).forEach((node) => {
+          if (node.parentId && newTreeData[node.parentId]) {
+            // Add this node to its parent's childIds if not already there
+            const parent = newTreeData[node.parentId];
+            if (!parent.childIds.includes(node.id)) {
+              parent.childIds.push(node.id);
+            }
+          }
+        });
+
+        console.log({ newTreeData });
+        console.log({ newRootIds });
 
         // Update state with fetched data
         setTreeData(newTreeData);

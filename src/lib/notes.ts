@@ -1,4 +1,5 @@
 import { createPool } from "mysql2/promise";
+import { camelize } from "./utils";
 
 // Create a MySQL connection pool
 const pool = createPool({
@@ -37,9 +38,12 @@ export async function getNotes(userId: string): Promise<Note[]> {
 
   // Process the results to convert tagList to tags array
   return (rows as any[]).map((note) => {
-    const { tagList, ...rest } = note;
+    const { tagList, ...notes } = note;
+    const camelCasedKeys = Object.fromEntries(
+      Object.entries(notes).map(([key, value]) => [camelize(key), value])
+    );
     return {
-      ...rest,
+      ...camelCasedKeys,
       tags: tagList ? tagList.split(",") : [],
     };
   });
@@ -135,17 +139,6 @@ export async function updateNote(
   }
 ): Promise<Note | null> {
   // Get the current note to ensure it exists and belongs to the user
-  const [rows] = await pool.query(
-    `SELECT * FROM notes WHERE id = ? AND user_id = ?`,
-    [data.id, userId]
-  );
-
-  if ((rows as any[]).length === 0) {
-    return null;
-  }
-
-  const note = (rows as any[])[0];
-  const now = new Date().toISOString();
 
   // Build update fields dynamically
   const updateFields = [];
@@ -166,8 +159,9 @@ export async function updateNote(
     params.push(data.parentId);
   }
 
-  updateFields.push("updated_at = ?");
-  params.push(now);
+  if (updateFields.length === 0) {
+    throw new Error("No fields to update");
+  }
 
   // Add the id and userId for the WHERE clause
   params.push(data.id);
