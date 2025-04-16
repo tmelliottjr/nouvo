@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { createPool } from "mysql2/promise";
+import { headers } from "next/headers";
 
 // Create a MySQL connection pool
 const pool = createPool({
@@ -49,3 +50,17 @@ export const auth = betterAuth({
   // Add the nextCookies plugin for proper handling of cookies in Next.js server actions
   plugins: [nextCookies()],
 });
+
+export async function getAuthSession() {
+  return auth.api.getSession({
+    headers: await headers(),
+  });
+}
+
+export async function getAuthUser() {
+  const session = await getAuthSession();
+  if (!session) {
+    return null;
+  }
+  return session.user;
+}

@@ -1,3 +1,4 @@
+import { getAuthUser } from "@/lib/auth";
 import {
   getNotesSharedWithUser,
   getSharedNotes,
@@ -9,19 +10,23 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     // Parse the query parameters
     const url = new URL(request.url);
     const noteId = url.searchParams.get("noteId");
-    const userId = url.searchParams.get("userId");
+    const targetUserId = url.searchParams.get("userId");
 
     // Determine what type of shared note query we're handling
     if (noteId) {
       // Get all users with access to a specific note
       const sharedUsers = await getSharedNoteUsers(noteId);
       return NextResponse.json(sharedUsers);
-    } else if (userId) {
+    } else if (targetUserId) {
       // Get all notes a user has access to
-      const sharedNotes = await getNotesSharedWithUser(userId);
+      const sharedNotes = await getNotesSharedWithUser(targetUserId);
       return NextResponse.json(sharedNotes);
     } else {
       // Get all shared notes for the current user
@@ -39,6 +44,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // Get share data from request body
     const shareData = await request.json();
 
@@ -68,13 +78,12 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  // Authenticate the user
-  const user = await authenticateUser(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // Get shared note ID and note ID from query parameters
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
