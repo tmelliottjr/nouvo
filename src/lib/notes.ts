@@ -158,7 +158,7 @@ export async function updateNote(
     updateFields.push("parent_id = ?");
     params.push(data.parentId);
   }
-
+  console.log("updateFields", updateFields.length);
   if (updateFields.length > 0) {
     // Add the id and userId for the WHERE clause
     params.push(data.id);
@@ -169,10 +169,6 @@ export async function updateNote(
       `UPDATE notes SET ${updateFields.join(", ")} WHERE id = ? AND user_id = ?`,
       params
     );
-  }
-
-  if (data.tags === undefined) {
-    throw new Error("No fields to update");
   }
 
   // Update tags if provided

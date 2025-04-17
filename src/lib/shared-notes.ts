@@ -274,9 +274,9 @@ export async function shareNote(
   const id = generateId();
 
   await pool.query(
-    `INSERT INTO shares (id, note_id, user_id, user_email, permission)
-     VALUES (?, ?, ?, ?, ?)`,
-    [id, data.noteId, targetUserId, data.userEmail, data.permission]
+    `INSERT INTO shares (id, note_id, user_id, permission)
+     VALUES (?, ?, ?, ?)`,
+    [id, data.noteId, targetUserId, data.permission]
   );
 
   return {
