@@ -1,7 +1,11 @@
 "use client";
 
 import { SearchDialog } from "@/components/notes/search-dialog";
-import { NotesTree } from "@/components/sidebar";
+import {
+  NotesTree,
+  SharedWithMeSection,
+  SidebarSectionHeader,
+} from "@/components/sidebar";
 import {
   Sidebar,
   SidebarContent,
@@ -12,12 +16,12 @@ import {
 } from "@/components/ui/sidebar";
 import { UserProfileButton } from "@/components/user/user-profile-button";
 import { UserSettingsModal } from "@/components/user/user-settings-modal";
+import { useAuth } from "@/state-providers/use-auth";
 import { useNotes } from "@/state-providers/use-notes";
-import { FileEdit, FolderPlus, Search, Settings } from "lucide-react";
+import { FileEdit, FolderPlus, Search, Settings, Share2 } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
 import { NoteCalendar } from "./notes/note-calendar";
-import { SidebarSectionHeader } from "./sidebar/SidebarSectionHeader";
 import { TreeNodeAction } from "./sidebar/tree-components/TreeNodeAction";
 import { ThemeSelector } from "./themes/theme-selector";
 
@@ -25,6 +29,7 @@ export function NotesSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const { addNote, addFolder } = useNotes();
+  const { isAuthenticated } = useAuth();
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
@@ -95,6 +100,22 @@ export function NotesSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Shared with me section */}
+        {isAuthenticated && (
+          <SidebarGroup>
+            <SidebarSectionHeader
+              title="Shared with me"
+              href="/notes"
+              icon={<Share2 className="h-4 w-4 mr-1" />}
+            />
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SharedWithMeSection />
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarRail />
     </Sidebar>

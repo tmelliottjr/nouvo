@@ -73,7 +73,19 @@ export async function getNotesSharedWithUser(
      WHERE sn.user_id = ?`,
     [userId]
   );
-  return rows as SharedNote[];
+
+  // Transform snake_case database column names to camelCase
+  const camelCasedRows = (rows as any[]).map((share) => {
+    const camelCasedKeys = Object.fromEntries(
+      Object.entries(share).map(([key, value]) => [camelize(key), value])
+    );
+    return {
+      ...camelCasedKeys,
+      permission: share.permission || "read", // Default to "read" if not included
+    };
+  });
+
+  return camelCasedRows as SharedNote[];
 }
 
 /**

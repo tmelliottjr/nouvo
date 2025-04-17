@@ -2,6 +2,7 @@
 export { FolderNode } from "./FolderNode";
 export { NoteNode } from "./NoteNode";
 export { NotesTree } from "./NotesTree";
+export { SharedWithMeSection } from "./SharedWithMeSection";
 export { SidebarLink } from "./SidebarLink";
 export { SidebarSectionHeader } from "./SidebarSectionHeader";
 
