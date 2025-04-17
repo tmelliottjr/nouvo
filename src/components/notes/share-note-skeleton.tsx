@@ -25,10 +25,9 @@ export function ShareNoteSkeleton({ shareId }: ShareNoteSkeletonProps) {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<NoteNode | null>(null);
   const [permission, setPermission] = useState<"read" | "write">("read");
+  const [isOwner, setIsOwner] = useState(false);
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
-
-
 
   // Fetch shared note when user is authenticated
   useEffect(() => {
@@ -37,79 +36,38 @@ export function ShareNoteSkeleton({ shareId }: ShareNoteSkeletonProps) {
     const fetchSharedNote = async () => {
       setIsLoading(true);
       try {
-        // Step 1: Fetch the note data and verify access
-        const response = await fetch(`/api/notes/${shareId}`);
+        // Use the new shared notes API endpoint that handles permissions
+        const sharedResponse = await fetch(
+          `/api/shared-notes?shareId=${shareId}`
+        );
 
-        if (!response.ok) {
-          // If not found, check if it's a shared note
-          const sharedResponse = await fetch(
-            `/api/shared-notes?noteId=${shareId}`
-          );
-
-          console.log(sharedResponse)
-
-          if (!sharedResponse.ok) {
-            setError("This note doesn't exist or you don't have access to it");
-            setIsLoading(false);
-            return;
-          }
-
-          // Check if the current user has access to this note
-          const sharedData = await sharedResponse.json();
-          const hasAccess = sharedData.some(
-            (share: any) => share.userId === user.id
-          );
-
-          if (!hasAccess) {
-            setError("You don't have access to this note");
-            setIsLoading(false);
-            return;
-          }
-
-          // Get the note content through the shared note endpoint
-          const noteResponse = await fetch(`/api/notes/${shareId}?shared=true`);
-
-          if (!noteResponse.ok) {
-            setError("Failed to load the shared note");
-            setIsLoading(false);
-            return;
-          }
-
-          const noteData = await noteResponse.json();
-
-          // Get the user's permission for this note
-          const userShare = sharedData.find(
-            (share: any) => share.userId === user.id
-          );
-          setPermission(userShare?.permission || "read");
-          console.log(noteData)
-          // Create a proper note object
-          setNote({
-            id: noteData.id,
-            name: noteData.name || "Shared Note",
-            content: noteData.content,
-            type: "note",
-            parentId: null,
-            childIds: [],
-            creationDate: noteData.creationDate || new Date().toISOString(),
-            tags: noteData.tags || [],
-          });
-        } else {
-          // The user owns this note
-          const noteData = await response.json();
-          setPermission("write"); // Owner has write permission
-
-          setNote({
-            id: noteData.id,
-            name: noteData.name || "My Note",
-            content: noteData.content,
-            type: "note",
-            parentId: null,
-            childIds: [],
-            creationDate: noteData.creationDate || new Date().toISOString(),
-            tags: noteData.tags || [],
-          });
+        if (!sharedResponse.ok) {
+          const errorData = await sharedResponse.json();
+          setError(errorData.error || "Failed to load the shared note");
+          setIsLoading(false);
+          return;
         }
+
+        const data = await sharedResponse.json();
+
+        // Access data directly from the response
+        const { note: noteData, access, isOwner: ownerStatus } = data;
+
+        // Set permission based on access object or owner status
+        setPermission(ownerStatus ? "write" : access?.permission || "read");
+        setIsOwner(ownerStatus);
+
+        // Create a proper note object
+        setNote({
+          id: noteData.id,
+          name: noteData.name || (ownerStatus ? "My Note" : "Shared Note"),
+          content: noteData.content,
+          type: "note",
+          parentId: null,
+          childIds: [],
+          creationDate: noteData.createdAt || new Date().toISOString(),
+          tags: noteData.tags || [],
+        });
 
         setIsLoading(false);
       } catch (error) {
@@ -202,7 +160,12 @@ export function ShareNoteSkeleton({ shareId }: ShareNoteSkeletonProps) {
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {permission === "read" ? (
+              {isOwner ? (
+                <>
+                  <EditIcon className="h-4 w-4" />
+                  <span>Owner</span>
+                </>
+              ) : permission === "read" ? (
                 <>
                   <LockIcon className="h-4 w-4" />
                   <span>Read-only</span>

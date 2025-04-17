@@ -35,6 +35,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name?: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  fetchSession: () => Promise<void>; // Add fetchSession method
   shareNote: (
     noteId: string,
     userEmail: string,
@@ -53,6 +54,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => false,
   signup: async () => false,
   logout: async () => {},
+  fetchSession: async () => {}, // Add fetchSession default
   shareNote: async () => false,
   revokeAccess: async () => false,
   getSharedNoteAccess: async () => [],
@@ -74,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Function to fetch session when component mounts or auth state changes
   const fetchSession = useCallback(async () => {
     try {
-      const { data: session, error } = await authClient.getSession();
+      const { data: session } = await authClient.getSession();
 
       if (session?.user) {
         setUser(session.user as User);
@@ -93,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (email: string, password: string): Promise<boolean> => {
       try {
-        const { data, error } = await authClient.signIn.email({
+        const { error } = await authClient.signIn.email({
           email,
           password,
           rememberMe: true,
@@ -104,13 +106,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return false;
         }
 
+        await fetchSession();
         return true;
       } catch (error) {
         console.error("Login error:", error);
         return false;
       }
     },
-    []
+    [fetchSession]
   );
 
   // Signup function
@@ -132,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data, error } = await authClient.signUp.email({
           email,
           password,
-          name,
+          name: name || "", // Provide empty string as fallback for type safety
         });
 
         if (error) {
@@ -142,7 +145,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             message: error.message,
             code: error.code,
             status: error.status,
-            details: error.details,
           });
           return false;
         }
@@ -153,22 +155,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data ? "User data received" : "No user data"
         );
 
+        // Fetch the session to ensure the user is logged in
+        await fetchSession();
+
         return Boolean(data);
-      } catch (error: any) {
+      } catch (error) {
         // Enhanced error logging to capture network or unexpected errors
         console.error("Signup exception:", {
-          message: error?.message,
-          name: error?.name,
-          stack: error?.stack,
-          // Check for response details if available
-          response: error?.response?.data,
-          // For fetch errors
-          status: error?.status || error?.statusCode,
+          message: error instanceof Error ? error.message : String(error),
+          name: error instanceof Error ? error.name : "Unknown",
+          stack: error instanceof Error ? error.stack : undefined,
         });
         return false;
       }
     },
-    []
+    [fetchSession]
   );
 
   // Logout function
@@ -310,6 +311,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         signup,
         logout,
+        fetchSession,
         shareNote,
         revokeAccess,
         getSharedNoteAccess,

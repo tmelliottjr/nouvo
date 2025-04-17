@@ -1,5 +1,5 @@
 import { createPool } from "mysql2/promise";
-import { camelize } from "./utils";
+import { camelize, generateId } from "./utils";
 
 // Create a MySQL connection pool
 const pool = createPool({
@@ -298,12 +298,4 @@ export async function deleteFolder(
   } finally {
     connection.release();
   }
-}
-
-// Helper function to generate a unique ID
-function generateId(): string {
-  return (
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15)
-  );
 }

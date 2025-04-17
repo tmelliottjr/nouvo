@@ -101,9 +101,9 @@ export async function PUT(request: NextRequest) {
     // Update note in the database
     const updatedNote = await updateNote(user.id, {
       id: noteData.id,
-      title: noteData.title,
+      name: noteData.name,
       content: noteData.content,
-      folderId: noteData.folderId,
+      parentId: noteData.parentId,
       tags: noteData.tags,
     });
 

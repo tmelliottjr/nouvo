@@ -8,6 +8,7 @@ import {
   TreeData,
   TreeNode,
 } from "@/lib/seed-data";
+import { createApiUrl } from "@/lib/url-utils";
 import { enableMapSet } from "immer";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -103,8 +104,8 @@ function NotesProvider({ children }: PropsWithChildren) {
     const fetchNotes = async () => {
       setIsLoading(true);
       try {
-        // Fetch notes from our API
-        const notesResponse = await fetch("/api/notes");
+        // Fetch notes from our API using the URL utility
+        const notesResponse = await fetch(createApiUrl("notes"));
 
         if (!notesResponse.ok) {
           throw new Error("Failed to fetch notes");
@@ -112,8 +113,8 @@ function NotesProvider({ children }: PropsWithChildren) {
 
         const notes = await notesResponse.json();
 
-        // Fetch folders from our API
-        const foldersResponse = await fetch("/api/folders");
+        // Fetch folders from our API using the URL utility
+        const foldersResponse = await fetch(createApiUrl("folders"));
 
         if (!foldersResponse.ok) {
           throw new Error("Failed to fetch folders");
@@ -572,7 +573,7 @@ function NotesProvider({ children }: PropsWithChildren) {
       // Update in API
       try {
         if (node.type === "note") {
-          await fetch("/api/notes", {
+          await fetch(createApiUrl("notes"), {
             method: "POST", // Use PUT to update existing note or create with ID
             headers: {
               "Content-Type": "application/json",
@@ -584,7 +585,7 @@ function NotesProvider({ children }: PropsWithChildren) {
             }),
           });
         } else if (node.type === "folder") {
-          await fetch("/api/folders", {
+          await fetch(createApiUrl("folders"), {
             method: "POST", // First-time creation with proper name
             headers: {
               "Content-Type": "application/json",

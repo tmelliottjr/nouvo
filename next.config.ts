@@ -6,12 +6,26 @@ const nextConfig: NextConfig = {
     viewTransition: true,
     nodeMiddleware: true,
   },
-  // Explicitly set the middleware to use Node.js runtime
-  // middleware: {
-  //   // This ensures middleware doesn't run in Edge Runtime
-  //   skipMiddlewareUrlNormalize: true,
-  //   skipTrailingSlashRedirect: true,
-  // },
+
+  // Enable multi-hostname support for both localhost and Tailscale URL
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*", // In production, you may want to restrict this
+          },
+        ],
+      },
+    ];
+  },
+
+  // Support multiple hostnames/domains
+  images: {
+    domains: ["localhost", "toms.quail-mimosa.ts.net"],
+  },
 };
 
 export default nextConfig;

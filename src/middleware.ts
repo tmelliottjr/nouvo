@@ -9,9 +9,20 @@ const protectedApiPaths = [
   "/api/shared-notes",
   "/api/tags",
 ];
+// Explicitly define paths that should never be protected
+const publicPaths = ["/login"];
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+
+  // Check if this is explicitly a public path that should never be protected
+  if (
+    publicPaths.some(
+      (prefix) => path === prefix || path.startsWith(`${prefix}/`)
+    )
+  ) {
+    return NextResponse.next();
+  }
 
   // Check if this is a protected path (regular routes or API routes)
   const isProtectedPath = protectedPaths.some(
@@ -21,6 +32,9 @@ export async function middleware(request: NextRequest) {
   const isProtectedApiPath = protectedApiPaths.some((prefix) =>
     path.startsWith(prefix)
   );
+
+  // Check if this is specifically a shared note path
+  const isSharedNotePath = path.startsWith("/shared/");
 
   // If the path is not protected, allow the request to proceed
   if (!isProtectedPath && !isProtectedApiPath) {
@@ -43,7 +57,15 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // If there's no valid session and it's a protected route, redirect to home
+    // For shared notes, redirect to login with returnUrl
+    if (isSharedNotePath) {
+      const loginUrl = new URL("/login", request.url);
+      // Add the current URL as a returnUrl query parameter
+      loginUrl.searchParams.set("returnUrl", request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // If there's no valid session and it's a protected route, redirect to home page
     const homeUrl = new URL("/", request.url);
     return NextResponse.redirect(homeUrl);
   } catch (error) {
@@ -54,7 +76,15 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // If there's an error and it's a protected route, redirect to home
+    // If there's an error and it's a shared note, redirect to login
+    if (isSharedNotePath) {
+      const loginUrl = new URL("/login", request.url);
+      // Add the current URL as a returnUrl query parameter
+      loginUrl.searchParams.set("returnUrl", request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // If there's an error and it's a protected route, redirect to home page
     const homeUrl = new URL("/", request.url);
     return NextResponse.redirect(homeUrl);
   }
@@ -73,5 +103,7 @@ export const config = {
     "/api/folders/:path*",
     "/api/shared-notes/:path*",
     "/api/tags/:path*",
+    // Include login path to ensure middleware runs for it
+    "/login",
   ],
 };

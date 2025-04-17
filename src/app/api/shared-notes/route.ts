@@ -1,6 +1,7 @@
 import { getAuthUser } from "@/lib/auth";
 import {
   getNotesSharedWithUser,
+  getSharedNoteById,
   getSharedNotes,
   getSharedNoteUsers,
   revokeShare,
@@ -18,9 +19,29 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const noteId = url.searchParams.get("noteId");
     const targetUserId = url.searchParams.get("userId");
+    const shareId = url.searchParams.get("shareId");
 
     // Determine what type of shared note query we're handling
-    if (noteId) {
+    if (shareId) {
+      // Get a specific shared note by ID with access info
+      const { note, access, isOwner } = await getSharedNoteById(
+        user.id,
+        shareId
+      );
+
+      if (!note) {
+        return NextResponse.json(
+          { error: "Note not found or you don't have access to it" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        note,
+        access,
+        isOwner,
+      });
+    } else if (noteId) {
       // Get all users with access to a specific note
       const sharedUsers = await getSharedNoteUsers(noteId);
       return NextResponse.json(sharedUsers);

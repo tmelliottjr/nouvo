@@ -1,5 +1,5 @@
 import { createPool } from "mysql2/promise";
-import { camelize } from "./utils";
+import { camelize, generateId } from "./utils";
 
 // Create a MySQL connection pool
 const pool = createPool({
@@ -159,19 +159,21 @@ export async function updateNote(
     params.push(data.parentId);
   }
 
-  if (updateFields.length === 0) {
-    throw new Error("No fields to update");
+  if (updateFields.length > 0) {
+    // Add the id and userId for the WHERE clause
+    params.push(data.id);
+    params.push(userId);
+
+    // Update the note
+    await pool.query(
+      `UPDATE notes SET ${updateFields.join(", ")} WHERE id = ? AND user_id = ?`,
+      params
+    );
   }
 
-  // Add the id and userId for the WHERE clause
-  params.push(data.id);
-  params.push(userId);
-
-  // Update the note
-  await pool.query(
-    `UPDATE notes SET ${updateFields.join(", ")} WHERE id = ? AND user_id = ?`,
-    params
-  );
+  if (data.tags === undefined) {
+    throw new Error("No fields to update");
+  }
 
   // Update tags if provided
   if (data.tags !== undefined) {
@@ -291,12 +293,4 @@ async function getOrCreateTag(
   ]);
 
   return tagId;
-}
-
-// Helper function to generate a unique ID
-function generateId(): string {
-  return (
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15)
-  );
 }

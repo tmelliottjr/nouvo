@@ -10,6 +10,8 @@ import {
   SidebarMenu,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { UserProfileButton } from "@/components/user/user-profile-button";
+import { UserSettingsModal } from "@/components/user/user-settings-modal";
 import { useNotes } from "@/state-providers/use-notes";
 import { FileEdit, FolderPlus, Search, Settings } from "lucide-react";
 import Link from "next/link";
@@ -24,12 +26,17 @@ export function NotesSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
   const { addNote, addFolder } = useNotes();
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   return (
     <Sidebar {...props}>
       <SearchDialog
         open={searchDialogOpen}
         onOpenChange={setSearchDialogOpen}
+      />
+      <UserSettingsModal
+        open={profileModalOpen}
+        onOpenChange={setProfileModalOpen}
       />
       <SidebarContent>
         <SidebarGroup>
@@ -44,6 +51,7 @@ export function NotesSidebar({
                 <Settings className="h-5 w-5" />
               </Link>
               <ThemeSelector />
+              <UserProfileButton onClick={() => setProfileModalOpen(true)} />
             </div>
           </div>
         </SidebarGroup>

@@ -1,4 +1,5 @@
 import { createPool } from "mysql2/promise";
+import { generateId } from "./utils";
 
 // Create a MySQL connection pool
 const pool = createPool({
@@ -270,12 +271,4 @@ export async function removeTagFromNote(
   )) as any;
 
   return result.affectedRows > 0;
-}
-
-// Helper function to generate a unique ID
-function generateId(): string {
-  return (
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15)
-  );
 }

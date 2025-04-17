@@ -1,7 +1,9 @@
 import { betterAuth } from "better-auth";
+import { createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { createPool } from "mysql2/promise";
 import { headers } from "next/headers";
+import { claimPendingShares } from "./shared-notes";
 
 // Create a MySQL connection pool
 const pool = createPool({
@@ -16,6 +18,17 @@ const pool = createPool({
 export const runtime = "nodejs";
 
 export const auth = betterAuth({
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path.startsWith("/sign-up")) {
+        const newSession = ctx.context.newSession;
+        if (newSession) {
+          // claim pending shares
+          await claimPendingShares(newSession.user.id, newSession.user.email);
+        }
+      }
+    }),
+  },
   // Enable email and password authentication
   emailAndPassword: {
     enabled: true,
