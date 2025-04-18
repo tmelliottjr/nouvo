@@ -4,7 +4,6 @@ import {
   CreationStateMap,
   FolderNode,
   NoteNode,
-  seedData,
   TreeData,
   TreeNode,
 } from "@/lib/seed-data";
@@ -80,11 +79,11 @@ function NotesProvider({ children }: PropsWithChildren) {
   const router = useRouter();
   const { user } = useAuth(); // Get the user object from useAuth hook
 
-  // Main state - flat tree structure
-  const [treeData, setTreeData] = useImmer<TreeData>(seedData.treeData);
+  // Main state - flat tree structure - initialize empty instead of from seed data
+  const [treeData, setTreeData] = useImmer<TreeData>({});
 
-  // Root IDs (top-level entries)
-  const [rootIds, setRootIds] = useImmer<string[]>(seedData.rootIds);
+  // Root IDs (top-level entries) - initialize empty instead of from seed data
+  const [rootIds, setRootIds] = useImmer<string[]>([]);
 
   // Node creation/editing state
   const [creationStateById, setCreationStateById] = useImmer<CreationStateMap>(
@@ -168,6 +167,7 @@ function NotesProvider({ children }: PropsWithChildren) {
             tags: string[];
             userId: string;
             creationDate: string;
+            isPublic: boolean;
           }) => {
             const noteNode: NoteNode = {
               id: note.id,
@@ -179,6 +179,7 @@ function NotesProvider({ children }: PropsWithChildren) {
               content: note.content,
               tags: note.tags || [],
               creationDate: note.creationDate || new Date().toISOString(),
+              isPublic: note.isPublic,
             };
 
             newTreeData[note.id] = noteNode;
@@ -201,15 +202,14 @@ function NotesProvider({ children }: PropsWithChildren) {
           }
         });
 
-        console.log({ newTreeData });
-        console.log({ newRootIds });
-
         // Update state with fetched data
         setTreeData(newTreeData);
         setRootIds(newRootIds);
       } catch (error) {
         console.error("Error fetching notes and folders:", error);
-        // Keep existing seed data if fetch fails
+        // Initialize with empty data on error
+        setTreeData({});
+        setRootIds([]);
       } finally {
         setIsLoading(false);
       }

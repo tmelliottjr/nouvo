@@ -1,10 +1,11 @@
 "use client";
 
+import { SidebarMenuSkeleton } from "@/components/ui/sidebar";
 import { Note } from "@/lib/notes";
 import { SharedNote } from "@/lib/shared-notes";
 import { useAuth } from "@/state-providers/use-auth";
 import { useNotes } from "@/state-providers/use-notes";
-import { Edit2, Eye, Loader2 } from "lucide-react";
+import { Edit2, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import { SidebarLink } from "./SidebarLink";
@@ -95,11 +96,17 @@ export function SharedWithMeSection() {
     [router, selectNote]
   );
 
+  // Display skeleton loader while loading
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-4 text-sm text-stone-500">
-        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-        Loading shared notes...
+      <div className="animate-fadeIn">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <SidebarMenuSkeleton
+            key={`shared-skeleton-${i}`}
+            showIcon={true}
+            className="my-1"
+          />
+        ))}
       </div>
     );
   }

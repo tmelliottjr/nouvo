@@ -7,13 +7,19 @@ import {
 import { useNotes } from "@/state-providers/use-notes";
 import { FolderNode } from "./FolderNode";
 import { NoteNode } from "./NoteNode";
+import { NotesTreeSkeleton } from "./NotesTreeSkeleton";
 
 interface NotesTreeProps {
   parentId?: string | null;
 }
 
 export function NotesTree({ parentId = null }: NotesTreeProps) {
-  const { rootNodes, getChildNodes } = useNotes();
+  const { rootNodes, getChildNodes, isLoading } = useNotes();
+
+  // Show skeleton loader while loading
+  if (isLoading) {
+    return <NotesTreeSkeleton count={parentId ? 3 : 5} />;
+  }
 
   // Get nodes to display (either root nodes or children of specified parent)
   const nodes = parentId ? getChildNodes(parentId) : rootNodes;
