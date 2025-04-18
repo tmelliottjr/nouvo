@@ -117,78 +117,123 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
-exports.Prisma.AuthUserScalarFieldEnum = {
+exports.Prisma.AccountScalarFieldEnum = {
   id: 'id',
-  email: 'email',
-  emailVerified: 'emailVerified',
+  accountId: 'accountId',
+  providerId: 'providerId',
+  userId: 'userId',
+  accessToken: 'accessToken',
+  refreshToken: 'refreshToken',
+  idToken: 'idToken',
+  accessTokenExpiresAt: 'accessTokenExpiresAt',
+  refreshTokenExpiresAt: 'refreshTokenExpiresAt',
+  scope: 'scope',
   password: 'password',
-  name: 'name',
-  image: 'image',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.AuthSessionScalarFieldEnum = {
+exports.Prisma.Auth_sessionsScalarFieldEnum = {
   id: 'id',
-  userId: 'userId',
-  expiresAt: 'expiresAt',
-  createdAt: 'createdAt'
+  user_id: 'user_id',
+  expires_at: 'expires_at',
+  created_at: 'created_at'
 };
 
-exports.Prisma.AuthVerificationTokenScalarFieldEnum = {
+exports.Prisma.Auth_usersScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  email_verified: 'email_verified',
+  password: 'password',
+  name: 'name',
+  image: 'image',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Auth_verification_tokensScalarFieldEnum = {
   identifier: 'identifier',
   token: 'token',
-  expiresAt: 'expiresAt'
+  expires_at: 'expires_at'
+};
+
+exports.Prisma.FoldersScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  user_id: 'user_id',
+  parent_id: 'parent_id',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Note_tagsScalarFieldEnum = {
+  note_id: 'note_id',
+  tag_id: 'tag_id'
+};
+
+exports.Prisma.NotesScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  content: 'content',
+  user_id: 'user_id',
+  parent_id: 'parent_id',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  is_pinned: 'is_pinned',
+  is_public: 'is_public'
+};
+
+exports.Prisma.Pending_sharesScalarFieldEnum = {
+  id: 'id',
+  note_id: 'note_id',
+  user_email: 'user_email',
+  permission: 'permission'
+};
+
+exports.Prisma.SessionScalarFieldEnum = {
+  id: 'id',
+  expiresAt: 'expiresAt',
+  token: 'token',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  userId: 'userId'
+};
+
+exports.Prisma.SharesScalarFieldEnum = {
+  id: 'id',
+  note_id: 'note_id',
+  user_id: 'user_id',
+  created_at: 'created_at',
+  expires_at: 'expires_at',
+  permission: 'permission'
+};
+
+exports.Prisma.TagsScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  user_id: 'user_id',
+  created_at: 'created_at'
 };
 
 exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   name: 'name',
   email: 'email',
+  emailVerified: 'emailVerified',
+  image: 'image',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.NoteScalarFieldEnum = {
+exports.Prisma.VerificationScalarFieldEnum = {
   id: 'id',
-  title: 'title',
-  content: 'content',
-  userId: 'userId',
-  folderId: 'folderId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  isPublic: 'isPublic',
-  isPinned: 'isPinned'
-};
-
-exports.Prisma.FolderScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  userId: 'userId',
-  parentId: 'parentId',
+  identifier: 'identifier',
+  value: 'value',
+  expiresAt: 'expiresAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
-};
-
-exports.Prisma.TagScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  userId: 'userId',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.NoteTagScalarFieldEnum = {
-  noteId: 'noteId',
-  tagId: 'tagId'
-};
-
-exports.Prisma.ShareScalarFieldEnum = {
-  id: 'id',
-  noteId: 'noteId',
-  userId: 'userId',
-  shareId: 'shareId',
-  createdAt: 'createdAt',
-  expiresAt: 'expiresAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -201,7 +246,24 @@ exports.Prisma.NullsOrder = {
   last: 'last'
 };
 
-exports.Prisma.AuthUserOrderByRelevanceFieldEnum = {
+exports.Prisma.accountOrderByRelevanceFieldEnum = {
+  id: 'id',
+  accountId: 'accountId',
+  providerId: 'providerId',
+  userId: 'userId',
+  accessToken: 'accessToken',
+  refreshToken: 'refreshToken',
+  idToken: 'idToken',
+  scope: 'scope',
+  password: 'password'
+};
+
+exports.Prisma.auth_sessionsOrderByRelevanceFieldEnum = {
+  id: 'id',
+  user_id: 'user_id'
+};
+
+exports.Prisma.auth_usersOrderByRelevanceFieldEnum = {
   id: 'id',
   email: 'email',
   password: 'password',
@@ -209,66 +271,93 @@ exports.Prisma.AuthUserOrderByRelevanceFieldEnum = {
   image: 'image'
 };
 
-exports.Prisma.AuthSessionOrderByRelevanceFieldEnum = {
-  id: 'id',
-  userId: 'userId'
-};
-
-exports.Prisma.AuthVerificationTokenOrderByRelevanceFieldEnum = {
+exports.Prisma.auth_verification_tokensOrderByRelevanceFieldEnum = {
   identifier: 'identifier',
   token: 'token'
 };
 
-exports.Prisma.UserOrderByRelevanceFieldEnum = {
+exports.Prisma.foldersOrderByRelevanceFieldEnum = {
   id: 'id',
   name: 'name',
-  email: 'email'
+  user_id: 'user_id',
+  parent_id: 'parent_id'
 };
 
-exports.Prisma.NoteOrderByRelevanceFieldEnum = {
+exports.Prisma.note_tagsOrderByRelevanceFieldEnum = {
+  note_id: 'note_id',
+  tag_id: 'tag_id'
+};
+
+exports.Prisma.notesOrderByRelevanceFieldEnum = {
   id: 'id',
-  title: 'title',
+  name: 'name',
   content: 'content',
-  userId: 'userId',
-  folderId: 'folderId'
+  user_id: 'user_id',
+  parent_id: 'parent_id'
 };
 
-exports.Prisma.FolderOrderByRelevanceFieldEnum = {
+exports.Prisma.pending_sharesOrderByRelevanceFieldEnum = {
   id: 'id',
-  name: 'name',
-  userId: 'userId',
-  parentId: 'parentId'
+  note_id: 'note_id',
+  user_email: 'user_email'
 };
 
-exports.Prisma.TagOrderByRelevanceFieldEnum = {
+exports.Prisma.sessionOrderByRelevanceFieldEnum = {
   id: 'id',
-  name: 'name',
+  token: 'token',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
   userId: 'userId'
 };
 
-exports.Prisma.NoteTagOrderByRelevanceFieldEnum = {
-  noteId: 'noteId',
-  tagId: 'tagId'
-};
-
-exports.Prisma.ShareOrderByRelevanceFieldEnum = {
+exports.Prisma.sharesOrderByRelevanceFieldEnum = {
   id: 'id',
-  noteId: 'noteId',
-  userId: 'userId',
-  shareId: 'shareId'
+  note_id: 'note_id',
+  user_id: 'user_id'
 };
 
+exports.Prisma.tagsOrderByRelevanceFieldEnum = {
+  id: 'id',
+  name: 'name',
+  user_id: 'user_id'
+};
+
+exports.Prisma.userOrderByRelevanceFieldEnum = {
+  id: 'id',
+  name: 'name',
+  email: 'email',
+  image: 'image'
+};
+
+exports.Prisma.verificationOrderByRelevanceFieldEnum = {
+  id: 'id',
+  identifier: 'identifier',
+  value: 'value'
+};
+exports.pending_shares_permission = exports.$Enums.pending_shares_permission = {
+  read: 'read',
+  write: 'write'
+};
+
+exports.shares_permission = exports.$Enums.shares_permission = {
+  read: 'read',
+  write: 'write'
+};
 
 exports.Prisma.ModelName = {
-  AuthUser: 'AuthUser',
-  AuthSession: 'AuthSession',
-  AuthVerificationToken: 'AuthVerificationToken',
-  User: 'User',
-  Note: 'Note',
-  Folder: 'Folder',
-  Tag: 'Tag',
-  NoteTag: 'NoteTag',
-  Share: 'Share'
+  account: 'account',
+  auth_sessions: 'auth_sessions',
+  auth_users: 'auth_users',
+  auth_verification_tokens: 'auth_verification_tokens',
+  folders: 'folders',
+  note_tags: 'note_tags',
+  notes: 'notes',
+  pending_shares: 'pending_shares',
+  session: 'session',
+  shares: 'shares',
+  tags: 'tags',
+  user: 'user',
+  verification: 'verification'
 };
 
 /**

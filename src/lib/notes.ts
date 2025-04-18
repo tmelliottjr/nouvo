@@ -17,12 +17,12 @@ export type Note = {
  * Get all notes for a specific user
  */
 export async function getNotes(userId: string): Promise<Note[]> {
-  const notes = await prisma.note.findMany({
-    where: { userId },
+  const notes = await prisma.notes.findMany({
+    where: { user_id: userId },
     include: {
-      tags: {
+      note_tags: {
         include: {
-          tag: true,
+          tags: true,
         },
       },
     },
@@ -30,14 +30,14 @@ export async function getNotes(userId: string): Promise<Note[]> {
 
   return notes.map((note) => ({
     id: note.id,
-    name: note.title,
-    content: note.content,
-    userId: note.userId,
-    parentId: note.folderId,
-    createdAt: note.createdAt.toISOString(),
-    updatedAt: note.updatedAt.toISOString(),
-    isPublic: note.isPublic || false,
-    tags: note.tags.map((noteTag) => noteTag.tag.name),
+    name: note.name,
+    content: note.content ?? "",
+    userId: note.user_id,
+    parentId: note.parent_id,
+    createdAt: note.created_at?.toISOString() ?? new Date().toISOString(),
+    updatedAt: note.updated_at?.toISOString() ?? new Date().toISOString(),
+    isPublic: note.is_public ?? false,
+    tags: note.note_tags?.map((noteTag) => noteTag.tags.name) || [],
   }));
 }
 
@@ -48,15 +48,15 @@ export async function getNoteById(
   userId: string,
   noteId: string
 ): Promise<Note | null> {
-  const note = await prisma.note.findFirst({
+  const note = await prisma.notes.findFirst({
     where: {
       id: noteId,
-      userId,
+      user_id: userId,
     },
     include: {
-      tags: {
+      note_tags: {
         include: {
-          tag: true,
+          tags: true,
         },
       },
     },
@@ -68,14 +68,14 @@ export async function getNoteById(
 
   return {
     id: note.id,
-    name: note.title,
-    content: note.content,
-    userId: note.userId,
-    parentId: note.folderId,
-    createdAt: note.createdAt.toISOString(),
-    updatedAt: note.updatedAt.toISOString(),
-    isPublic: note.isPublic || false,
-    tags: note.tags.map((noteTag) => noteTag.tag.name),
+    name: note.name,
+    content: note.content ?? "",
+    userId: note.user_id,
+    parentId: note.parent_id,
+    createdAt: note.created_at?.toISOString() ?? new Date().toISOString(),
+    updatedAt: note.updated_at?.toISOString() ?? new Date().toISOString(),
+    isPublic: note.is_public ?? false,
+    tags: note.note_tags?.map((noteTag) => noteTag.tags.name) || [],
   };
 }
 
@@ -84,16 +84,16 @@ export async function getNoteById(
  * This function doesn't require authentication
  */
 export async function getPublicNoteById(noteId: string): Promise<Note | null> {
-  const note = await prisma.note.findFirst({
+  const note = await prisma.notes.findFirst({
     where: {
       id: noteId,
-      isPublic: true,
+      is_public: true,
     },
     include: {
       user: true,
-      tags: {
+      note_tags: {
         include: {
-          tag: true,
+          tags: true,
         },
       },
     },
@@ -105,14 +105,14 @@ export async function getPublicNoteById(noteId: string): Promise<Note | null> {
 
   return {
     id: note.id,
-    name: note.title,
-    content: note.content,
-    userId: note.userId,
-    parentId: note.folderId,
-    createdAt: note.createdAt.toISOString(),
-    updatedAt: note.updatedAt.toISOString(),
-    isPublic: note.isPublic || false,
-    tags: note.tags.map((noteTag) => noteTag.tag.name),
+    name: note.name,
+    content: note.content ?? "",
+    userId: note.user_id,
+    parentId: note.parent_id,
+    createdAt: note.created_at?.toISOString() ?? new Date().toISOString(),
+    updatedAt: note.updated_at?.toISOString() ?? new Date().toISOString(),
+    isPublic: note.is_public ?? false,
+    tags: note.note_tags?.map((noteTag) => noteTag.tags.name) || [],
   };
 }
 
@@ -124,16 +124,15 @@ export async function createNote(
   data: { name: string; content: string; parentId?: string; tags?: string[] }
 ): Promise<Note> {
   const id = generateId();
-  const now = new Date();
 
   // Create the note
-  const note = await prisma.note.create({
+  const note = await prisma.notes.create({
     data: {
       id,
-      title: data.name,
+      name: data.name,
       content: data.content,
-      userId,
-      folderId: data.parentId || null,
+      user_id: userId,
+      parent_id: data.parentId || null,
     },
   });
 
@@ -141,10 +140,10 @@ export async function createNote(
   if (data.tags && data.tags.length > 0) {
     for (const tagName of data.tags) {
       // Get or create the tag
-      const tag = await prisma.tag.upsert({
+      const tag = await prisma.tags.upsert({
         where: {
-          userId_name: {
-            userId,
+          user_id_name: {
+            user_id: userId,
             name: tagName,
           },
         },
@@ -152,15 +151,15 @@ export async function createNote(
         create: {
           id: generateId(),
           name: tagName,
-          userId,
+          user_id: userId,
         },
       });
 
       // Link the tag to the note
-      await prisma.noteTag.create({
+      await prisma.note_tags.create({
         data: {
-          noteId: id,
-          tagId: tag.id,
+          note_id: id,
+          tag_id: tag.id,
         },
       });
     }
@@ -168,13 +167,14 @@ export async function createNote(
 
   return {
     id: note.id,
-    name: note.title,
-    content: note.content,
-    userId: note.userId,
-    parentId: note.folderId,
-    createdAt: note.createdAt.toISOString(),
-    updatedAt: note.updatedAt.toISOString(),
+    name: note.name,
+    content: note.content ?? "",
+    userId: note.user_id,
+    parentId: note.parent_id,
+    createdAt: note.created_at?.toISOString() ?? new Date().toISOString(),
+    updatedAt: note.updated_at?.toISOString() ?? new Date().toISOString(),
     tags: data.tags || [],
+    isPublic: note.is_public ?? false,
   };
 }
 
@@ -193,10 +193,10 @@ export async function updateNote(
   }
 ): Promise<Note | null> {
   // Check if note exists and belongs to user
-  const existingNote = await prisma.note.findFirst({
+  const existingNote = await prisma.notes.findFirst({
     where: {
       id: data.id,
-      userId,
+      user_id: userId,
     },
   });
 
@@ -205,14 +205,14 @@ export async function updateNote(
   }
 
   // Build update data
-  const updateData: any = {};
-  if (data.name !== undefined) updateData.title = data.name;
+  const updateData: Record<string, unknown> = {};
+  if (data.name !== undefined) updateData.name = data.name;
   if (data.content !== undefined) updateData.content = data.content;
-  if (data.parentId !== undefined) updateData.folderId = data.parentId;
-  if (data.isPublic !== undefined) updateData.isPublic = data.isPublic;
+  if (data.parentId !== undefined) updateData.parent_id = data.parentId;
+  if (data.isPublic !== undefined) updateData.is_public = data.isPublic;
 
   // Update the note
-  const updatedNote = await prisma.note.update({
+  await prisma.notes.update({
     where: {
       id: data.id,
     },
@@ -222,9 +222,9 @@ export async function updateNote(
   // Update tags if provided
   if (data.tags !== undefined) {
     // Remove existing tags
-    await prisma.noteTag.deleteMany({
+    await prisma.note_tags.deleteMany({
       where: {
-        noteId: data.id,
+        note_id: data.id,
       },
     });
 
@@ -232,10 +232,10 @@ export async function updateNote(
     if (data.tags.length > 0) {
       for (const tagName of data.tags) {
         // Get or create the tag
-        const tag = await prisma.tag.upsert({
+        const tag = await prisma.tags.upsert({
           where: {
-            userId_name: {
-              userId,
+            user_id_name: {
+              user_id: userId,
               name: tagName,
             },
           },
@@ -243,15 +243,15 @@ export async function updateNote(
           create: {
             id: generateId(),
             name: tagName,
-            userId,
+            user_id: userId,
           },
         });
 
         // Link the tag to the note
-        await prisma.noteTag.create({
+        await prisma.note_tags.create({
           data: {
-            noteId: data.id,
-            tagId: tag.id,
+            note_id: data.id,
+            tag_id: tag.id,
           },
         });
       }
@@ -271,10 +271,10 @@ export async function deleteNote(
 ): Promise<boolean> {
   try {
     // Check if the note belongs to the user
-    const note = await prisma.note.findFirst({
+    const note = await prisma.notes.findFirst({
       where: {
         id: noteId,
-        userId,
+        user_id: userId,
       },
     });
 
@@ -285,7 +285,7 @@ export async function deleteNote(
     // Delete note tags (Prisma will handle this cascading delete)
     // Delete shared notes (Prisma will handle this cascading delete)
     // Delete the note itself
-    await prisma.note.delete({
+    await prisma.notes.delete({
       where: {
         id: noteId,
       },
@@ -305,18 +305,16 @@ export async function searchNotes(
   userId: string,
   query: string
 ): Promise<Note[]> {
-  const searchTerm = `%${query}%`; // This will be used in the SQL LIKE operator
-
-  const notes = await prisma.note.findMany({
+  const notes = await prisma.notes.findMany({
     where: {
-      userId,
+      user_id: userId,
       OR: [
-        { title: { contains: query } },
+        { name: { contains: query } },
         { content: { contains: query } },
         {
-          tags: {
+          note_tags: {
             some: {
-              tag: {
+              tags: {
                 name: { contains: query },
               },
             },
@@ -325,9 +323,9 @@ export async function searchNotes(
       ],
     },
     include: {
-      tags: {
+      note_tags: {
         include: {
-          tag: true,
+          tags: true,
         },
       },
     },
@@ -335,18 +333,13 @@ export async function searchNotes(
 
   return notes.map((note) => ({
     id: note.id,
-    name: note.title,
-    content: note.content,
-    userId: note.userId,
-    parentId: note.folderId,
-    createdAt: note.createdAt.toISOString(),
-    updatedAt: note.updatedAt.toISOString(),
-    isPublic: note.isPublic || false,
-    tags: note.tags.map((noteTag) => noteTag.tag.name),
+    name: note.name,
+    content: note.content ?? "",
+    userId: note.user_id,
+    parentId: note.parent_id,
+    createdAt: note.created_at?.toISOString() ?? new Date().toISOString(),
+    updatedAt: note.updated_at?.toISOString() ?? new Date().toISOString(),
+    isPublic: note.is_public ?? false,
+    tags: note.note_tags?.map((noteTag) => noteTag.tags.name) || [],
   }));
 }
-
-/**
- * Helper function relocated from the original code
- * The Prisma upsert method replaces this functionality
- */

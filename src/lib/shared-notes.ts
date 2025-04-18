@@ -23,9 +23,9 @@ export type PendingShare = {
  * Get all shared notes for a specific user
  */
 export async function getSharedNotes(userId: string): Promise<SharedNote[]> {
-  const shares = await prisma.share.findMany({
+  const shares = await prisma.shares.findMany({
     where: {
-      userId,
+      user_id: userId,
     },
     include: {
       user: true,
@@ -34,11 +34,11 @@ export async function getSharedNotes(userId: string): Promise<SharedNote[]> {
 
   return shares.map((share) => ({
     id: share.id,
-    noteId: share.noteId,
-    userId: share.userId,
+    noteId: share.note_id,
+    userId: share.user_id,
     userEmail: share.user.email,
     permission: share.permission as "read" | "write",
-    createdAt: share.createdAt.toISOString(),
+    createdAt: share.created_at?.toISOString() || new Date().toISOString(),
   }));
 }
 
@@ -49,9 +49,9 @@ export async function getSharedNoteUsers(
   noteId: string
 ): Promise<SharedNote[]> {
   // Get existing shares with user data
-  const shares = await prisma.share.findMany({
+  const shares = await prisma.shares.findMany({
     where: {
-      noteId,
+      note_id: noteId,
     },
     include: {
       user: true,
@@ -59,28 +59,28 @@ export async function getSharedNoteUsers(
   });
 
   // Get pending shares
-  const pendingShares = await prisma.pendingShare.findMany({
+  const pendingShares = await prisma.pending_shares.findMany({
     where: {
-      noteId,
+      note_id: noteId,
     },
   });
 
   const shareResults = shares.map((share) => ({
     id: share.id,
-    noteId: share.noteId,
-    userId: share.userId,
+    noteId: share.note_id,
+    userId: share.user_id,
     userEmail: share.user.email,
     permission: share.permission as "read" | "write",
-    createdAt: share.createdAt.toISOString(),
+    createdAt: share.created_at?.toISOString() || new Date().toISOString(),
   }));
 
   const pendingResults = pendingShares.map((pending) => ({
     id: pending.id,
-    noteId: pending.noteId,
+    noteId: pending.note_id,
     userId: `pending_${pending.id}`, // Create a placeholder userId
-    userEmail: pending.userEmail,
+    userEmail: pending.user_email,
     permission: pending.permission as "read" | "write",
-    createdAt: pending.createdAt.toISOString(),
+    createdAt: new Date().toISOString(), // Pending shares might not have a created_at field
   }));
 
   return [...shareResults, ...pendingResults];
@@ -92,23 +92,23 @@ export async function getSharedNoteUsers(
 export async function getNotesSharedWithUser(
   userId: string
 ): Promise<SharedNote[]> {
-  const shares = await prisma.share.findMany({
+  const shares = await prisma.shares.findMany({
     where: {
-      userId,
+      user_id: userId,
     },
     include: {
-      note: true,
+      notes: true,
       user: true,
     },
   });
 
   return shares.map((share) => ({
     id: share.id,
-    noteId: share.noteId,
-    userId: share.userId,
+    noteId: share.note_id,
+    userId: share.user_id,
     userEmail: share.user.email,
     permission: share.permission as "read" | "write",
-    createdAt: share.createdAt.toISOString(),
+    createdAt: share.created_at?.toISOString() || new Date().toISOString(),
   }));
 }
 
@@ -123,15 +123,15 @@ export async function getSharedNoteById(
   noteId: string
 ): Promise<{ note: Note | null; access: SharedNote | null; isOwner: boolean }> {
   // First check if the user is the note owner
-  const ownedNote = await prisma.note.findFirst({
+  const ownedNote = await prisma.notes.findFirst({
     where: {
       id: noteId,
-      userId,
+      user_id: userId,
     },
     include: {
-      tags: {
+      note_tags: {
         include: {
-          tag: true,
+          tags: true,
         },
       },
     },
@@ -141,14 +141,16 @@ export async function getSharedNoteById(
   if (ownedNote) {
     const note = {
       id: ownedNote.id,
-      name: ownedNote.title,
-      content: ownedNote.content,
-      userId: ownedNote.userId,
-      parentId: ownedNote.folderId,
-      createdAt: ownedNote.createdAt.toISOString(),
-      updatedAt: ownedNote.updatedAt.toISOString(),
-      isPublic: ownedNote.isPublic || false,
-      tags: ownedNote.tags.map((noteTag) => noteTag.tag.name),
+      name: ownedNote.name,
+      content: ownedNote.content || "",
+      userId: ownedNote.user_id,
+      parentId: ownedNote.parent_id || null,
+      createdAt:
+        ownedNote.created_at?.toISOString() || new Date().toISOString(),
+      updatedAt:
+        ownedNote.updated_at?.toISOString() || new Date().toISOString(),
+      isPublic: ownedNote.is_public || false,
+      tags: ownedNote.note_tags.map((tag) => tag.tags.name),
     };
 
     return {
@@ -159,10 +161,10 @@ export async function getSharedNoteById(
   }
 
   // If not the owner, check if note is shared with user
-  const share = await prisma.share.findFirst({
+  const share = await prisma.shares.findFirst({
     where: {
-      noteId,
-      userId,
+      note_id: noteId,
+      user_id: userId,
     },
     include: {
       user: true,
@@ -175,14 +177,14 @@ export async function getSharedNoteById(
   }
 
   // User has shared access, get the note
-  const sharedNote = await prisma.note.findUnique({
+  const sharedNote = await prisma.notes.findUnique({
     where: {
       id: noteId,
     },
     include: {
-      tags: {
+      note_tags: {
         include: {
-          tag: true,
+          tags: true,
         },
       },
     },
@@ -196,24 +198,24 @@ export async function getSharedNoteById(
   // Format the note with tags
   const note = {
     id: sharedNote.id,
-    name: sharedNote.title,
-    content: sharedNote.content,
-    userId: sharedNote.userId,
-    parentId: sharedNote.folderId,
-    createdAt: sharedNote.createdAt.toISOString(),
-    updatedAt: sharedNote.updatedAt.toISOString(),
-    isPublic: sharedNote.isPublic || false,
-    tags: sharedNote.tags.map((noteTag) => noteTag.tag.name),
+    name: sharedNote.name,
+    content: sharedNote.content || "",
+    userId: sharedNote.user_id,
+    parentId: sharedNote.parent_id || null,
+    createdAt: sharedNote.created_at?.toISOString() || new Date().toISOString(),
+    updatedAt: sharedNote.updated_at?.toISOString() || new Date().toISOString(),
+    isPublic: sharedNote.is_public || false,
+    tags: sharedNote.note_tags.map((tag) => tag.tags.name),
   };
 
   // Format the share access information
   const access = {
     id: share.id,
-    noteId: share.noteId,
-    userId: share.userId,
+    noteId: share.note_id,
+    userId: share.user_id,
     userEmail: share.user.email,
     permission: share.permission as "read" | "write",
-    createdAt: share.createdAt.toISOString(),
+    createdAt: share.created_at?.toISOString() || new Date().toISOString(),
   };
 
   return {
@@ -231,16 +233,16 @@ export async function getPublicNoteById(
   noteId: string
 ): Promise<Note | null> {
   // Get the note if it's marked as public
-  const note = await prisma.note.findFirst({
+  const note = await prisma.notes.findFirst({
     where: {
       id: noteId,
-      userId,
-      isPublic: true,
+      user_id: userId,
+      is_public: true,
     },
     include: {
-      tags: {
+      note_tags: {
         include: {
-          tag: true,
+          tags: true,
         },
       },
     },
@@ -252,14 +254,14 @@ export async function getPublicNoteById(
 
   return {
     id: note.id,
-    name: note.title,
-    content: note.content,
-    userId: note.userId,
-    parentId: note.folderId,
-    createdAt: note.createdAt.toISOString(),
-    updatedAt: note.updatedAt.toISOString(),
-    isPublic: note.isPublic || false,
-    tags: note.tags.map((noteTag) => noteTag.tag.name),
+    name: note.name,
+    content: note.content || "",
+    userId: note.user_id,
+    parentId: note.parent_id || null,
+    createdAt: note.created_at?.toISOString() || new Date().toISOString(),
+    updatedAt: note.updated_at?.toISOString() || new Date().toISOString(),
+    isPublic: note.is_public || false,
+    tags: note.note_tags.map((tag) => tag.tags.name),
   };
 }
 
@@ -271,10 +273,10 @@ export async function shareNote(
   data: { noteId: string; userEmail: string; permission: "read" | "write" }
 ): Promise<SharedNote> {
   // First verify that the current user owns the note
-  const note = await prisma.note.findFirst({
+  const note = await prisma.notes.findFirst({
     where: {
       id: data.noteId,
-      userId: ownerId,
+      user_id: ownerId,
     },
   });
 
@@ -292,16 +294,16 @@ export async function shareNote(
   // If user doesn't exist, create a pending share
   if (!user) {
     // Check if there's already a pending share for this email and note
-    const existingPendingShare = await prisma.pendingShare.findFirst({
+    const existingPendingShare = await prisma.pending_shares.findFirst({
       where: {
-        noteId: data.noteId,
-        userEmail: data.userEmail,
+        note_id: data.noteId,
+        user_email: data.userEmail,
       },
     });
 
     if (existingPendingShare) {
       // Update the existing pending share
-      const updatedPendingShare = await prisma.pendingShare.update({
+      const updatedPendingShare = await prisma.pending_shares.update({
         where: {
           id: existingPendingShare.id,
         },
@@ -317,17 +319,17 @@ export async function shareNote(
         userId: `pending_${updatedPendingShare.id}`,
         userEmail: data.userEmail,
         permission: data.permission,
-        createdAt: updatedPendingShare.createdAt.toISOString(),
+        createdAt: new Date().toISOString(), // Pending shares might not track creation date
       };
     }
 
     // Create a new pending share record
     const id = generateId();
-    const pendingShare = await prisma.pendingShare.create({
+    const pendingShare = await prisma.pending_shares.create({
       data: {
         id,
-        noteId: data.noteId,
-        userEmail: data.userEmail,
+        note_id: data.noteId,
+        user_email: data.userEmail,
         permission: data.permission,
       },
     });
@@ -339,7 +341,7 @@ export async function shareNote(
       userId: `pending_${id}`,
       userEmail: data.userEmail,
       permission: data.permission,
-      createdAt: pendingShare.createdAt.toISOString(),
+      createdAt: new Date().toISOString(), // Pending shares might not track creation date
     };
   }
 
@@ -349,16 +351,16 @@ export async function shareNote(
   }
 
   // Check if the note is already shared with this user
-  const existingShare = await prisma.share.findFirst({
+  const existingShare = await prisma.shares.findFirst({
     where: {
-      noteId: data.noteId,
-      userId: user.id,
+      note_id: data.noteId,
+      user_id: user.id,
     },
   });
 
   if (existingShare) {
     // Update the existing share instead of creating a new one
-    await prisma.share.update({
+    await prisma.shares.update({
       where: {
         id: existingShare.id,
       },
@@ -373,31 +375,30 @@ export async function shareNote(
       userId: user.id,
       userEmail: data.userEmail,
       permission: data.permission,
-      createdAt: existingShare.createdAt.toISOString(),
+      createdAt:
+        existingShare.created_at?.toISOString() || new Date().toISOString(),
     };
   }
 
   // Create a new shared note record
   const id = generateId();
-  const shareId = generateId(); // For the unique share ID
 
-  const share = await prisma.share.create({
+  const share = await prisma.shares.create({
     data: {
       id,
-      noteId: data.noteId,
-      userId: user.id,
-      shareId,
+      note_id: data.noteId,
+      user_id: user.id,
       permission: data.permission,
     },
   });
 
   return {
     id: share.id,
-    noteId: share.noteId,
-    userId: share.userId,
+    noteId: share.note_id,
+    userId: share.user_id,
     userEmail: data.userEmail,
     permission: data.permission,
-    createdAt: share.createdAt.toISOString(),
+    createdAt: share.created_at?.toISOString() || new Date().toISOString(),
   };
 }
 
@@ -410,10 +411,10 @@ export async function revokeShare(
   sharedNoteId: string
 ): Promise<boolean> {
   // First verify that the current user owns the note
-  const note = await prisma.note.findFirst({
+  const note = await prisma.notes.findFirst({
     where: {
       id: noteId,
-      userId: ownerId,
+      user_id: ownerId,
     },
   });
 
@@ -427,14 +428,14 @@ export async function revokeShare(
     // Check if this is a pending share (ID starts with "pending_")
     if (sharedNoteId.startsWith("pending_")) {
       const realId = sharedNoteId.replace("pending_", "");
-      await prisma.pendingShare.delete({
+      await prisma.pending_shares.delete({
         where: {
           id: realId,
         },
       });
     } else {
       // Delete the shared note record
-      await prisma.share.delete({
+      await prisma.shares.delete({
         where: {
           id: sharedNoteId,
         },
@@ -457,10 +458,10 @@ export async function updateSharePermission(
   permission: "read" | "write"
 ): Promise<boolean> {
   // First verify that the current user owns the note
-  const note = await prisma.note.findFirst({
+  const note = await prisma.notes.findFirst({
     where: {
       id: noteId,
-      userId: ownerId,
+      user_id: ownerId,
     },
   });
 
@@ -474,7 +475,7 @@ export async function updateSharePermission(
     // Check if this is a pending share
     if (shareId.startsWith("pending_")) {
       const realId = shareId.replace("pending_", "");
-      await prisma.pendingShare.update({
+      await prisma.pending_shares.update({
         where: {
           id: realId,
         },
@@ -484,7 +485,7 @@ export async function updateSharePermission(
       });
     } else {
       // Update the share permission
-      await prisma.share.update({
+      await prisma.shares.update({
         where: {
           id: shareId,
         },
@@ -510,9 +511,9 @@ export async function claimPendingShares(
 ): Promise<number> {
   try {
     // Find any pending shares for this email
-    const pendingShares = await prisma.pendingShare.findMany({
+    const pendingShares = await prisma.pending_shares.findMany({
       where: {
-        userEmail,
+        user_email: userEmail,
       },
     });
 
@@ -527,24 +528,22 @@ export async function claimPendingShares(
       // For each pending share, create a real share
       for (const pendingShare of pendingShares) {
         // Check if a share already exists
-        const existingShare = await prisma.share.findFirst({
+        const existingShare = await prisma.shares.findFirst({
           where: {
-            noteId: pendingShare.noteId,
-            userId,
+            note_id: pendingShare.note_id,
+            user_id: userId,
           },
         });
 
         if (!existingShare) {
           // Create a new share record
           const id = generateId();
-          const shareId = generateId();
 
-          await prisma.share.create({
+          await prisma.shares.create({
             data: {
               id,
-              noteId: pendingShare.noteId,
-              userId,
-              shareId,
+              note_id: pendingShare.note_id,
+              user_id: userId,
               permission: pendingShare.permission,
             },
           });
@@ -553,7 +552,7 @@ export async function claimPendingShares(
         }
 
         // Delete the pending share
-        await prisma.pendingShare.delete({
+        await prisma.pending_shares.delete({
           where: {
             id: pendingShare.id,
           },

@@ -11,6 +11,10 @@ export type Folder = {
   noteCount?: number; // Count of notes in this folder
 };
 
+export interface FolderWithChildren extends Folder {
+  children: FolderWithChildren[];
+}
+
 /**
  * Get all folders for a specific user
  * Optionally computes the note count for each folder
@@ -21,26 +25,26 @@ export async function getFolders(
 ): Promise<Folder[]> {
   if (!includeNoteCounts) {
     // Simple query without note counts
-    const folders = await prisma.folder.findMany({
+    const folders = await prisma.folders.findMany({
       where: {
-        userId,
+        user_id: userId,
       },
     });
 
     return folders.map((folder) => ({
       id: folder.id,
       name: folder.name,
-      userId: folder.userId,
-      parentId: folder.parentId,
-      createdAt: folder.createdAt.toISOString(),
-      updatedAt: folder.updatedAt.toISOString(),
+      userId: folder.user_id,
+      parentId: folder.parent_id,
+      createdAt: folder.created_at?.toISOString() || new Date().toISOString(),
+      updatedAt: folder.updated_at?.toISOString() || new Date().toISOString(),
       noteCount: 0,
     }));
   } else {
     // Query with note counts
-    const folders = await prisma.folder.findMany({
+    const folders = await prisma.folders.findMany({
       where: {
-        userId,
+        user_id: userId,
       },
       include: {
         _count: {
@@ -54,10 +58,10 @@ export async function getFolders(
     return folders.map((folder) => ({
       id: folder.id,
       name: folder.name,
-      userId: folder.userId,
-      parentId: folder.parentId,
-      createdAt: folder.createdAt.toISOString(),
-      updatedAt: folder.updatedAt.toISOString(),
+      userId: folder.user_id,
+      parentId: folder.parent_id,
+      createdAt: folder.created_at?.toISOString() || new Date().toISOString(),
+      updatedAt: folder.updated_at?.toISOString() || new Date().toISOString(),
       noteCount: folder._count.notes,
     }));
   }
@@ -70,10 +74,10 @@ export async function getFolderById(
   userId: string,
   folderId: string
 ): Promise<Folder | null> {
-  const folder = await prisma.folder.findFirst({
+  const folder = await prisma.folders.findFirst({
     where: {
       id: folderId,
-      userId,
+      user_id: userId,
     },
     include: {
       _count: {
@@ -91,10 +95,10 @@ export async function getFolderById(
   return {
     id: folder.id,
     name: folder.name,
-    userId: folder.userId,
-    parentId: folder.parentId,
-    createdAt: folder.createdAt.toISOString(),
-    updatedAt: folder.updatedAt.toISOString(),
+    userId: folder.user_id,
+    parentId: folder.parent_id,
+    createdAt: folder.created_at?.toISOString() || new Date().toISOString(),
+    updatedAt: folder.updated_at?.toISOString() || new Date().toISOString(),
     noteCount: folder._count.notes,
   };
 }
@@ -103,28 +107,30 @@ export async function getFolderById(
  * Get folder hierarchy for a user
  * Builds a nested structure of folders
  */
-export async function getFolderHierarchy(userId: string): Promise<any[]> {
+export async function getFolderHierarchy(
+  userId: string
+): Promise<FolderWithChildren[]> {
   // Get all folders for this user
   const folders = await getFolders(userId, true);
 
   // Create a map to easily find folders by ID
-  const folderMap = new Map();
+  const folderMap = new Map<string, FolderWithChildren>();
   folders.forEach((folder) => {
     folderMap.set(folder.id, { ...folder, children: [] });
   });
 
   // Build the hierarchy
-  const rootFolders: any[] = [];
+  const rootFolders: FolderWithChildren[] = [];
 
   folders.forEach((folder) => {
     const folderWithChildren = folderMap.get(folder.id);
 
     if (folder.parentId && folderMap.has(folder.parentId)) {
       // Add this folder as a child of its parent
-      folderMap.get(folder.parentId).children.push(folderWithChildren);
+      folderMap.get(folder.parentId)?.children.push(folderWithChildren!);
     } else {
       // This is a root folder
-      rootFolders.push(folderWithChildren);
+      rootFolders.push(folderWithChildren!);
     }
   });
 
@@ -150,12 +156,12 @@ export async function createFolder(
   const id = generateId();
 
   // Create the folder
-  const folder = await prisma.folder.create({
+  const folder = await prisma.folders.create({
     data: {
       id,
       name: data.name,
-      userId,
-      parentId: data.parentId || null,
+      user_id: userId,
+      parent_id: data.parentId || null,
     },
   });
 
@@ -163,10 +169,10 @@ export async function createFolder(
   return {
     id: folder.id,
     name: folder.name,
-    userId: folder.userId,
-    parentId: folder.parentId,
-    createdAt: folder.createdAt.toISOString(),
-    updatedAt: folder.updatedAt.toISOString(),
+    userId: folder.user_id,
+    parentId: folder.parent_id,
+    createdAt: folder.created_at?.toISOString() || new Date().toISOString(),
+    updatedAt: folder.updated_at?.toISOString() || new Date().toISOString(),
     noteCount: 0,
   };
 }
@@ -198,12 +204,16 @@ export async function updateFolder(
   }
 
   // Build update data
-  const updateData: any = {};
+  const updateData: {
+    name?: string;
+    parent_id?: string | null;
+  } = {};
+  
   if (data.name !== undefined) updateData.name = data.name;
-  if (data.parentId !== undefined) updateData.parentId = data.parentId;
+  if (data.parentId !== undefined) updateData.parent_id = data.parentId;
 
   // Update the folder
-  const updatedFolder = await prisma.folder.update({
+  const updatedFolder = await prisma.folders.update({
     where: {
       id: data.id,
     },
@@ -211,7 +221,16 @@ export async function updateFolder(
   });
 
   // Return the updated folder
-  return getFolderById(userId, data.id);
+  return {
+    id: updatedFolder.id,
+    name: updatedFolder.name,
+    userId: updatedFolder.user_id,
+    parentId: updatedFolder.parent_id,
+    createdAt:
+      updatedFolder.created_at?.toISOString() || new Date().toISOString(),
+    updatedAt:
+      updatedFolder.updated_at?.toISOString() || new Date().toISOString(),
+  };
 }
 
 /**
@@ -229,17 +248,17 @@ export async function deleteFolder(
   }
 
   // Check if the folder has notes or subfolders
-  const notesCount = await prisma.note.count({
+  const notesCount = await prisma.notes.count({
     where: {
-      folderId,
-      userId,
+      parent_id: folderId,
+      user_id: userId,
     },
   });
 
-  const childFoldersCount = await prisma.folder.count({
+  const childFoldersCount = await prisma.folders.count({
     where: {
-      parentId: folderId,
-      userId,
+      parent_id: folderId,
+      user_id: userId,
     },
   });
 
@@ -253,10 +272,10 @@ export async function deleteFolder(
   try {
     if (recursive) {
       // Get all child folders
-      const childFolders = await prisma.folder.findMany({
+      const childFolders = await prisma.folders.findMany({
         where: {
-          parentId: folderId,
-          userId,
+          parent_id: folderId,
+          user_id: userId,
         },
         select: {
           id: true,
@@ -269,25 +288,25 @@ export async function deleteFolder(
       }
 
       // Delete the folder and its notes (cascading deletes will handle relationships)
-      await prisma.folder.delete({
+      await prisma.folders.delete({
         where: {
           id: folderId,
         },
       });
     } else {
       // Move notes to root before deleting
-      await prisma.note.updateMany({
+      await prisma.notes.updateMany({
         where: {
-          folderId,
-          userId,
+          parent_id: folderId,
+          user_id: userId,
         },
         data: {
-          folderId: null,
+          parent_id: null,
         },
       });
 
       // Delete the folder
-      await prisma.folder.delete({
+      await prisma.folders.delete({
         where: {
           id: folderId,
         },

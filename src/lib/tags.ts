@@ -9,6 +9,18 @@ export type Tag = {
   noteCount?: number;
 };
 
+export type NoteWithTags = {
+  id: string;
+  name: string;
+  content: string;
+  userId: string;
+  parentId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  isPublic: boolean;
+  tags: string[];
+};
+
 /**
  * Get all tags for a specific user
  * Optionally includes the count of notes for each tag
@@ -19,26 +31,26 @@ export async function getTags(
 ): Promise<Tag[]> {
   if (!includeNoteCounts) {
     // Simple query without note counts
-    const tags = await prisma.tag.findMany({
-      where: { userId },
+    const tags = await prisma.tags.findMany({
+      where: { user_id: userId },
       orderBy: { name: "asc" },
     });
 
     return tags.map((tag) => ({
       id: tag.id,
       name: tag.name,
-      userId: tag.userId,
-      createdAt: tag.createdAt.toISOString(),
+      userId: tag.user_id,
+      createdAt: tag.created_at?.toISOString() || new Date().toISOString(),
     }));
   } else {
     // Query with note counts
-    const tags = await prisma.tag.findMany({
-      where: { userId },
+    const tags = await prisma.tags.findMany({
+      where: { user_id: userId },
       orderBy: { name: "asc" },
       include: {
         _count: {
           select: {
-            notes: true,
+            note_tags: true,
           },
         },
       },
@@ -47,9 +59,9 @@ export async function getTags(
     return tags.map((tag) => ({
       id: tag.id,
       name: tag.name,
-      userId: tag.userId,
-      createdAt: tag.createdAt.toISOString(),
-      noteCount: tag._count.notes,
+      userId: tag.user_id,
+      createdAt: tag.created_at?.toISOString() || new Date().toISOString(),
+      noteCount: tag._count.note_tags,
     }));
   }
 }
@@ -61,15 +73,15 @@ export async function getTagById(
   userId: string,
   tagId: string
 ): Promise<Tag | null> {
-  const tag = await prisma.tag.findFirst({
+  const tag = await prisma.tags.findFirst({
     where: {
       id: tagId,
-      userId,
+      user_id: userId,
     },
     include: {
       _count: {
         select: {
-          notes: true,
+          note_tags: true,
         },
       },
     },
@@ -82,9 +94,9 @@ export async function getTagById(
   return {
     id: tag.id,
     name: tag.name,
-    userId: tag.userId,
-    createdAt: tag.createdAt.toISOString(),
-    noteCount: tag._count.notes,
+    userId: tag.user_id,
+    createdAt: tag.created_at?.toISOString() || new Date().toISOString(),
+    noteCount: tag._count.note_tags,
   };
 }
 
@@ -94,10 +106,10 @@ export async function getTagById(
 export async function createTag(userId: string, name: string): Promise<Tag> {
   // Check if tag already exists using Prisma's unique constraint
   try {
-    const tag = await prisma.tag.upsert({
+    const tag = await prisma.tags.upsert({
       where: {
-        userId_name: {
-          userId,
+        user_id_name: {
+          user_id: userId,
           name,
         },
       },
@@ -105,15 +117,15 @@ export async function createTag(userId: string, name: string): Promise<Tag> {
       create: {
         id: generateId(),
         name,
-        userId,
+        user_id: userId,
       },
     });
 
     return {
       id: tag.id,
       name: tag.name,
-      userId: tag.userId,
-      createdAt: tag.createdAt.toISOString(),
+      userId: tag.user_id,
+      createdAt: tag.created_at?.toISOString() || new Date().toISOString(),
     };
   } catch (error) {
     console.error("Error creating tag:", error);
@@ -130,10 +142,10 @@ export async function updateTag(
 ): Promise<Tag | null> {
   try {
     // Check if tag exists first
-    const existingTag = await prisma.tag.findFirst({
+    const existingTag = await prisma.tags.findFirst({
       where: {
         id: data.id,
-        userId,
+        user_id: userId,
       },
     });
 
@@ -142,7 +154,7 @@ export async function updateTag(
     }
 
     // Update the tag
-    const updatedTag = await prisma.tag.update({
+    const updatedTag = await prisma.tags.update({
       where: {
         id: data.id,
       },
@@ -154,8 +166,9 @@ export async function updateTag(
     return {
       id: updatedTag.id,
       name: updatedTag.name,
-      userId: updatedTag.userId,
-      createdAt: updatedTag.createdAt.toISOString(),
+      userId: updatedTag.user_id,
+      createdAt:
+        updatedTag.created_at?.toISOString() || new Date().toISOString(),
     };
   } catch (error) {
     console.error("Error updating tag:", error);
@@ -172,10 +185,10 @@ export async function deleteTag(
 ): Promise<boolean> {
   try {
     // Check if tag exists first
-    const existingTag = await prisma.tag.findFirst({
+    const existingTag = await prisma.tags.findFirst({
       where: {
         id: tagId,
-        userId,
+        user_id: userId,
       },
     });
 
@@ -184,7 +197,7 @@ export async function deleteTag(
     }
 
     // Prisma will handle cascading deletions based on the schema
-    await prisma.tag.delete({
+    await prisma.tags.delete({
       where: {
         id: tagId,
       },
@@ -203,37 +216,35 @@ export async function deleteTag(
 export async function getNotesByTag(
   userId: string,
   tagName: string
-): Promise<any[]> {
-  const notes = await prisma.note.findMany({
+): Promise<NoteWithTags[]> {
+  const notes = await prisma.notes.findMany({
     where: {
-      userId,
-      tags: {
-        some: {
-          tag: {
-            name: tagName,
-          },
-        },
-      },
+      user_id: userId,
     },
     include: {
-      tags: {
+      note_tags: {
         include: {
-          tag: true,
+          tags: true,
         },
       },
     },
   });
 
-  return notes.map((note) => ({
+  // Filter notes that have the specified tag
+  const filteredNotes = notes.filter((note) =>
+    note.note_tags.some((noteTag) => noteTag.tags.name === tagName)
+  );
+
+  return filteredNotes.map((note) => ({
     id: note.id,
-    name: note.title,
-    content: note.content,
-    userId: note.userId,
-    parentId: note.folderId,
-    createdAt: note.createdAt.toISOString(),
-    updatedAt: note.updatedAt.toISOString(),
-    isPublic: note.isPublic || false,
-    tags: note.tags.map((noteTag) => noteTag.tag.name),
+    name: note.name,
+    content: note.content || "",
+    userId: note.user_id,
+    parentId: note.parent_id,
+    createdAt: note.created_at?.toISOString() || new Date().toISOString(),
+    updatedAt: note.updated_at?.toISOString() || new Date().toISOString(),
+    isPublic: note.is_public || false,
+    tags: note.note_tags.map((noteTag) => noteTag.tags.name),
   }));
 }
 
@@ -247,10 +258,10 @@ export async function addTagToNote(
 ): Promise<boolean> {
   try {
     // Verify note exists and belongs to user
-    const note = await prisma.note.findFirst({
+    const note = await prisma.notes.findFirst({
       where: {
         id: noteId,
-        userId,
+        user_id: userId,
       },
     });
 
@@ -262,11 +273,11 @@ export async function addTagToNote(
     const tag = await createTag(userId, tagName);
 
     // Check if note already has this tag
-    const existingNoteTag = await prisma.noteTag.findUnique({
+    const existingNoteTag = await prisma.note_tags.findUnique({
       where: {
-        noteId_tagId: {
-          noteId,
-          tagId: tag.id,
+        note_id_tag_id: {
+          note_id: noteId,
+          tag_id: tag.id,
         },
       },
     });
@@ -276,10 +287,10 @@ export async function addTagToNote(
     }
 
     // Add tag to note
-    await prisma.noteTag.create({
+    await prisma.note_tags.create({
       data: {
-        noteId,
-        tagId: tag.id,
+        note_id: noteId,
+        tag_id: tag.id,
       },
     });
 
@@ -300,10 +311,10 @@ export async function removeTagFromNote(
 ): Promise<boolean> {
   try {
     // Verify note exists and belongs to user
-    const note = await prisma.note.findFirst({
+    const note = await prisma.notes.findFirst({
       where: {
         id: noteId,
-        userId,
+        user_id: userId,
       },
     });
 
@@ -312,10 +323,10 @@ export async function removeTagFromNote(
     }
 
     // Find the tag
-    const tag = await prisma.tag.findFirst({
+    const tag = await prisma.tags.findFirst({
       where: {
         name: tagName,
-        userId,
+        user_id: userId,
       },
     });
 
@@ -324,10 +335,10 @@ export async function removeTagFromNote(
     }
 
     // Remove tag from note
-    const result = await prisma.noteTag.deleteMany({
+    const result = await prisma.note_tags.deleteMany({
       where: {
-        noteId,
-        tagId: tag.id,
+        note_id: noteId,
+        tag_id: tag.id,
       },
     });
 
