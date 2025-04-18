@@ -1,21 +1,11 @@
-import { createPool } from "mysql2/promise";
+import { prisma } from "./prisma";
 import { generateId } from "./utils";
-
-// Create a MySQL connection pool
-const pool = createPool({
-  host: process.env.MYSQL_HOST || "localhost",
-  port: parseInt(process.env.MYSQL_PORT || "3306"),
-  user: process.env.MYSQL_USER || "noevo",
-  password: process.env.MYSQL_PASSWORD || "noevopassword",
-  database: process.env.MYSQL_DATABASE || "noevo",
-});
 
 export type Tag = {
   id: string;
   name: string;
   userId: string;
   createdAt: string;
-  updatedAt: string;
   noteCount?: number;
 };
 
@@ -27,21 +17,41 @@ export async function getTags(
   userId: string,
   includeNoteCounts = false
 ): Promise<Tag[]> {
-  let query = `SELECT * FROM tags WHERE user_id = ? ORDER BY name`;
+  if (!includeNoteCounts) {
+    // Simple query without note counts
+    const tags = await prisma.tag.findMany({
+      where: { userId },
+      orderBy: { name: "asc" },
+    });
 
-  if (includeNoteCounts) {
-    query = `
-      SELECT t.*, COUNT(nt.note_id) as noteCount
-      FROM tags t
-      LEFT JOIN note_tags nt ON t.id = nt.tag_id
-      WHERE t.user_id = ?
-      GROUP BY t.id
-      ORDER BY t.name
-    `;
+    return tags.map((tag) => ({
+      id: tag.id,
+      name: tag.name,
+      userId: tag.userId,
+      createdAt: tag.createdAt.toISOString(),
+    }));
+  } else {
+    // Query with note counts
+    const tags = await prisma.tag.findMany({
+      where: { userId },
+      orderBy: { name: "asc" },
+      include: {
+        _count: {
+          select: {
+            notes: true,
+          },
+        },
+      },
+    });
+
+    return tags.map((tag) => ({
+      id: tag.id,
+      name: tag.name,
+      userId: tag.userId,
+      createdAt: tag.createdAt.toISOString(),
+      noteCount: tag._count.notes,
+    }));
   }
-
-  const [rows] = await pool.query(query, [userId]);
-  return rows as Tag[];
 }
 
 /**
@@ -51,51 +61,64 @@ export async function getTagById(
   userId: string,
   tagId: string
 ): Promise<Tag | null> {
-  const [rows] = await pool.query(
-    `SELECT * FROM tags WHERE id = ? AND user_id = ?`,
-    [tagId, userId]
-  );
+  const tag = await prisma.tag.findFirst({
+    where: {
+      id: tagId,
+      userId,
+    },
+    include: {
+      _count: {
+        select: {
+          notes: true,
+        },
+      },
+    },
+  });
 
-  if ((rows as any[]).length === 0) {
+  if (!tag) {
     return null;
   }
 
-  return (rows as any[])[0];
+  return {
+    id: tag.id,
+    name: tag.name,
+    userId: tag.userId,
+    createdAt: tag.createdAt.toISOString(),
+    noteCount: tag._count.notes,
+  };
 }
 
 /**
  * Create a new tag
  */
 export async function createTag(userId: string, name: string): Promise<Tag> {
-  // Check if tag already exists
-  const [existingTags] = await pool.query(
-    `SELECT * FROM tags WHERE name = ? AND user_id = ?`,
-    [name, userId]
-  );
+  // Check if tag already exists using Prisma's unique constraint
+  try {
+    const tag = await prisma.tag.upsert({
+      where: {
+        userId_name: {
+          userId,
+          name,
+        },
+      },
+      update: {}, // No updates if it exists
+      create: {
+        id: generateId(),
+        name,
+        userId,
+      },
+    });
 
-  if ((existingTags as any[]).length > 0) {
-    return (existingTags as any[])[0];
+    return {
+      id: tag.id,
+      name: tag.name,
+      userId: tag.userId,
+      createdAt: tag.createdAt.toISOString(),
+    };
+  } catch (error) {
+    console.error("Error creating tag:", error);
+    throw error;
   }
-
-  // Generate a unique ID
-  const id = generateId();
-  const now = new Date().toISOString();
-
-  // Insert the tag
-  await pool.query(
-    `INSERT INTO tags (id, name, user_id)
-     VALUES (?, ?, ?)`,
-    [id, name, userId]
-  );
-
-  // Return the created tag
-  return {
-    id,
-    name,
-    userId,
-    createdAt: now,
-    updatedAt: now,
-  };
 }
 
 /**
@@ -105,21 +128,39 @@ export async function updateTag(
   userId: string,
   data: { id: string; name: string }
 ): Promise<Tag | null> {
-  // Get the current tag to ensure it exists and belongs to the user
-  const tag = await getTagById(userId, data.id);
-  if (!tag) {
-    return null;
+  try {
+    // Check if tag exists first
+    const existingTag = await prisma.tag.findFirst({
+      where: {
+        id: data.id,
+        userId,
+      },
+    });
+
+    if (!existingTag) {
+      return null;
+    }
+
+    // Update the tag
+    const updatedTag = await prisma.tag.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        name: data.name,
+      },
+    });
+
+    return {
+      id: updatedTag.id,
+      name: updatedTag.name,
+      userId: updatedTag.userId,
+      createdAt: updatedTag.createdAt.toISOString(),
+    };
+  } catch (error) {
+    console.error("Error updating tag:", error);
+    throw error;
   }
-
-  // Update the tag
-  await pool.query(`UPDATE tags SET name = ? WHERE id = ? AND user_id = ?`, [
-    data.name,
-    data.id,
-    userId,
-  ]);
-
-  // Return the updated tag
-  return getTagById(userId, data.id);
 }
 
 /**
@@ -129,38 +170,30 @@ export async function deleteTag(
   userId: string,
   tagId: string
 ): Promise<boolean> {
-  // Get the tag to ensure it exists and belongs to the user
-  const tag = await getTagById(userId, tagId);
-  if (!tag) {
-    return false;
-  }
-
-  // Start a transaction
-  const connection = await pool.getConnection();
-  await connection.beginTransaction();
-
   try {
-    // Delete note-tag associations first
-    await connection.query(
-      `DELETE nt FROM note_tags nt
-       JOIN tags t ON nt.tag_id = t.id
-       WHERE t.id = ? AND t.user_id = ?`,
-      [tagId, userId]
-    );
+    // Check if tag exists first
+    const existingTag = await prisma.tag.findFirst({
+      where: {
+        id: tagId,
+        userId,
+      },
+    });
 
-    // Delete the tag
-    const [result] = (await connection.query(
-      `DELETE FROM tags WHERE id = ? AND user_id = ?`,
-      [tagId, userId]
-    )) as any;
+    if (!existingTag) {
+      return false;
+    }
 
-    await connection.commit();
-    return result.affectedRows > 0;
+    // Prisma will handle cascading deletions based on the schema
+    await prisma.tag.delete({
+      where: {
+        id: tagId,
+      },
+    });
+
+    return true;
   } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
+    console.error("Error deleting tag:", error);
+    return false;
   }
 }
 
@@ -171,24 +204,37 @@ export async function getNotesByTag(
   userId: string,
   tagName: string
 ): Promise<any[]> {
-  const [rows] = await pool.query(
-    `SELECT n.*, GROUP_CONCAT(t.name) as tagList
-     FROM notes n
-     JOIN note_tags nt ON n.id = nt.note_id
-     JOIN tags t ON nt.tag_id = t.id
-     WHERE n.user_id = ? AND t.name = ?
-     GROUP BY n.id`,
-    [userId, tagName]
-  );
-
-  // Process the results to convert tagList to tags array
-  return (rows as any[]).map((note) => {
-    const { tagList, ...rest } = note;
-    return {
-      ...rest,
-      tags: tagList ? tagList.split(",") : [],
-    };
+  const notes = await prisma.note.findMany({
+    where: {
+      userId,
+      tags: {
+        some: {
+          tag: {
+            name: tagName,
+          },
+        },
+      },
+    },
+    include: {
+      tags: {
+        include: {
+          tag: true,
+        },
+      },
+    },
   });
+
+  return notes.map((note) => ({
+    id: note.id,
+    name: note.title,
+    content: note.content,
+    userId: note.userId,
+    parentId: note.folderId,
+    createdAt: note.createdAt.toISOString(),
+    updatedAt: note.updatedAt.toISOString(),
+    isPublic: note.isPublic || false,
+    tags: note.tags.map((noteTag) => noteTag.tag.name),
+  }));
 }
 
 /**
@@ -199,36 +245,49 @@ export async function addTagToNote(
   noteId: string,
   tagName: string
 ): Promise<boolean> {
-  // Verify note exists and belongs to user
-  const [noteRows] = await pool.query(
-    `SELECT id FROM notes WHERE id = ? AND user_id = ?`,
-    [noteId, userId]
-  );
+  try {
+    // Verify note exists and belongs to user
+    const note = await prisma.note.findFirst({
+      where: {
+        id: noteId,
+        userId,
+      },
+    });
 
-  if ((noteRows as any[]).length === 0) {
-    throw new Error("Note not found");
+    if (!note) {
+      throw new Error("Note not found");
+    }
+
+    // Get or create the tag
+    const tag = await createTag(userId, tagName);
+
+    // Check if note already has this tag
+    const existingNoteTag = await prisma.noteTag.findUnique({
+      where: {
+        noteId_tagId: {
+          noteId,
+          tagId: tag.id,
+        },
+      },
+    });
+
+    if (existingNoteTag) {
+      return true; // Tag already exists on this note
+    }
+
+    // Add tag to note
+    await prisma.noteTag.create({
+      data: {
+        noteId,
+        tagId: tag.id,
+      },
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Error adding tag to note:", error);
+    throw error;
   }
-
-  // Get or create the tag
-  const tag = await createTag(userId, tagName);
-
-  // Check if note already has this tag
-  const [existingRows] = await pool.query(
-    `SELECT * FROM note_tags WHERE note_id = ? AND tag_id = ?`,
-    [noteId, tag.id]
-  );
-
-  if ((existingRows as any[]).length > 0) {
-    return true; // Tag already exists on this note
-  }
-
-  // Add tag to note
-  await pool.query(`INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)`, [
-    noteId,
-    tag.id,
-  ]);
-
-  return true;
 }
 
 /**
@@ -239,36 +298,42 @@ export async function removeTagFromNote(
   noteId: string,
   tagName: string
 ): Promise<boolean> {
-  // Verify note exists and belongs to user
-  const [noteRows] = await pool.query(
-    `SELECT id FROM notes WHERE id = ? AND user_id = ?`,
-    [noteId, userId]
-  );
+  try {
+    // Verify note exists and belongs to user
+    const note = await prisma.note.findFirst({
+      where: {
+        id: noteId,
+        userId,
+      },
+    });
 
-  if ((noteRows as any[]).length === 0) {
-    throw new Error("Note not found");
+    if (!note) {
+      throw new Error("Note not found");
+    }
+
+    // Find the tag
+    const tag = await prisma.tag.findFirst({
+      where: {
+        name: tagName,
+        userId,
+      },
+    });
+
+    if (!tag) {
+      return false; // Tag doesn't exist
+    }
+
+    // Remove tag from note
+    const result = await prisma.noteTag.deleteMany({
+      where: {
+        noteId,
+        tagId: tag.id,
+      },
+    });
+
+    return result.count > 0;
+  } catch (error) {
+    console.error("Error removing tag from note:", error);
+    throw error;
   }
-
-  // Find the tag
-  const [tagRows] = await pool.query(
-    `SELECT id FROM tags WHERE name = ? AND user_id = ?`,
-    [tagName, userId]
-  );
-
-  if ((tagRows as any[]).length === 0) {
-    return false; // Tag doesn't exist
-  }
-
-  const tagId = (tagRows as any[])[0].id;
-
-  // Remove tag from note
-  const [result] = (await pool.query(
-    `DELETE FROM note_tags 
-     WHERE note_id = ? AND tag_id = ? AND (
-       SELECT COUNT(*) FROM notes WHERE id = ? AND user_id = ?
-     ) > 0`,
-    [noteId, tagId, noteId, userId]
-  )) as any;
-
-  return result.affectedRows > 0;
 }

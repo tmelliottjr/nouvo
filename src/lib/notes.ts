@@ -1,14 +1,5 @@
-import { createPool } from "mysql2/promise";
-import { camelize, generateId } from "./utils";
-
-// Create a MySQL connection pool
-const pool = createPool({
-  host: process.env.MYSQL_HOST || "localhost",
-  port: parseInt(process.env.MYSQL_PORT || "3306"),
-  user: process.env.MYSQL_USER || "noevo",
-  password: process.env.MYSQL_PASSWORD || "noevopassword",
-  database: process.env.MYSQL_DATABASE || "noevo",
-});
+import { prisma } from "./prisma";
+import { generateId } from "./utils";
 
 export type Note = {
   id: string;
@@ -26,28 +17,28 @@ export type Note = {
  * Get all notes for a specific user
  */
 export async function getNotes(userId: string): Promise<Note[]> {
-  // Get all notes for this user
-  const [rows] = await pool.query(
-    `SELECT n.*, GROUP_CONCAT(t.name) as tagList
-     FROM notes n
-     LEFT JOIN note_tags nt ON n.id = nt.note_id
-     LEFT JOIN tags t ON nt.tag_id = t.id
-     WHERE n.user_id = ?
-     GROUP BY n.id`,
-    [userId]
-  );
-
-  // Process the results to convert tagList to tags array
-  return (rows as any[]).map((note) => {
-    const { tagList, ...notes } = note;
-    const camelCasedKeys = Object.fromEntries(
-      Object.entries(notes).map(([key, value]) => [camelize(key), value])
-    );
-    return {
-      ...camelCasedKeys,
-      tags: tagList ? tagList.split(",") : [],
-    };
+  const notes = await prisma.note.findMany({
+    where: { userId },
+    include: {
+      tags: {
+        include: {
+          tag: true,
+        },
+      },
+    },
   });
+
+  return notes.map((note) => ({
+    id: note.id,
+    name: note.title,
+    content: note.content,
+    userId: note.userId,
+    parentId: note.folderId,
+    createdAt: note.createdAt.toISOString(),
+    updatedAt: note.updatedAt.toISOString(),
+    isPublic: note.isPublic || false,
+    tags: note.tags.map((noteTag) => noteTag.tag.name),
+  }));
 }
 
 /**
@@ -57,27 +48,34 @@ export async function getNoteById(
   userId: string,
   noteId: string
 ): Promise<Note | null> {
-  // Get the note if it belongs to this user
-  const [rows] = await pool.query(
-    `SELECT n.*, GROUP_CONCAT(t.name) as tagList
-     FROM notes n
-     LEFT JOIN note_tags nt ON n.id = nt.note_id
-     LEFT JOIN tags t ON nt.tag_id = t.id
-     WHERE n.user_id = ? AND n.id = ?
-     GROUP BY n.id`,
-    [userId, noteId]
-  );
+  const note = await prisma.note.findFirst({
+    where: {
+      id: noteId,
+      userId,
+    },
+    include: {
+      tags: {
+        include: {
+          tag: true,
+        },
+      },
+    },
+  });
 
-  if ((rows as any[]).length === 0) {
+  if (!note) {
     return null;
   }
 
-  // Process the results to convert tagList to tags array
-  const note = rows as any[];
-  const { tagList, ...rest } = note[0];
   return {
-    ...rest,
-    tags: tagList ? tagList.split(",") : [],
+    id: note.id,
+    name: note.title,
+    content: note.content,
+    userId: note.userId,
+    parentId: note.folderId,
+    createdAt: note.createdAt.toISOString(),
+    updatedAt: note.updatedAt.toISOString(),
+    isPublic: note.isPublic || false,
+    tags: note.tags.map((noteTag) => noteTag.tag.name),
   };
 }
 
@@ -86,32 +84,35 @@ export async function getNoteById(
  * This function doesn't require authentication
  */
 export async function getPublicNoteById(noteId: string): Promise<Note | null> {
-  // Get the note if it's marked as public
-  const [rows] = await pool.query(
-    `SELECT n.*, u.id as user_id, GROUP_CONCAT(t.name) as tagList
-     FROM notes n
-     JOIN users u ON n.user_id = u.id
-     LEFT JOIN note_tags nt ON n.id = nt.note_id
-     LEFT JOIN tags t ON nt.tag_id = t.id
-     WHERE n.id = ? AND n.is_public = TRUE
-     GROUP BY n.id`,
-    [noteId]
-  );
+  const note = await prisma.note.findFirst({
+    where: {
+      id: noteId,
+      isPublic: true,
+    },
+    include: {
+      user: true,
+      tags: {
+        include: {
+          tag: true,
+        },
+      },
+    },
+  });
 
-  if ((rows as any[]).length === 0) {
+  if (!note) {
     return null;
   }
 
-  // Process the result to convert tagList to tags array
-  const note = rows as any[];
-  const { tagList, ...rest } = note[0];
-  const camelCasedKeys = Object.fromEntries(
-    Object.entries(rest).map(([key, value]) => [camelize(key), value])
-  );
-
   return {
-    ...camelCasedKeys,
-    tags: tagList ? tagList.split(",") : [],
+    id: note.id,
+    name: note.title,
+    content: note.content,
+    userId: note.userId,
+    parentId: note.folderId,
+    createdAt: note.createdAt.toISOString(),
+    updatedAt: note.updatedAt.toISOString(),
+    isPublic: note.isPublic || false,
+    tags: note.tags.map((noteTag) => noteTag.tag.name),
   };
 }
 
@@ -122,40 +123,57 @@ export async function createNote(
   userId: string,
   data: { name: string; content: string; parentId?: string; tags?: string[] }
 ): Promise<Note> {
-  // Generate a unique ID
   const id = generateId();
-  const now = new Date().toISOString();
+  const now = new Date();
 
-  // Insert the note
-  await pool.query(
-    `INSERT INTO notes (id, name, content, user_id, parent_id)
-     VALUES (?, ?, ?, ?, ?)`,
-    [id, data.name, data.content, userId, data.parentId || null]
-  );
+  // Create the note
+  const note = await prisma.note.create({
+    data: {
+      id,
+      title: data.name,
+      content: data.content,
+      userId,
+      folderId: data.parentId || null,
+    },
+  });
 
   // Add tags if provided
   if (data.tags && data.tags.length > 0) {
     for (const tagName of data.tags) {
       // Get or create the tag
-      const tagId = await getOrCreateTag(userId, tagName);
+      const tag = await prisma.tag.upsert({
+        where: {
+          userId_name: {
+            userId,
+            name: tagName,
+          },
+        },
+        update: {},
+        create: {
+          id: generateId(),
+          name: tagName,
+          userId,
+        },
+      });
 
       // Link the tag to the note
-      await pool.query(
-        `INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)`,
-        [id, tagId]
-      );
+      await prisma.noteTag.create({
+        data: {
+          noteId: id,
+          tagId: tag.id,
+        },
+      });
     }
   }
 
-  // Return the created note
   return {
-    id,
-    name: data.name,
-    content: data.content,
-    userId,
-    parentId: data.parentId || null,
-    createdAt: now,
-    updatedAt: now,
+    id: note.id,
+    name: note.title,
+    content: note.content,
+    userId: note.userId,
+    parentId: note.folderId,
+    createdAt: note.createdAt.toISOString(),
+    updatedAt: note.updatedAt.toISOString(),
     tags: data.tags || [],
   };
 }
@@ -174,66 +192,68 @@ export async function updateNote(
     tags?: string[];
   }
 ): Promise<Note | null> {
-  // Get the current note to ensure it exists and belongs to the user
+  // Check if note exists and belongs to user
+  const existingNote = await prisma.note.findFirst({
+    where: {
+      id: data.id,
+      userId,
+    },
+  });
 
-  // Build update fields dynamically
-  const updateFields = [];
-  const params = [];
-
-  if (data.name !== undefined) {
-    updateFields.push("name = ?");
-    params.push(data.name);
+  if (!existingNote) {
+    return null;
   }
 
-  if (data.content !== undefined) {
-    updateFields.push("content = ?");
-    params.push(data.content);
-  }
+  // Build update data
+  const updateData: any = {};
+  if (data.name !== undefined) updateData.title = data.name;
+  if (data.content !== undefined) updateData.content = data.content;
+  if (data.parentId !== undefined) updateData.folderId = data.parentId;
+  if (data.isPublic !== undefined) updateData.isPublic = data.isPublic;
 
-  if (data.parentId !== undefined) {
-    updateFields.push("parent_id = ?");
-    params.push(data.parentId);
-  }
-
-  if (data.isPublic !== undefined) {
-    updateFields.push("is_public = ?");
-    params.push(data.isPublic);
-  }
-
-  console.log("updateFields", updateFields.length);
-  if (updateFields.length > 0) {
-    // Add the id and userId for the WHERE clause
-    params.push(data.id);
-    params.push(userId);
-
-    // Update the note
-    await pool.query(
-      `UPDATE notes SET ${updateFields.join(", ")} WHERE id = ? AND user_id = ?`,
-      params
-    );
-  }
+  // Update the note
+  const updatedNote = await prisma.note.update({
+    where: {
+      id: data.id,
+    },
+    data: updateData,
+  });
 
   // Update tags if provided
   if (data.tags !== undefined) {
     // Remove existing tags
-    await pool.query(
-      `DELETE nt FROM note_tags nt
-       JOIN tags t ON nt.tag_id = t.id
-       WHERE nt.note_id = ? AND t.user_id = ?`,
-      [data.id, userId]
-    );
+    await prisma.noteTag.deleteMany({
+      where: {
+        noteId: data.id,
+      },
+    });
 
     // Add new tags
     if (data.tags.length > 0) {
       for (const tagName of data.tags) {
         // Get or create the tag
-        const tagId = await getOrCreateTag(userId, tagName);
+        const tag = await prisma.tag.upsert({
+          where: {
+            userId_name: {
+              userId,
+              name: tagName,
+            },
+          },
+          update: {},
+          create: {
+            id: generateId(),
+            name: tagName,
+            userId,
+          },
+        });
 
         // Link the tag to the note
-        await pool.query(
-          `INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)`,
-          [data.id, tagId]
-        );
+        await prisma.noteTag.create({
+          data: {
+            noteId: data.id,
+            tagId: tag.id,
+          },
+        });
       }
     }
   }
@@ -249,29 +269,33 @@ export async function deleteNote(
   userId: string,
   noteId: string
 ): Promise<boolean> {
-  // Delete note tags first due to foreign key constraint
-  await pool.query(
-    `DELETE nt FROM note_tags nt
-     JOIN notes n ON nt.note_id = n.id
-     WHERE n.id = ? AND n.user_id = ?`,
-    [noteId, userId]
-  );
+  try {
+    // Check if the note belongs to the user
+    const note = await prisma.note.findFirst({
+      where: {
+        id: noteId,
+        userId,
+      },
+    });
 
-  // Delete shared notes related to this note
-  await pool.query(
-    `DELETE FROM shares WHERE note_id = ? AND (
-      SELECT COUNT(*) FROM notes WHERE id = ? AND user_id = ?
-    ) > 0`,
-    [noteId, noteId, userId]
-  );
+    if (!note) {
+      return false;
+    }
 
-  // Delete the note
-  const [result] = (await pool.query(
-    `DELETE FROM notes WHERE id = ? AND user_id = ?`,
-    [noteId, userId]
-  )) as any;
+    // Delete note tags (Prisma will handle this cascading delete)
+    // Delete shared notes (Prisma will handle this cascading delete)
+    // Delete the note itself
+    await prisma.note.delete({
+      where: {
+        id: noteId,
+      },
+    });
 
-  return result.affectedRows > 0;
+    return true;
+  } catch (error) {
+    console.error("Error deleting note:", error);
+    return false;
+  }
 }
 
 /**
@@ -281,54 +305,48 @@ export async function searchNotes(
   userId: string,
   query: string
 ): Promise<Note[]> {
-  const searchTerm = `%${query}%`;
+  const searchTerm = `%${query}%`; // This will be used in the SQL LIKE operator
 
-  const [rows] = await pool.query(
-    `SELECT DISTINCT n.*, GROUP_CONCAT(t.name) as tagList
-     FROM notes n
-     LEFT JOIN note_tags nt ON n.id = nt.note_id
-     LEFT JOIN tags t ON nt.tag_id = t.id
-     WHERE n.user_id = ? AND (
-       n.name LIKE ? OR n.content LIKE ? OR t.name LIKE ?
-     )
-     GROUP BY n.id`,
-    [userId, searchTerm, searchTerm, searchTerm]
-  );
-
-  // Process the results to convert tagList to tags array
-  return (rows as any[]).map((note) => {
-    const { tagList, ...rest } = note;
-    return {
-      ...rest,
-      tags: tagList ? tagList.split(",") : [],
-    };
+  const notes = await prisma.note.findMany({
+    where: {
+      userId,
+      OR: [
+        { title: { contains: query } },
+        { content: { contains: query } },
+        {
+          tags: {
+            some: {
+              tag: {
+                name: { contains: query },
+              },
+            },
+          },
+        },
+      ],
+    },
+    include: {
+      tags: {
+        include: {
+          tag: true,
+        },
+      },
+    },
   });
+
+  return notes.map((note) => ({
+    id: note.id,
+    name: note.title,
+    content: note.content,
+    userId: note.userId,
+    parentId: note.folderId,
+    createdAt: note.createdAt.toISOString(),
+    updatedAt: note.updatedAt.toISOString(),
+    isPublic: note.isPublic || false,
+    tags: note.tags.map((noteTag) => noteTag.tag.name),
+  }));
 }
 
 /**
- * Get or create a tag by name for a user
+ * Helper function relocated from the original code
+ * The Prisma upsert method replaces this functionality
  */
-async function getOrCreateTag(
-  userId: string,
-  tagName: string
-): Promise<string> {
-  // Try to find the tag first
-  const [tags] = await pool.query(
-    `SELECT id FROM tags WHERE user_id = ? AND name = ?`,
-    [userId, tagName]
-  );
-
-  if ((tags as any[]).length > 0) {
-    return (tags as any[])[0].id;
-  }
-
-  // Create a new tag if it doesn't exist
-  const tagId = generateId();
-  await pool.query(`INSERT INTO tags (id, name, user_id) VALUES (?, ?, ?)`, [
-    tagId,
-    tagName,
-    userId,
-  ]);
-
-  return tagId;
-}
