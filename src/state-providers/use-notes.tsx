@@ -9,6 +9,7 @@ import {
   TreeNode,
 } from "@/lib/seed-data";
 import { createApiUrl } from "@/lib/url-utils";
+import { useAuth } from "@/state-providers/use-auth";
 import { enableMapSet } from "immer";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -74,6 +75,7 @@ const NotesContext = createContext<NotesContext | undefined>(undefined);
 function NotesProvider({ children }: PropsWithChildren) {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth(); // Get the user object from useAuth hook
 
   // Main state - flat tree structure
   const [treeData, setTreeData] = useImmer<TreeData>(seedData.treeData);
@@ -504,8 +506,73 @@ function NotesProvider({ children }: PropsWithChildren) {
       }
 
       const note = treeData[id];
+
+      // If note doesn't exist in tree data, it might be a shared note
       if (!note || note.type !== "note") {
-        console.warn(`Could not find note with id: ${id}`);
+        // Set the selected ID anyways - we'll need to fetch this note
+        setSelectedItemId(id);
+
+        // Ensure we're in note view mode
+        setIsViewingFolder(false);
+
+        // For shared notes, we don't have path data, so set a basic path
+        setCurrentPath(["Shared Note"]);
+
+        // Attempt to fetch the note data if needed
+        fetch(`/api/notes/${id}`)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Failed to fetch note with id: ${id}`);
+            }
+            return response.json();
+          })
+          .then((noteData) => {
+            // Add the fetched note to our tree data
+            setTreeData((draft) => {
+              // Create a proper note structure from the API data
+              draft[id] = {
+                id: noteData.id,
+                name: noteData.name || "Shared Note",
+                type: "note",
+                parentId: null, // Shared notes appear at root level in our UI
+                childIds: [],
+                content: noteData.content || "",
+                tags: noteData.tags || [],
+                creationDate: noteData.createdAt || new Date().toISOString(),
+                userId: noteData.userId,
+              };
+            });
+
+            // Fetch shared access information if the note belongs to someone else
+            if (user && noteData.userId !== user.id) {
+              fetch(`/api/shared-notes/access?noteId=${id}&userId=${user.id}`)
+                .then((response) => (response.ok ? response.json() : null))
+                .then((accessData) => {
+                  if (accessData && accessData.permission) {
+                    setTreeData((draft) => {
+                      if (draft[id] && draft[id].type === "note") {
+                        const noteNode = draft[id] as NoteNode;
+                        noteNode.sharedAccess = {
+                          permission: accessData.permission,
+                          sharedBy: accessData.sharedBy,
+                          sharedAt: accessData.sharedAt,
+                        };
+                      }
+                    });
+                  }
+                })
+                .catch((error) => {
+                  console.error(
+                    "Error fetching shared access information:",
+                    error
+                  );
+                });
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching shared note:", error);
+          });
+
         return;
       }
 
@@ -527,9 +594,39 @@ function NotesProvider({ children }: PropsWithChildren) {
         folderIds.forEach((folderId) => draft.add(folderId));
         return draft;
       });
+
+      // Check if this is a shared note and fetch access information if needed
+      const noteNode = treeData[id] as NoteNode;
+      if (
+        user &&
+        noteNode.userId &&
+        noteNode.userId !== user.id &&
+        !noteNode.sharedAccess
+      ) {
+        fetch(`/api/shared-notes/access?noteId=${id}&userId=${user.id}`)
+          .then((response) => (response.ok ? response.json() : null))
+          .then((accessData) => {
+            if (accessData && accessData.permission) {
+              setTreeData((draft) => {
+                if (draft[id] && draft[id].type === "note") {
+                  const noteNode = draft[id] as NoteNode;
+                  noteNode.sharedAccess = {
+                    permission: accessData.permission,
+                    sharedBy: accessData.sharedBy,
+                    sharedAt: accessData.sharedAt,
+                  };
+                }
+              });
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching shared access information:", error);
+          });
+      }
     },
     [
       treeData,
+      setTreeData,
       setSelectedItemId,
       getNodePath,
       setCurrentPath,
@@ -538,6 +635,7 @@ function NotesProvider({ children }: PropsWithChildren) {
       setDirectPathFolderIds,
       setExpandedFolderIds,
       deselectNote,
+      user,
     ]
   );
 

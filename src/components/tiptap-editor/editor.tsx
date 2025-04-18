@@ -1,5 +1,6 @@
 import { NoteNode } from "@/lib/seed-data";
 import { EditorContent, EditorEvents, useEditor } from "@tiptap/react";
+import { useEffect } from "react";
 import { EditorToolbar } from "./EditorToolbar";
 import { extensions } from "./plugins";
 
@@ -13,8 +14,11 @@ export default function TiptapEditor({
   readOnly?: boolean;
 }) {
   const handleContentUpdate = ({ editor }: EditorEvents["update"]) => {
-    const serialized = JSON.stringify(editor.getJSON());
-    onUpdate(serialized);
+    // Only send updates if the editor is editable (user has write permission)
+    if (editor.isEditable) {
+      const serialized = JSON.stringify(editor.getJSON());
+      onUpdate(serialized);
+    }
   };
 
   let deserialized;
@@ -40,13 +44,23 @@ export default function TiptapEditor({
         },
       },
     },
-    [note.id, note.name, readOnly]
+    [note.id, note.name]
   );
+
+  // Update the editor's editable state when readOnly prop changes
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(!readOnly);
+    }
+  }, [editor, readOnly]);
 
   return (
     <div className="flex flex-col w-full">
       {!readOnly && <EditorToolbar noteId={note.id} tags={note.tags} />}
-      <EditorContent editor={editor} className="flex justify-center" />
+      <EditorContent
+        editor={editor}
+        className={`flex justify-center ${readOnly ? "cursor-default" : ""}`}
+      />
     </div>
   );
 }

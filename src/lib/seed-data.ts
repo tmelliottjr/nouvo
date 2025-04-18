@@ -9,11 +9,20 @@ export interface BaseNode {
   childIds: string[];
 }
 
+// Interface for shared access permissions
+export interface SharedAccess {
+  permission: "read" | "write";
+  sharedBy?: string;
+  sharedAt?: string;
+}
+
 export interface NoteNode extends BaseNode {
   type: "note";
   content: string;
   tags: string[];
   creationDate: string;
+  userId?: string; // Owner of the note
+  sharedAccess?: SharedAccess; // Access information when viewing a shared note
 }
 
 export interface FolderNode extends BaseNode {
