@@ -18,6 +18,7 @@ export type Note = {
   parentId: string | null;
   createdAt: string;
   updatedAt: string;
+  isPublic?: boolean;
   tags?: string[];
 };
 
@@ -81,6 +82,40 @@ export async function getNoteById(
 }
 
 /**
+ * Get a public note by ID
+ * This function doesn't require authentication
+ */
+export async function getPublicNoteById(noteId: string): Promise<Note | null> {
+  // Get the note if it's marked as public
+  const [rows] = await pool.query(
+    `SELECT n.*, u.id as user_id, GROUP_CONCAT(t.name) as tagList
+     FROM notes n
+     JOIN users u ON n.user_id = u.id
+     LEFT JOIN note_tags nt ON n.id = nt.note_id
+     LEFT JOIN tags t ON nt.tag_id = t.id
+     WHERE n.id = ? AND n.is_public = TRUE
+     GROUP BY n.id`,
+    [noteId]
+  );
+
+  if ((rows as any[]).length === 0) {
+    return null;
+  }
+
+  // Process the result to convert tagList to tags array
+  const note = rows as any[];
+  const { tagList, ...rest } = note[0];
+  const camelCasedKeys = Object.fromEntries(
+    Object.entries(rest).map(([key, value]) => [camelize(key), value])
+  );
+
+  return {
+    ...camelCasedKeys,
+    tags: tagList ? tagList.split(",") : [],
+  };
+}
+
+/**
  * Create a new note
  */
 export async function createNote(
@@ -135,6 +170,7 @@ export async function updateNote(
     name?: string;
     content?: string;
     parentId?: string | null;
+    isPublic?: boolean;
     tags?: string[];
   }
 ): Promise<Note | null> {
@@ -158,6 +194,12 @@ export async function updateNote(
     updateFields.push("parent_id = ?");
     params.push(data.parentId);
   }
+
+  if (data.isPublic !== undefined) {
+    updateFields.push("is_public = ?");
+    params.push(data.isPublic);
+  }
+
   console.log("updateFields", updateFields.length);
   if (updateFields.length > 0) {
     // Add the id and userId for the WHERE clause
@@ -217,7 +259,7 @@ export async function deleteNote(
 
   // Delete shared notes related to this note
   await pool.query(
-    `DELETE FROM shared_notes WHERE note_id = ? AND (
+    `DELETE FROM shares WHERE note_id = ? AND (
       SELECT COUNT(*) FROM notes WHERE id = ? AND user_id = ?
     ) > 0`,
     [noteId, noteId, userId]

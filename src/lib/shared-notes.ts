@@ -44,9 +44,29 @@ export async function getSharedNotes(userId: string): Promise<SharedNote[]> {
 export async function getSharedNoteUsers(
   noteId: string
 ): Promise<SharedNote[]> {
-  const [rows] = await pool.query(`SELECT * FROM shares WHERE note_id = ?`, [
-    noteId,
-  ]);
+  // Query for existing shares with user data
+  const [shareRows] = await pool.query(
+    `SELECT s.*, u.email as user_email 
+     FROM shares s
+     LEFT JOIN user u ON s.user_id = u.id
+     WHERE s.note_id = ?`,
+    [noteId]
+  );
+
+  // Query for pending shares
+  const [pendingRows] = await pool.query(
+    `SELECT 
+      id, 
+      note_id as noteId, 
+      user_email as userEmail, 
+      permission
+     FROM pending_shares
+     WHERE note_id = ?`,
+    [noteId]
+  );
+
+  // Combine both result sets
+  const rows = [...(shareRows as any[]), ...(pendingRows as any[])];
 
   const camelCasedRows = (rows as any[]).map((share) => {
     const camelCasedKeys = Object.fromEntries(
@@ -169,6 +189,41 @@ export async function getSharedNoteById(
     note,
     access: camelCasedAccess as SharedNote,
     isOwner: false,
+  };
+}
+
+/**
+ * Get a public note by user ID and note ID
+ */
+export async function getPublicNoteById(
+  userId: string,
+  noteId: string
+): Promise<Note | null> {
+  // Get the note if it's marked as public
+  const [rows] = await pool.query(
+    `SELECT n.*, GROUP_CONCAT(t.name) as tagList
+     FROM notes n
+     LEFT JOIN note_tags nt ON n.id = nt.note_id
+     LEFT JOIN tags t ON nt.tag_id = t.id
+     WHERE n.user_id = ? AND n.id = ? AND n.is_public = TRUE
+     GROUP BY n.id`,
+    [userId, noteId]
+  );
+
+  if ((rows as any[]).length === 0) {
+    return null;
+  }
+
+  // Process the result to convert tagList to tags array
+  const note = rows as any[];
+  const { tagList, ...rest } = note[0];
+  const camelCasedKeys = Object.fromEntries(
+    Object.entries(rest).map(([key, value]) => [camelize(key), value])
+  );
+
+  return {
+    ...camelCasedKeys,
+    tags: tagList ? tagList.split(",") : [],
   };
 }
 
@@ -326,6 +381,39 @@ export async function revokeShare(
     `DELETE FROM shares WHERE id = ? AND note_id = ?`,
     [sharedNoteId, noteId]
   )) as any;
+
+  return result.affectedRows > 0;
+}
+
+/**
+ * Update the permission level for a shared note
+ */
+export async function updateSharePermission(
+  ownerId: string,
+  noteId: string,
+  shareId: string,
+  permission: "read" | "write"
+): Promise<boolean> {
+  // First verify that the current user owns the note
+  const [noteRows] = await pool.query(
+    `SELECT * FROM notes WHERE id = ? AND user_id = ?`,
+    [noteId, ownerId]
+  );
+
+  const notes = noteRows as any[];
+  if (notes.length === 0) {
+    throw new Error(
+      "Note not found or you don't have permission to update sharing settings"
+    );
+  }
+
+  // Update the share permission
+  const [result] = (await pool.query(
+    `UPDATE shares SET permission = ? WHERE id = ? AND note_id = ?`,
+    [permission, shareId, noteId]
+  )) as any;
+
+  console.log("Update result:", shareId);
 
   return result.affectedRows > 0;
 }

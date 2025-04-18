@@ -104,6 +104,7 @@ export async function PUT(request: NextRequest) {
       name: noteData.name,
       content: noteData.content,
       parentId: noteData.parentId,
+      isPublic: noteData.isPublic, // Added support for isPublic flag
       tags: noteData.tags,
     });
 

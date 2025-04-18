@@ -1,3 +1,4 @@
+import { Toaster } from "@/components/ui/toaster";
 import { ConfirmProvider } from "@/hooks/use-confirm";
 import { AuthProvider } from "@/state-providers/use-auth";
 import { TagsSettingsProvider } from "@/state-providers/use-tags-settings";
@@ -37,7 +38,10 @@ export default function RootLayout({
         >
           <AuthProvider>
             <TagsSettingsProvider>
-              <ConfirmProvider>{children}</ConfirmProvider>
+              <ConfirmProvider>
+                {children}
+                <Toaster />
+              </ConfirmProvider>
             </TagsSettingsProvider>
           </AuthProvider>
         </ThemeProvider>

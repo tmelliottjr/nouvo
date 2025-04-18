@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { noteId } = params;
+    const { noteId } = await params;
 
     // Get the note with share information
     const { note, access, isOwner } = await getSharedNoteById(

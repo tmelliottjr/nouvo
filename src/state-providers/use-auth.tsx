@@ -12,9 +12,12 @@ import React, {
 
 // Types for note sharing
 export interface NoteShare {
+  id: string;
   noteId: string;
   userId: string;
   userEmail: string;
+  userDisplayName?: string;
+  userPhotoUrl?: string;
   permission: "read" | "write";
   createdAt: string;
 }
@@ -44,6 +47,11 @@ interface AuthContextType {
   revokeAccess: (noteId: string, userId: string) => Promise<boolean>;
   getSharedNoteAccess: (noteId: string) => Promise<NoteShare[]>;
   getNoteAccessByUser: (userId: string) => Promise<NoteShare[]>;
+  updateSharePermission: (
+    noteId: string,
+    sharedNoteId: string,
+    permission: "read" | "write"
+  ) => Promise<boolean>;
 }
 
 // Create auth context with default values
@@ -59,6 +67,7 @@ const AuthContext = createContext<AuthContextType>({
   revokeAccess: async () => false,
   getSharedNoteAccess: async () => [],
   getNoteAccessByUser: async () => [],
+  updateSharePermission: async () => false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -224,15 +233,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Revoke access function
   const revokeAccess = useCallback(
-    async (noteId: string, userId: string): Promise<boolean> => {
+    async (noteId: string, shareId: string): Promise<boolean> => {
       try {
         // Call the API to revoke access
-        const response = await fetch(
-          `/api/shared-notes?id=${userId}&noteId=${noteId}`,
-          {
-            method: "DELETE",
-          }
-        );
+        const response = await fetch(`/api/shared-notes/${shareId}`, {
+          method: "DELETE",
+        });
 
         if (!response.ok) {
           console.error("Error revoking access:", response.statusText);
@@ -264,6 +270,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         const data = await response.json();
+        console.log("Fetched shared note access:", data);
         return data;
       } catch (error) {
         console.error("Error fetching shared note access:", error);
@@ -298,6 +305,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  // Update share permission function
+  const updateSharePermission = useCallback(
+    async (
+      noteId: string,
+      sharedNoteId: string,
+      permission: "read" | "write"
+    ): Promise<boolean> => {
+      try {
+        // Call the API to update share permission
+        const response = await fetch(`/api/shared-notes/${sharedNoteId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            noteId,
+            permission,
+          }),
+        });
+
+        if (!response.ok) {
+          console.error(
+            "Error updating share permission:",
+            response.statusText
+          );
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error("Error updating share permission:", error);
+        return false;
+      }
+    },
+    []
+  );
+
   // Compute authentication status
   const isAuthenticated = Boolean(user);
 
@@ -316,6 +360,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         revokeAccess,
         getSharedNoteAccess,
         getNoteAccessByUser,
+        updateSharePermission,
       }}
     >
       {children}

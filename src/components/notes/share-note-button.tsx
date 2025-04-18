@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -27,6 +35,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { NoteShare, useAuth } from "@/state-providers/use-auth";
 import {
   CopyIcon,
@@ -35,7 +49,7 @@ import {
   TrashIcon,
   UsersIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface ShareNoteButtonProps {
   noteId: string;
@@ -43,7 +57,13 @@ interface ShareNoteButtonProps {
 }
 
 export function ShareNoteButton({ noteId, noteTitle }: ShareNoteButtonProps) {
-  const { user, shareNote, getSharedNoteAccess, revokeAccess } = useAuth();
+  const {
+    user,
+    shareNote,
+    getSharedNoteAccess,
+    revokeAccess,
+    updateSharePermission,
+  } = useAuth();
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showManageDialog, setShowManageDialog] = useState(false);
   const [permission, setPermission] = useState<"read" | "write">("read");
@@ -51,18 +71,12 @@ export function ShareNoteButton({ noteId, noteTitle }: ShareNoteButtonProps) {
   const [userEmail, setUserEmail] = useState("");
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [sharedWith, setSharedWith] = useState<NoteShare[]>([]);
   const [error, setError] = useState("");
 
-  // Load existing shares when manage dialog opens
-  useEffect(() => {
-    if (showManageDialog) {
-      loadSharedUsers();
-    }
-  }, [showManageDialog]);
-
   // Load users with access to this note
-  const loadSharedUsers = async () => {
+  const loadSharedUsers = useCallback(async () => {
     setIsLoading(true);
     try {
       const shares = await getSharedNoteAccess(noteId);
@@ -72,8 +86,14 @@ export function ShareNoteButton({ noteId, noteTitle }: ShareNoteButtonProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getSharedNoteAccess, noteId]);
 
+  // Load existing shares when manage dialog opens
+  useEffect(() => {
+    if (showManageDialog) {
+      loadSharedUsers();
+    }
+  }, [loadSharedUsers, showManageDialog]);
   // Handle share button click
   const handleShareClick = () => {
     setShowShareDialog(true);
@@ -131,12 +151,53 @@ export function ShareNoteButton({ noteId, noteTitle }: ShareNoteButtonProps) {
     }
   };
 
-  // Handle revoking access
-  const handleRevokeAccess = async (userId: string) => {
-    setIsLoading(true);
+  // Get initials from email for avatar
+  const getInitials = (email: string) => {
+    if (!email) return "?";
+    // Get first letters of words in email before @
+    const namePart = email.split("@")[0];
+    // Handle common email patterns like john.doe or john_doe
+    const parts = namePart.split(/[._-]/);
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    // If just one word, take first two letters
+    return namePart.substring(0, 2).toUpperCase();
+  };
+
+  // Handle updating permission for a user
+  const handleUpdatePermission = async (
+    shareId: string,
+    newPermission: "read" | "write"
+  ) => {
+    setActionInProgress(shareId);
 
     try {
-      const success = await revokeAccess(noteId, userId);
+      const success = await updateSharePermission(
+        noteId,
+        shareId,
+        newPermission
+      );
+
+      console.log("Permission updated:", success);
+
+      if (success) {
+        // Refresh the list of shared users
+        await loadSharedUsers();
+      }
+    } catch (error) {
+      console.error("Error updating permission:", error);
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  // Handle revoking access
+  const handleRevokeAccess = async (shareId: string) => {
+    setActionInProgress(shareId);
+
+    try {
+      const success = await revokeAccess(noteId, shareId);
 
       if (success) {
         // Refresh the list of shared users
@@ -145,14 +206,14 @@ export function ShareNoteButton({ noteId, noteTitle }: ShareNoteButtonProps) {
     } catch (error) {
       console.error("Error revoking access:", error);
     } finally {
-      setIsLoading(false);
+      setActionInProgress(null);
     }
   };
 
   if (!user) return null;
 
   return (
-    <>
+    <TooltipProvider>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm">
@@ -298,31 +359,85 @@ export function ShareNoteButton({ noteId, noteTitle }: ShareNoteButtonProps) {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Access</TableHead>
-                    <TableHead className="w-[60px]"></TableHead>
+                    <TableHead className="w-[100px] text-right">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sharedWith.map((share) => (
                     <TableRow key={share.userId}>
-                      <TableCell className="font-medium">
-                        {share.userEmail}
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            {share.userPhotoUrl && (
+                              <AvatarImage
+                                src={share.userPhotoUrl}
+                                alt={share.userDisplayName || share.userEmail}
+                              />
+                            )}
+                            <AvatarFallback>
+                              {share.userDisplayName
+                                ? share.userDisplayName
+                                    .substring(0, 2)
+                                    .toUpperCase()
+                                : getInitials(share.userEmail)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">
+                              
+                              {share.userDisplayName || share.userEmail}
+                            </p>
+                            {share.userDisplayName && (
+                              <p className="text-xs text-muted-foreground">
+                                {share.userEmail}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">
-                          {share.permission === "read"
-                            ? "Read-only"
-                            : "Can edit"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRevokeAccess(share.userId)}
-                          disabled={isLoading}
+                        <Select
+                          value={share.permission}
+                          onValueChange={(value) =>
+                            handleUpdatePermission(
+                              share.id,
+                              value as "read" | "write"
+                            )
+                          }
+                          disabled={actionInProgress === share.userId}
                         >
-                          <TrashIcon className="h-4 w-4 text-muted-foreground" />
-                        </Button>
+                          <SelectTrigger className="w-[110px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="read">Read only</SelectItem>
+                            <SelectItem value="write">Can edit</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRevokeAccess(share.userId)}
+                              disabled={actionInProgress === share.userId}
+                              className="h-8 w-8"
+                            >
+                              {actionInProgress === share.userId ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              ) : (
+                                <TrashIcon className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="left">
+                            Revoke access
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -351,6 +466,6 @@ export function ShareNoteButton({ noteId, noteTitle }: ShareNoteButtonProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </TooltipProvider>
   );
 }

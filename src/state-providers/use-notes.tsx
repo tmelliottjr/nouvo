@@ -31,10 +31,13 @@ type NotesContext = {
   // Operations
   addNote: (parentId?: string | null) => Promise<string>;
   addFolder: (parentId?: string | null) => Promise<string>;
-  updateNote: (
-    id: string,
-    updateProps: Partial<{ name: string; content: string; tags: string[] }>
-  ) => Promise<void>;
+  updateNote: (updateData: {
+    id: string;
+    name?: string;
+    content?: string;
+    tags?: string[];
+    isPublic?: boolean;
+  }) => Promise<void>;
   updateFolder: (id: string, updateProps: { name: string }) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
   deleteFolder: (id: string) => Promise<void>;
@@ -163,11 +166,13 @@ function NotesProvider({ children }: PropsWithChildren) {
             parentId: string | null;
             content: string;
             tags: string[];
+            userId: string;
             creationDate: string;
           }) => {
             const noteNode: NoteNode = {
               id: note.id,
               name: note.name,
+              userId: note.userId,
               type: "note",
               parentId: note.parentId,
               childIds: [],
@@ -775,10 +780,14 @@ function NotesProvider({ children }: PropsWithChildren) {
    * Updates a note's properties
    */
   const updateNote = useCallback(
-    async (
-      id: string,
-      updateProps: Partial<{ name: string; content: string; tags: string[] }>
-    ): Promise<void> => {
+    async (updateData: {
+      id: string;
+      name?: string;
+      content?: string;
+      tags?: string[];
+      isPublic?: boolean;
+    }): Promise<void> => {
+      const { id, ...updateProps } = updateData;
       const note = treeData[id];
       if (!note || note.type !== "note") {
         console.warn(`Could not find note with id: ${id}`);
@@ -799,6 +808,11 @@ function NotesProvider({ children }: PropsWithChildren) {
 
         if (updateProps.tags !== undefined) {
           noteToUpdate.tags = updateProps.tags;
+        }
+
+        // Update isPublic flag if provided
+        if (updateProps.isPublic !== undefined) {
+          noteToUpdate.isPublic = updateProps.isPublic;
         }
       });
 

@@ -12,14 +12,20 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import strings from "@/lib/strings";
 import { useNotes } from "@/state-providers/use-notes";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Globe } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { PublicNoteToggle } from "./public-note-toggle";
 import { ShareNoteButton } from "./share-note-button";
 
 export function NoteHeader() {
@@ -31,6 +37,7 @@ export function NoteHeader() {
     selectFolder,
     currentNote,
     isViewingFolder,
+    updateNote,
   } = useNotes();
 
   // Function to handle breadcrumb clicks
@@ -116,6 +123,21 @@ export function NoteHeader() {
     // Get all items between first and last two
     return currentPath.slice(1, currentPath.length - 2);
   }, [currentPath]);
+
+  // Handle toggling the public status of a note
+  const handleTogglePublic = async (isPublic: boolean) => {
+    if (!currentNote) return;
+
+    try {
+      await updateNote({
+        id: currentNote.id,
+        isPublic: isPublic,
+      });
+    } catch (error) {
+      console.error("Error updating note public status:", error);
+      throw error;
+    }
+  };
 
   return (
     <header className="flex items-center h-16 shrink-0 border-b px-4">
@@ -208,6 +230,32 @@ export function NoteHeader() {
           <CalendarIcon className="h-3.5 w-3.5" />
           <span>Created: {formatCreationDate(currentNote.creationDate)}</span>
         </Button>
+      )}
+
+      {/* Public note toggle - only show when viewing a note */}
+      {!isViewingFolder && currentNote && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mr-2"
+              aria-label={
+                currentNote.isPublic ? "Public note" : "Make note public"
+              }
+            >
+              <Globe
+                className={`h-4 w-4 ${currentNote.isPublic ? "text-blue-500" : "text-muted-foreground"}`}
+              />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-4" align="end">
+            <PublicNoteToggle
+              note={currentNote}
+              onToggle={handleTogglePublic}
+            />
+          </PopoverContent>
+        </Popover>
       )}
 
       {/* Share button - only show when viewing a note (not a folder) */}

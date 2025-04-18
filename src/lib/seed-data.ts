@@ -23,6 +23,7 @@ export interface NoteNode extends BaseNode {
   creationDate: string;
   userId?: string; // Owner of the note
   sharedAccess?: SharedAccess; // Access information when viewing a shared note
+  isPublic?: boolean; // Flag for public visibility
 }
 
 export interface FolderNode extends BaseNode {

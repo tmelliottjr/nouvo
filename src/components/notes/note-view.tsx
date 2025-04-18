@@ -33,7 +33,8 @@ export function NoteView() {
 
   // Determine if the current note is read-only based on permissions
   const isSharedNote = currentNote?.sharedAccess?.permission !== undefined;
-  const isReadOnlyNote = isSharedNote && currentNote?.sharedAccess?.permission === "read";
+  const isReadOnlyNote =
+    isSharedNote && currentNote?.sharedAccess?.permission === "read";
 
   // Only update content if the user has write permission
   function handleContentUpdate(content: string) {
@@ -45,11 +46,13 @@ export function NoteView() {
       return;
     }
 
-    updateNote(currentNote.id, { content });
+    updateNote({ ...currentNote, content });
+    // updateNote(currentNote.id, { content });
   }
 
   // Render an access indicator badge for shared notes
   const renderAccessIndicator = () => {
+    if (!isSharedNote) return null;
 
     return (
       <div className="flex items-center gap-1 px-4 py-2 border-b">
