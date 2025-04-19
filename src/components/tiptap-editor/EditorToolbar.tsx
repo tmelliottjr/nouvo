@@ -14,15 +14,17 @@ import {
   getDefaultTagColor,
   useTagsSettings,
 } from "@/state-providers/use-tags-settings";
-import { Plus, Tag } from "lucide-react";
+import { Editor } from "@tiptap/react";
+import { FileUp, Plus, Tag } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface EditorToolbarProps {
   noteId: string;
   tags: string[];
+  editor?: Editor | null;
 }
 
-export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
+export function EditorToolbar({ noteId, tags, editor }: EditorToolbarProps) {
   const { updateNote } = useNotes();
   const { tags: tagSettings } = useTagsSettings();
   const [open, setOpen] = useState(false);
@@ -33,6 +35,8 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Reference to file input element
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle clicking on a tag to search
   const handleTagClick = (tagName: string) => {
@@ -44,6 +48,42 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
     setSearchDialogOpen(true);
   };
 
+  // File upload handling
+  const handleFileUploadClick = () => {
+    // Trigger the hidden file input click event
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !files.length || !editor) return;
+
+    // Create a DataTransfer object to simulate a drag and drop event
+    const dataTransfer = new DataTransfer();
+
+    // Add all selected files to the DataTransfer object
+    Array.from(files).forEach((file) => {
+      dataTransfer.items.add(file);
+    });
+
+    // Create a drop event to dispatch to the editor
+    // Note: This is how TipTap FileHandler extension expects files to be added
+    const event = new DragEvent("drop", {
+      dataTransfer,
+      bubbles: true,
+    });
+
+    // Dispatch the event to the editor's DOM element to trigger file handling
+    editor.view.dom.dispatchEvent(event);
+
+    // Reset the input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   // Filter out tags that are already assigned to the note
   const availableTags = tagSettings
     .filter((tag) => !tags.includes(tag.name))
@@ -51,7 +91,10 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
 
   const addTag = (tag: string) => {
     if (tag && !tags.includes(tag)) {
-      updateNote(noteId, { tags: [...tags, tag] });
+      updateNote({
+        id: noteId,
+        tags: [...tags, tag],
+      });
     }
     setOpen(false);
     setInputValue("");
@@ -59,7 +102,10 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
   };
 
   const removeTag = (tag: string) => {
-    updateNote(noteId, { tags: tags.filter((t) => t !== tag) });
+    updateNote({
+      id: noteId,
+      tags: tags.filter((t) => t !== tag),
+    });
   };
 
   // Find tag settings
@@ -90,8 +136,8 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
             prevIndex < filteredTags.length - 1
               ? prevIndex + 1
               : inputValue && filteredTags.length === 0
-              ? 0
-              : prevIndex;
+                ? 0
+                : prevIndex;
           return newIndex;
         });
         break;
@@ -152,6 +198,28 @@ export function EditorToolbar({ noteId, tags }: EditorToolbarProps) {
           onClick={() => handleTagClick(tag)}
         />
       ))}
+
+      {/* File Upload Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-7 gap-1 text-muted-foreground"
+        onClick={handleFileUploadClick}
+        title="Upload file"
+      >
+        <FileUp className="h-3.5 w-3.5" />
+        <span>Upload</span>
+      </Button>
+
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        multiple
+        accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/markdown"
+      />
 
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>

@@ -34,6 +34,8 @@ Temporary Items
 # iCloud generated files
 *.icloud
 
+.npmrc
+
 ### Node ###
 # Logs
 logs
