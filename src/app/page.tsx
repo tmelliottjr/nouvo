@@ -1,4 +1,7 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/state-providers/use-auth";
 import {
   CalendarIcon,
   FileTextIcon,
@@ -8,32 +11,45 @@ import {
 import { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = {
+const metadata: Metadata = {
   title: "Noevo - A Modern Note-Taking Application",
   description: "Organize your thoughts, ideas, and knowledge with Noevo",
 };
 
 export default function LandingPage() {
+  // Use the auth hook to determine if the user is logged in
+  const { isAuthenticated, isLoading } = useAuth();
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header/Navigation */}
       <header className="border-b">
-        <div className="container flex items-center justify-between py-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between py-4">
           <div className="flex items-center gap-2">
             <PenToolIcon className="h-6 w-6" />
             <span className="text-xl font-bold">Noevo</span>
           </div>
           <nav>
-            <Button variant="outline" asChild>
-              <Link href="/login">Sign In</Link>
-            </Button>
+            {isLoading ? (
+              <Button variant="outline" disabled>
+                Loading...
+              </Button>
+            ) : isAuthenticated ? (
+              <Button variant="outline" asChild>
+                <Link href="/notes">Go to notes</Link>
+              </Button>
+            ) : (
+              <Button variant="outline" asChild>
+                <Link href="/login">Sign In</Link>
+              </Button>
+            )}
           </nav>
         </div>
       </header>
 
       {/* Hero Section */}
       <section className="flex-1 flex items-center">
-        <div className="container py-12 md:py-24">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-24">
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
             <div className="space-y-4">
               <h1 className="text-4xl md:text-5xl font-bold tracking-tighter">
@@ -44,9 +60,15 @@ export default function LandingPage() {
                 access your information from anywhere.
               </p>
               <div className="flex gap-4 pt-4">
-                <Button size="lg" asChild>
-                  <Link href="/login">Get Started</Link>
-                </Button>
+                {isAuthenticated ? (
+                  <Button size="lg" asChild>
+                    <Link href="/notes">Go to notes</Link>
+                  </Button>
+                ) : (
+                  <Button size="lg" asChild>
+                    <Link href="/login">Get Started</Link>
+                  </Button>
+                )}
                 <Button size="lg" variant="outline">
                   Learn More
                 </Button>
@@ -100,7 +122,7 @@ export default function LandingPage() {
 
       {/* Features Section */}
       <section className="bg-muted/50 py-12 md:py-20">
-        <div className="container">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold mb-4">Key Features</h2>
             <p className="text-muted-foreground mx-auto max-w-2xl">
@@ -139,7 +161,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t py-6 md:py-0">
-        <div className="container flex flex-col gap-4 md:h-16 md:flex-row md:items-center md:justify-between">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-4 md:h-16 md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Noevo. All rights reserved.
           </p>
