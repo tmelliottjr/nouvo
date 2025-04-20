@@ -1,6 +1,8 @@
 import { NoteNode } from "@/lib/seed-data";
+import FileHandler from "@tiptap-pro/extension-file-handler";
 import { EditorContent, EditorEvents, useEditor } from "@tiptap/react";
 import { useEffect } from "react";
+import { useUploadThing } from "../../utils/uploadthing";
 import { EditorToolbar } from "./EditorToolbar";
 import { extensions } from "./plugins";
 
@@ -13,6 +15,7 @@ export default function TiptapEditor({
   onUpdate: (content: string) => void;
   readOnly?: boolean;
 }) {
+  const { startUpload } = useUploadThing("imageUploader");
   const handleContentUpdate = ({ editor }: EditorEvents["update"]) => {
     // Only send updates if the editor is editable (user has write permission)
     if (editor.isEditable) {
@@ -32,7 +35,75 @@ export default function TiptapEditor({
     {
       content: deserialized,
       immediatelyRender: false,
-      extensions,
+      extensions: [
+        ...extensions,
+        FileHandler.configure({
+          allowedMimeTypes: [
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+            "application/pdf",
+            "text/plain",
+            "text/markdown",
+          ],
+          onPaste: (currentEditor, files, content) => {
+            console.log({ files, content });
+            files.forEach(async (file) => {
+              // Show a temporary data URL while uploading
+
+              // Upload the file to UploadThing
+              const res = await startUpload([file]);
+
+              if (!res) {
+                console.error("Upload failed");
+                return;
+              }
+
+              console.log("Uploaded URL:", res[0]);
+
+              // currentEditor
+              //   .chain()
+              //   .insertContentAt(pos, {
+              //     type: "image",
+              //     attrs: {
+              //       src: uploadedUrl,
+              //     },
+              //   })
+              //   .focus()
+              //   .run();
+            });
+          },
+          onDrop: (currentEditor, files, pos) => {
+            files.forEach(async (file) => {
+              // Show a temporary data URL while uploading
+
+              // Upload the file to UploadThing
+              const res = await startUpload([file]);
+
+              if (!res) {
+                console.error("Upload failed");
+                return;
+              }
+
+              const uploadedUrl = res[0].serverData.fileUrl;
+
+              console.log("Uploaded URL:", res[0]);
+
+              currentEditor
+                .chain()
+                .insertContentAt(pos, {
+                  type: "image",
+                  attrs: {
+                    src: uploadedUrl,
+                  },
+                })
+                .focus()
+                .run();
+            });
+          },
+        }),
+      ],
       onUpdate: handleContentUpdate,
       shouldRerenderOnTransaction: false,
       autofocus: !readOnly,

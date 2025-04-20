@@ -22,5 +22,4 @@ export const extensions = [
       class: "hljs",
     },
   }),
-  FileHandler.configure(fileHandlerConfig),
 ];

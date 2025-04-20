@@ -35,6 +35,12 @@ export const auth = betterAuth({
     // Auto sign in users after they sign up
     autoSignIn: true,
   },
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    },
+  },
   // Configure session management
   session: {
     // Session expiration time (7 days in seconds by default)

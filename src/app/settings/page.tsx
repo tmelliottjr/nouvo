@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendarSettings } from "@/components/settings/calendar-settings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,10 +51,14 @@ function SettingsContent() {
           <Tabs defaultValue="tags" className="max-w-4xl mx-auto">
             <TabsList>
               <TabsTrigger value="tags">Tags</TabsTrigger>
+              <TabsTrigger value="calendar">Calendar</TabsTrigger>
               <TabsTrigger value="general">General</TabsTrigger>
             </TabsList>
             <TabsContent value="tags" className="py-4">
               <TagsSettings />
+            </TabsContent>
+            <TabsContent value="calendar" className="py-4">
+              <CalendarSettings />
             </TabsContent>
             <TabsContent value="general" className="py-4">
               <Card>
@@ -107,12 +112,15 @@ function TagsSettings() {
   }, [selectedTagIndex, tags]);
 
   // Count notes that use each tag
-  const tagUsageCount = tags.reduce((acc, tag) => {
-    acc[tag.name] = Object.values(treeData)
-      .filter((node) => node.type === "note")
-      .filter((note) => note.tags?.includes(tag.name)).length;
-    return acc;
-  }, {} as Record<string, number>);
+  const tagUsageCount = tags.reduce(
+    (acc, tag) => {
+      acc[tag.name] = Object.values(treeData)
+        .filter((node) => node.type === "note")
+        .filter((note) => note.tags?.includes(tag.name)).length;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const handleAddTag = () => {
     if (newTagName.trim() === "") return;

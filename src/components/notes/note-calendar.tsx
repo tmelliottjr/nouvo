@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { NoteNode, TreeNode } from "@/lib/seed-data";
+import { useCalendar } from "@/state-providers/use-calendar";
 import { useNotes } from "@/state-providers/use-notes";
 import {
   addMonths,
@@ -15,16 +16,20 @@ import {
   startOfMonth,
   subMonths,
 } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarClock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 export function NoteCalendar() {
   const router = useRouter();
   const { treeData } = useNotes();
+  const { isIntegrationEnabled } = useCalendar();
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [notesOnDates, setNotesOnDates] = useState<Map<string, number>>(
+    new Map()
+  );
+  const [eventsOnDates, setEventsOnDates] = useState<Map<string, number>>(
     new Map()
   );
 
@@ -63,6 +68,64 @@ export function NoteCalendar() {
 
     setNotesOnDates(dateMap);
   }, [treeData, getAllNotes]);
+
+  // Fetch Google Calendar events for the current month
+  useEffect(() => {
+    const fetchMonthEvents = async () => {
+      if (!isIntegrationEnabled) {
+        setEventsOnDates(new Map());
+        return;
+      }
+
+      try {
+        // In a real implementation, we would call an API endpoint to fetch events
+        // For demo purposes, we'll simulate fetching events for the current month
+        const start = startOfMonth(currentMonth);
+        const end = endOfMonth(currentMonth);
+        const daysInMonth = eachDayOfInterval({ start, end });
+
+        // Simulate API call with mock data
+        const eventsMap = new Map<string, number>();
+
+        // Generate mock events for this month
+        // We're using localStorage for demo purposes to check if Google Calendar is connected
+        const connected = localStorage.getItem("googleCalendarAccount");
+        const enabled =
+          localStorage.getItem("calendarIntegrationEnabled") === "true";
+
+        if (connected && enabled) {
+          // Generate events for weekdays (Monday-Friday)
+          daysInMonth.forEach((day) => {
+            const dayOfWeek = day.getDay(); // 0 = Sunday, 1 = Monday, etc.
+            const dateKey = formatDateKey(day);
+
+            // Workdays (Monday to Friday)
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+              eventsMap.set(dateKey, (eventsMap.get(dateKey) || 0) + 1);
+            }
+
+            // Add events to some weekend days
+            if (dayOfWeek === 6 && Math.random() > 0.5) {
+              // Some Saturdays
+              eventsMap.set(dateKey, (eventsMap.get(dateKey) || 0) + 1);
+            }
+
+            // Holidays on the 15th and 25th
+            const dayOfMonth = day.getDate();
+            if (dayOfMonth === 15 || dayOfMonth === 25) {
+              eventsMap.set(dateKey, (eventsMap.get(dateKey) || 0) + 1);
+            }
+          });
+        }
+
+        setEventsOnDates(eventsMap);
+      } catch (error) {
+        console.error("Error fetching calendar events:", error);
+      }
+    };
+
+    fetchMonthEvents();
+  }, [currentMonth, isIntegrationEnabled]);
 
   // Handle date selection
   const handleSelect = (date: Date) => {
@@ -112,11 +175,17 @@ export function NoteCalendar() {
 
   const calendarGrid = generateCalendarGrid();
 
-  // Check if a date has notes
+  // Check if a date has notes or events
   const hasNotes = (date: Date | null) => {
     if (!date) return false;
     const dateKey = formatDateKey(date);
     return notesOnDates.has(dateKey);
+  };
+
+  const hasEvents = (date: Date | null) => {
+    if (!date) return false;
+    const dateKey = formatDateKey(date);
+    return eventsOnDates.has(dateKey);
   };
 
   return (
@@ -163,6 +232,7 @@ export function NoteCalendar() {
           const isSelected = isSameDay(day, selectedDate);
           const isTodayDate = isToday(day);
           const dayHasNotes = hasNotes(day);
+          const dayHasEvents = hasEvents(day);
           const isCurrentMonth = isSameMonth(day, currentMonth);
 
           return (
@@ -176,21 +246,31 @@ export function NoteCalendar() {
                   isSelected
                     ? "border-2 border-primary font-medium"
                     : isTodayDate
-                    ? "border-2 border-stone-400 dark:border-stone-500"
-                    : "hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border border-transparent hover:border-indigo-100 dark:hover:border-indigo-800"
+                      ? "border-2 border-stone-400 dark:border-stone-500"
+                      : "hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border border-transparent hover:border-indigo-100 dark:hover:border-indigo-800"
                 }
                 transition-all duration-150
               `}
             >
               <span>{format(day, "d")}</span>
-              {dayHasNotes && (
-                <div
-                  className={`
-                  absolute bottom-1 w-1/2 mx-auto h-0.5 rounded-full
-                  ${isSelected ? "bg-primary" : "bg-indigo-500"}
-                `}
-                ></div>
-              )}
+              <div className="absolute bottom-1 flex gap-1 items-center">
+                {dayHasNotes && (
+                  <div
+                    className={`
+                    w-1.5 h-1.5 rounded-full
+                    ${isSelected ? "bg-primary" : "bg-indigo-500"}
+                  `}
+                  ></div>
+                )}
+                {dayHasEvents && (
+                  <div
+                    className={`
+                    w-1.5 h-1.5 rounded-full
+                    ${isSelected ? "bg-primary" : "bg-emerald-500"}
+                  `}
+                  ></div>
+                )}
+              </div>
             </button>
           );
         })}
@@ -207,6 +287,14 @@ export function NoteCalendar() {
           Today
         </Button>
       </div>
+
+      {/* Calendar indicator */}
+      {isIntegrationEnabled && (
+        <div className="mt-2 flex items-center justify-center gap-1 text-xs text-muted-foreground">
+          <CalendarClock className="h-3 w-3" />
+          <span>Google Calendar connected</span>
+        </div>
+      )}
     </div>
   );
 }

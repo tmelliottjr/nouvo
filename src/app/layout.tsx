@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { ConfirmProvider } from "@/hooks/use-confirm";
 import { AuthProvider } from "@/state-providers/use-auth";
+import { CalendarProvider } from "@/state-providers/use-calendar";
 import { TagsSettingsProvider } from "@/state-providers/use-tags-settings";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -38,10 +39,12 @@ export default function RootLayout({
         >
           <AuthProvider>
             <TagsSettingsProvider>
-              <ConfirmProvider>
-                {children}
-                <Toaster />
-              </ConfirmProvider>
+              <CalendarProvider>
+                <ConfirmProvider>
+                  {children}
+                  <Toaster />
+                </ConfirmProvider>
+              </CalendarProvider>
             </TagsSettingsProvider>
           </AuthProvider>
         </ThemeProvider>

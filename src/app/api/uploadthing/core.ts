@@ -2,18 +2,29 @@ import { getAuthUser } from "@/lib/auth";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
 
-const f = createUploadthing();
+const f = createUploadthing({
+  errorFormatter(err) {
+    // Customize the error format
+    console.log("Error:", err);
+    return {
+      message: err.message,
+      code: err.code,
+      stack: err.stack,
+    };
+  },
+});
 
 // FileRouter for your app, can contain multiple FileRoutes
 export const ourFileRouter = {
   // Define a file route for images and documents
   imageUploader: f({
     image: {
-      maxFileSize: "4MB",
+      maxFileSize: "128GB",
       maxFileCount: 10,
     },
   })
     .middleware(async () => {
+      console.log("Middleware triggered");
       // This code runs on your server before upload
       const user = await getAuthUser();
 
