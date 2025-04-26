@@ -212,6 +212,27 @@ exports.Prisma.VerificationScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.CalendarScalarFieldEnum = {
+  id: 'id',
+  user_id: 'user_id',
+  provider_id: 'provider_id',
+  calendar_name: 'calendar_name',
+  calendar_id: 'calendar_id',
+  is_primary: 'is_primary',
+  is_enabled: 'is_enabled',
+  color: 'color',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Calendar_integration_settingsScalarFieldEnum = {
+  id: 'id',
+  user_id: 'user_id',
+  is_enabled: 'is_enabled',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -292,6 +313,20 @@ exports.Prisma.verificationOrderByRelevanceFieldEnum = {
   identifier: 'identifier',
   value: 'value'
 };
+
+exports.Prisma.calendarOrderByRelevanceFieldEnum = {
+  id: 'id',
+  user_id: 'user_id',
+  provider_id: 'provider_id',
+  calendar_name: 'calendar_name',
+  calendar_id: 'calendar_id',
+  color: 'color'
+};
+
+exports.Prisma.calendar_integration_settingsOrderByRelevanceFieldEnum = {
+  id: 'id',
+  user_id: 'user_id'
+};
 exports.pending_shares_permission = exports.$Enums.pending_shares_permission = {
   read: 'read',
   write: 'write'
@@ -312,7 +347,9 @@ exports.Prisma.ModelName = {
   shares: 'shares',
   tags: 'tags',
   user: 'user',
-  verification: 'verification'
+  verification: 'verification',
+  calendar: 'calendar',
+  calendar_integration_settings: 'calendar_integration_settings'
 };
 
 /**
