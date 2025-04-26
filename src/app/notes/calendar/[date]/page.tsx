@@ -30,7 +30,7 @@ export default function CalendarDatePage() {
         `/notes/calendar/${new Date().toISOString().split("T")[0]}`
       );
     }
-  }, [params.date, router]);
+  }, []);
 
   if (!date) {
     return (

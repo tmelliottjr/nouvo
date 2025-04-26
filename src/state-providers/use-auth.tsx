@@ -1,6 +1,6 @@
 "use client";
 
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth/auth-client";
 import { useRouter } from "next/navigation";
 import React, {
   createContext,
@@ -28,6 +28,9 @@ export interface User {
   email: string;
   name?: string;
   image?: string;
+  accounts: {
+    providerId: string;
+  }[];
 }
 
 // Authentication context type
@@ -75,20 +78,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    // Fetch session when component mounts
-    fetchSession();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Function to fetch session when component mounts or auth state changes
   const fetchSession = useCallback(async () => {
     try {
       const { data: session } = await authClient.getSession();
+      const response = await fetch("/api/auth/profile");
+      const user = await response.json();
+
+      console.log({ sessionUser: session?.user });
+      console.log({ user });
 
       if (session?.user) {
-        setUser(session.user as User);
+        setUser(user as User);
       } else {
         setUser(null);
       }
@@ -99,6 +99,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchSession();
+  }, [fetchSession]);
 
   // Login function
   const login = useCallback(
@@ -341,8 +345,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     []
   );
-
-
 
   // Compute authentication status
   const isAuthenticated = Boolean(user);

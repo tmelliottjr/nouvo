@@ -133,30 +133,6 @@ exports.Prisma.AccountScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.Auth_sessionsScalarFieldEnum = {
-  id: 'id',
-  user_id: 'user_id',
-  expires_at: 'expires_at',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Auth_usersScalarFieldEnum = {
-  id: 'id',
-  email: 'email',
-  email_verified: 'email_verified',
-  password: 'password',
-  name: 'name',
-  image: 'image',
-  created_at: 'created_at',
-  updated_at: 'updated_at'
-};
-
-exports.Prisma.Auth_verification_tokensScalarFieldEnum = {
-  identifier: 'identifier',
-  token: 'token',
-  expires_at: 'expires_at'
-};
-
 exports.Prisma.FoldersScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -258,24 +234,6 @@ exports.Prisma.accountOrderByRelevanceFieldEnum = {
   password: 'password'
 };
 
-exports.Prisma.auth_sessionsOrderByRelevanceFieldEnum = {
-  id: 'id',
-  user_id: 'user_id'
-};
-
-exports.Prisma.auth_usersOrderByRelevanceFieldEnum = {
-  id: 'id',
-  email: 'email',
-  password: 'password',
-  name: 'name',
-  image: 'image'
-};
-
-exports.Prisma.auth_verification_tokensOrderByRelevanceFieldEnum = {
-  identifier: 'identifier',
-  token: 'token'
-};
-
 exports.Prisma.foldersOrderByRelevanceFieldEnum = {
   id: 'id',
   name: 'name',
@@ -346,9 +304,6 @@ exports.shares_permission = exports.$Enums.shares_permission = {
 
 exports.Prisma.ModelName = {
   account: 'account',
-  auth_sessions: 'auth_sessions',
-  auth_users: 'auth_users',
-  auth_verification_tokens: 'auth_verification_tokens',
   folders: 'folders',
   note_tags: 'note_tags',
   notes: 'notes',

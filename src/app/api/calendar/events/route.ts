@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "../../../../lib/auth";
+import { getAuthUser } from "../../../../lib/auth/auth";
+import { getGoogleTokens } from "../../../../lib/auth/providers/google";
 
 // Google Calendar API constants
 const GOOGLE_CALENDAR_API_BASE = "https://www.googleapis.com/calendar/v3";
@@ -17,8 +18,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get access token from session or auth system
-    const accessToken = session.accessToken;
+    const [accessToken] = await getGoogleTokens(user.id);
 
     if (!accessToken) {
       return NextResponse.json(

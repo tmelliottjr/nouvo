@@ -1,4 +1,4 @@
-import { getAuthUser } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth/auth";
 import { getSharedNoteById } from "@/lib/shared-notes";
 import { NextRequest, NextResponse } from "next/server";
 

@@ -101,6 +101,8 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
 
       const data = await response.json();
 
+      console.log("Fetched calendar list:", data);
+
       // Map API response to our CalendarItem interface
       const calendars: CalendarItem[] = data.items.map((cal: any) => ({
         id: cal.id,

@@ -58,7 +58,7 @@ export function CalendarDayView({ date }: CalendarDayViewProps) {
   // Fetch calendar events for this day
   useEffect(() => {
     fetchEvents(date);
-  }, [date, fetchEvents]);
+  }, []);
 
   // Create a new note for this day
   const handleCreateNote = async () => {

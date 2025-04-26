@@ -19,20 +19,11 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
-import { authClient } from "@/lib/auth-client";
-import { useAuth } from "@/state-providers/use-auth";
+import { authClient } from "@/lib/auth/auth-client";
+import { useAuth, User } from "@/state-providers/use-auth";
 import { useCalendar } from "@/state-providers/use-calendar";
 import { CalendarClock, Check, ExternalLink, RefreshCw, X } from "lucide-react";
 import { useEffect, useState } from "react";
-
-// Types for Google Calendar integration
-interface GoogleCalendar {
-  id: string;
-  summary: string;
-  description?: string;
-  backgroundColor: string;
-  selected: boolean;
-}
 
 export function CalendarSettings() {
   const { toast } = useToast();
@@ -55,19 +46,15 @@ export function CalendarSettings() {
     updateCalendarSelection,
   } = useCalendar();
 
-  // Check Google auth status when component mounts
-  useEffect(() => {
-    if (isAuthenticated) {
-      checkGoogleAuthStatus();
-    }
-  }, [isAuthenticated]);
-
+  const { user } = useAuth();
   // Check if user has connected Google account
   const checkGoogleAuthStatus = async () => {
     try {
       // This would be an API call to check if the user has connected their Google account
       const response = await fetch("/api/auth/google/status");
       const data = await response.json();
+
+      console.log("Google auth status:", data);
 
       setGoogleAuthStatus({
         connected: data.connected,
@@ -99,21 +86,9 @@ export function CalendarSettings() {
         });
       }
     };
-    if (
-      isAuthenticated &&
-      googleAuthStatus.connected &&
-      googleAuthStatus.accessToken &&
-      isIntegrationEnabled
-    ) {
-      fetchCalendarListFromAPI();
-    }
-  }, [
-    fetchCalendarList,
-    googleAuthStatus,
-    isAuthenticated,
-    isIntegrationEnabled,
-    toast,
-  ]);
+
+    fetchCalendarListFromAPI();
+  }, []);
 
   // Connect Google Calendar account
   const handleConnectGoogleCalendar = async () => {
@@ -121,16 +96,10 @@ export function CalendarSettings() {
       setIsLoading(true);
       console.log("Connecting to Google Calendar...");
       // Use Better Auth's social signin with Google provider
-      const theGoods = await authClient.linkSocial({
+      await authClient.linkSocial({
         provider: "google",
-        // Request calendar scope
         scopes: ["https://www.googleapis.com/auth/calendar.readonly"],
       });
-
-      console.log("Google Calendar connected:", theGoods);
-
-      // After successful authentication, check status again
-      await checkGoogleAuthStatus();
       setIsLoading(false);
     } catch (error) {
       console.error("Error connecting to Google Calendar:", error);
@@ -237,7 +206,11 @@ export function CalendarSettings() {
     });
   };
 
-  const isConnected = googleAuthStatus.connected;
+  console.log(user?.accounts);
+
+  const isConnected = user?.accounts.some(
+    (account: User["accounts"][0]) => account.providerId === "google"
+  );
 
   return (
     <Card>

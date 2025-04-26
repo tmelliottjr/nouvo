@@ -1,18 +1,11 @@
 import { betterAuth } from "better-auth";
 import { createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
-import { createPool } from "mysql2/promise";
 import { headers } from "next/headers";
-import { claimPendingShares } from "./shared-notes";
+import { claimPendingShares } from "../shared-notes";
 
-// Create a MySQL connection pool
-const pool = createPool({
-  host: process.env.MYSQL_HOST || "localhost",
-  port: parseInt(process.env.MYSQL_PORT || "3306"),
-  user: process.env.MYSQL_USER || "noevo",
-  password: process.env.MYSQL_PASSWORD || "noevopassword",
-  database: process.env.MYSQL_DATABASE || "noevo",
-});
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { prisma } from "../prisma";
 
 // Explicitly mark this file as requiring Node.js runtime
 export const runtime = "nodejs";
@@ -52,20 +45,12 @@ export const auth = betterAuth({
       enabled: true,
       maxAge: 5 * 60, // Cache duration in seconds (5 minutes)
     },
-    // Set cookie options to ensure compatibility
-    cookie: {
-      name: "auth_session",
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax" as const,
-    },
   },
   // Database configuration using mysql2 pool
-  database: pool,
-  // Email verification (in a real app you would configure SMTP)
-  email: {
-    // In development, we'll log emails to console
-    provider: "console",
-  },
+  database: prismaAdapter(prisma, {
+    provider: "mysql",
+  }),
+
   // Add the nextCookies plugin for proper handling of cookies in Next.js server actions
   plugins: [nextCookies()],
 });

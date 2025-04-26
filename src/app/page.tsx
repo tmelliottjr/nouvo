@@ -11,11 +11,6 @@ import {
 import { Metadata } from "next";
 import Link from "next/link";
 
-const metadata: Metadata = {
-  title: "Noevo - A Modern Note-Taking Application",
-  description: "Organize your thoughts, ideas, and knowledge with Noevo",
-};
-
 export default function LandingPage() {
   // Use the auth hook to determine if the user is logged in
   const { isAuthenticated, isLoading } = useAuth();

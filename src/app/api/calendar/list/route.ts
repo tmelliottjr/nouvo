@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "../../../../lib/auth";
+import { NextResponse } from "next/server";
+import { getAuthUser } from "../../../../lib/auth/auth";
+import { getGoogleTokens } from "../../../../lib/auth/providers/google";
 
 // Google Calendar API constants
 const GOOGLE_CALENDAR_API_BASE = "https://www.googleapis.com/calendar/v3";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Get the authenticated user's session
     const user = await getAuthUser();
@@ -16,10 +17,7 @@ export async function GET(req: NextRequest) {
         { status: 401 }
       );
     }
-
-    // Get access token from session or auth system (this will depend on your implementation)
-    // This requires you to have OAuth2 flow implemented for Google Calendar
-
+    const [accessToken] = await getGoogleTokens(user?.id);
     if (!accessToken) {
       return NextResponse.json(
         { error: "No Google Calendar access token available" },
