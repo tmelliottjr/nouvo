@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 // Types for Google Calendar events
 export interface CalendarEvent {
@@ -22,6 +22,8 @@ interface CalendarItem {
   selected: boolean;
   name: string;
   color: string;
+  isPrimary?: boolean;
+  providerId?: string;
 }
 
 interface CalendarContextType {
@@ -30,10 +32,12 @@ interface CalendarContextType {
   error: string | null;
   fetchEvents: (date: Date) => Promise<void>;
   isIntegrationEnabled: boolean;
+  setIsIntegrationEnabled: (enabled: boolean) => Promise<void>;
   selectedCalendars: string[];
   calendarList: CalendarItem[];
   fetchCalendarList: () => Promise<void>;
   updateCalendarSelection: (id: string, selected: boolean) => Promise<void>;
+  saveCalendars: (calendars: CalendarItem[]) => Promise<void>;
 }
 
 const CalendarContext = createContext<CalendarContextType | undefined>(
@@ -45,38 +49,79 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [calendarList, setCalendarList] = useState<CalendarItem[]>([]);
+  const [isIntegrationEnabled, setIsIntegrationEnabledState] = useState(true);
 
-  const isIntegrationEnabled = true;
+  // Fetch calendar integration settings on mount
+  useEffect(() => {
+    const fetchCalendarSettings = async () => {
+      try {
+        const response = await fetch("/api/calendar/settings");
 
-  // Use useSyncExternalStore for integration enabled state
-  // const isIntegrationEnabled = useSyncExternalStore(
-  //   (callback) => {
-  //     // Subscribe function
-  //     if (typeof window !== "undefined") {
-  //       window.addEventListener("storage", callback);
-  //       return () => window.removeEventListener("storage", callback);
-  //     }
-  //     return () => {};
-  //   },
-  //   // Get snapshot function
-  //   () => {
-  //     if (typeof window !== "undefined") {
-  //       return window.localStorage.getItem("calendarIntegrationEnabled") === "true";
-  //     }
-  //     return false;
-  //   },
-  //   // Server snapshot
-  //   () => false
-  // );
+        if (response.ok) {
+          const data = await response.json();
+          setIsIntegrationEnabledState(data.isEnabled);
+        }
+      } catch (error) {
+        console.error("Error fetching calendar integration settings:", error);
+      }
+    };
 
-  const calendarsString =
-    '[{"id":"primary","summary":"Primary Calendar","backgroundColor":"#4285F4","selected":true},{"id":"work","summary":"Work","description":"Work schedule and meetings","backgroundColor":"#0B8043","selected":false},{"id":"personal","summary":"Personal","description":"Personal events","backgroundColor":"#D50000","selected":true},{"id":"holidays","summary":"Holidays","description":"Public holidays","backgroundColor":"#8E24AA","selected":true}]';
-  const calendars = JSON.parse(calendarsString) as CalendarItem[];
-  const selectedCalendars = calendars
+    fetchCalendarSettings();
+  }, []);
+
+  // Update calendar integration settings
+  const setIsIntegrationEnabled = async (enabled: boolean): Promise<void> => {
+    try {
+      setIsIntegrationEnabledState(enabled);
+
+      const response = await fetch("/api/calendar/settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ isEnabled: enabled }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update settings: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error("Error updating calendar integration settings:", error);
+      setError("Failed to update integration settings.");
+      // Revert state if API call fails
+      setIsIntegrationEnabledState(!enabled);
+    }
+  };
+
+  // Get selected calendar IDs
+  const selectedCalendars = calendarList
     .filter((calendar) => calendar.selected)
     .map((calendar) => calendar.id);
 
-  // Fetch user's calendar list from Google Calendar API
+  // Save multiple calendars to the database
+  const saveCalendars = async (calendars: CalendarItem[]): Promise<void> => {
+    try {
+      const response = await fetch("/api/calendar/user-calendars", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ calendars }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save calendars: ${response.statusText}`);
+      }
+
+      const savedCalendars = await response.json();
+      setCalendarList(savedCalendars);
+    } catch (error) {
+      console.error("Error saving calendars:", error);
+      setError("Failed to save calendars.");
+    }
+  };
+
+  // Fetch user's calendar list from database and Google Calendar API
   const fetchCalendarList = async (): Promise<void> => {
     if (!isIntegrationEnabled) {
       setCalendarList([]);
@@ -87,7 +132,17 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
     setError(null);
 
     try {
-      // Call Google Calendar API endpoint to get the list of calendars
+      // First, try to get existing saved calendars from our database
+      const savedCalendarsResponse = await fetch(
+        "/api/calendar/user-calendars"
+      );
+      let existingCalendars: CalendarItem[] = [];
+
+      if (savedCalendarsResponse.ok) {
+        existingCalendars = await savedCalendarsResponse.json();
+      }
+
+      // Then, fetch fresh calendar list from Google Calendar API
       const response = await fetch("/api/calendar/list", {
         method: "GET",
         headers: {
@@ -96,25 +151,35 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
+        // If API fails but we have existing calendars, use those
+        if (existingCalendars.length > 0) {
+          setCalendarList(existingCalendars);
+          return;
+        }
         throw new Error(`Failed to fetch calendars: ${response.statusText}`);
       }
 
       const data = await response.json();
 
-      console.log("Fetched calendar list:", data);
+      // Map API response to our CalendarItem interface and merge with existing settings
+      const newCalendars: CalendarItem[] = data.items.map((cal: any) => {
+        // Look for existing calendar settings
+        const existingCal = existingCalendars.find((c) => c.id === cal.id);
 
-      // Map API response to our CalendarItem interface
-      const calendars: CalendarItem[] = data.items.map((cal: any) => ({
-        id: cal.id,
-        name: cal.summary,
-        color: cal.backgroundColor || "#039BE5",
-        selected: true, // Default to selected
-      }));
+        return {
+          id: cal.id,
+          name: cal.summary,
+          color: cal.backgroundColor || "#039BE5",
+          selected: existingCal ? existingCal.selected : true, // Use existing selection or default to true
+          isPrimary: cal.primary || false,
+          providerId: "google",
+        };
+      });
 
-      setCalendarList(calendars);
+      setCalendarList(newCalendars);
 
-      // Store calendars in window.localStorage
-      // This should be in a database
+      // Save the newly fetched calendars to the database for persistence
+      await saveCalendars(newCalendars);
     } catch (error) {
       console.error("Error fetching calendar list:", error);
       setError("Failed to load calendar list. Please try again.");
@@ -129,14 +194,43 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
     selected: boolean
   ): Promise<void> => {
     try {
+      // Update local state first for immediate UI feedback
       const updatedCalendarList = calendarList.map((calendar) =>
         calendar.id === id ? { ...calendar, selected } : calendar
       );
 
       setCalendarList(updatedCalendarList);
+
+      // Update in the database
+      const calendar = calendarList.find((cal) => cal.id === id);
+
+      if (calendar) {
+        const response = await fetch("/api/calendar/user-calendars", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id,
+            providerId: calendar.providerId || "google",
+            selected,
+            color: calendar.color,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to update calendar selection");
+        }
+      }
     } catch (error) {
       console.error("Error updating calendar selection:", error);
       setError("Failed to update calendar selection.");
+
+      // Revert local state if API call fails
+      const revertedList = calendarList.map((calendar) =>
+        calendar.id === id ? { ...calendar, selected: !selected } : calendar
+      );
+      setCalendarList(revertedList);
     }
   };
 
@@ -190,7 +284,7 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
           const calendarName = calendar?.name || "Unknown Calendar";
           const calendarColor = calendar?.color || "#039BE5";
 
-          const calendarEvents = data.events[calId].map((event: any) => {
+          const calEvents = data.events[calId].map((event: any) => {
             const allDay = !event.start.dateTime;
             const startTime = allDay
               ? `${event.start.date}T00:00:00`
@@ -213,7 +307,7 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
             };
           });
 
-          calendarEvents.push(...calendarEvents);
+          calendarEvents.push(...calEvents);
         }
       }
 
@@ -234,10 +328,12 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
         error,
         fetchEvents,
         isIntegrationEnabled,
+        setIsIntegrationEnabled,
         selectedCalendars,
         calendarList,
         fetchCalendarList,
         updateCalendarSelection,
+        saveCalendars,
       }}
     >
       {children}

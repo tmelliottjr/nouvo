@@ -38,15 +38,17 @@ export function CalendarSettings() {
     connected: false,
   });
 
-  // Use our calendar context
+  // Use our calendar context with the enhanced database persistence
   const {
     isIntegrationEnabled,
+    setIsIntegrationEnabled,
     calendarList,
     fetchCalendarList,
     updateCalendarSelection,
   } = useCalendar();
 
   const { user } = useAuth();
+
   // Check if user has connected Google account
   const checkGoogleAuthStatus = async () => {
     try {
@@ -117,10 +119,6 @@ export function CalendarSettings() {
     try {
       setIsLoading(true);
 
-      // Clear stored calendar data from localStorage
-      localStorage.removeItem("googleCalendars");
-      localStorage.removeItem("calendarIntegrationEnabled");
-
       // Call API to disconnect Google account
       await fetch("/api/auth/google/disconnect", {
         method: "POST",
@@ -128,6 +126,9 @@ export function CalendarSettings() {
           "Content-Type": "application/json",
         },
       });
+
+      // Disable integration
+      await setIsIntegrationEnabled(false);
 
       // Update local state
       setGoogleAuthStatus({ connected: false });
@@ -191,22 +192,25 @@ export function CalendarSettings() {
     }
   };
 
-  // Toggle calendar integration
-  const handleToggleIntegration = (enabled: boolean) => {
-    localStorage.setItem("calendarIntegrationEnabled", String(enabled));
-
-    // Force a page reload to update the useSyncExternalStore state
-    window.location.reload();
-
-    toast({
-      title: enabled ? "Integration Enabled" : "Integration Disabled",
-      description: enabled
-        ? "Calendar events will now appear in your Noevo calendar."
-        : "Calendar events will no longer appear in your Noevo calendar.",
-    });
+  // Toggle calendar integration - now uses the database
+  const handleToggleIntegration = async (enabled: boolean) => {
+    try {
+      await setIsIntegrationEnabled(enabled);
+      toast({
+        title: enabled ? "Integration Enabled" : "Integration Disabled",
+        description: enabled
+          ? "Calendar events will now appear in your Noevo calendar."
+          : "Calendar events will no longer appear in your Noevo calendar.",
+      });
+    } catch (error) {
+      console.error("Error toggling calendar integration:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update calendar integration settings.",
+        variant: "destructive",
+      });
+    }
   };
-
-  console.log(user?.accounts);
 
   const isConnected = user?.accounts.some(
     (account: User["accounts"][0]) => account.providerId === "google"
@@ -261,7 +265,7 @@ export function CalendarSettings() {
                       Connected
                     </div>
                     <span className="text-sm text-muted-foreground">
-                      as {googleAuthStatus.email}
+                      as {googleAuthStatus.email || user?.email}
                     </span>
                   </div>
                 </div>

@@ -363,11 +363,12 @@ const config = {
     "db"
   ],
   "activeProvider": "mysql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
         "fromEnvVar": "DATABASE_URL",
-        "value": "mysql://noevo:noevopassword@localhost:3306/noevo"
+        "value": null
       }
     }
   },
