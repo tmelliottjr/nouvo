@@ -3,13 +3,37 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { NoteNode, TreeNode } from "@/lib/seed-data";
 import { CalendarEvent, useCalendar } from "@/state-providers/use-calendar";
 import { useNotes } from "@/state-providers/use-notes";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
-import { CalendarClock, Clock, MapPin, Plus } from "lucide-react";
+import {
+  CalendarClock,
+  Clock,
+  FileText,
+  Link as LinkIcon,
+  MapPin,
+  MoreHorizontal,
+  Plus,
+  Unlink,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface CalendarDayViewProps {
   date: Date;
@@ -17,6 +41,7 @@ interface CalendarDayViewProps {
 
 export function CalendarDayView({ date }: CalendarDayViewProps) {
   const { treeData, addNote } = useNotes();
+  const router = useRouter();
   const { events, fetchEvents, isLoading, isIntegrationEnabled } =
     useCalendar();
   const [notesForDay, setNotesForDay] = useState<NoteNode[]>([]);
@@ -58,7 +83,8 @@ export function CalendarDayView({ date }: CalendarDayViewProps) {
   // Fetch calendar events for this day
   useEffect(() => {
     fetchEvents(date);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date]);
 
   // Create a new note for this day
   const handleCreateNote = async () => {
@@ -218,8 +244,88 @@ export function CalendarDayView({ date }: CalendarDayViewProps) {
 
 // Component to display a single calendar event
 function CalendarEventCard({ event }: { event: CalendarEvent }) {
+  const router = useRouter();
+  const { treeData } = useNotes();
+  const { createEventNote, linkExistingNoteToEvent, unlinkEventNote } =
+    useCalendar();
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
+  const [availableNotes, setAvailableNotes] = useState<NoteNode[]>([]);
+  const [isCreatingNote, setIsCreatingNote] = useState(false);
+
+  useEffect(() => {
+    // Get all notes for the linking dialog
+    if (isLinkDialogOpen) {
+      const notes: NoteNode[] = [];
+
+      Object.values(treeData).forEach((node: TreeNode) => {
+        if (node.type === "note") {
+          const note = node as NoteNode;
+          notes.push(note);
+        }
+      });
+
+      // Sort notes by creation time
+      notes.sort((a, b) => {
+        if (!a.creationDate || !b.creationDate) return 0;
+        return (
+          new Date(b.creationDate).getTime() -
+          new Date(a.creationDate).getTime()
+        );
+      });
+
+      setAvailableNotes(notes);
+    }
+  }, [isLinkDialogOpen, treeData]);
+
   const startTime = parseISO(event.startTime);
   const endTime = parseISO(event.endTime);
+
+  // Create a new note for this event
+  const handleCreateNote = async () => {
+    if (!event.dbId) return;
+
+    setIsCreatingNote(true);
+    try {
+      const note = await createEventNote(event.dbId);
+      if (note) {
+        router.push(`/notes/${note.id}`);
+      }
+    } catch (error) {
+      console.error("Error creating note for event:", error);
+    } finally {
+      setIsCreatingNote(false);
+    }
+  };
+
+  // Link an existing note to this event
+  const handleLinkNote = async (noteId: string) => {
+    if (!event.dbId) return;
+
+    try {
+      await linkExistingNoteToEvent(event.dbId, noteId);
+      setIsLinkDialogOpen(false);
+    } catch (error) {
+      console.error("Error linking note to event:", error);
+    }
+  };
+
+  // Unlink the note from this event
+  const handleUnlinkNote = async () => {
+    if (!event.dbId) return;
+
+    try {
+      await unlinkEventNote(event.dbId);
+    } catch (error) {
+      console.error("Error unlinking note:", error);
+    }
+  };
+
+  // View the linked note
+  const handleViewNote = () => {
+    if (event.note?.id) {
+      router.push(`/notes/${event.note.id}`);
+    }
+  };
 
   return (
     <div
@@ -228,9 +334,47 @@ function CalendarEventCard({ event }: { event: CalendarEvent }) {
     >
       <div className="flex justify-between items-start">
         <h3 className="font-medium">{event.title}</h3>
-        <Badge variant="outline" className="text-xs">
-          {event.calendarName}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs">
+            {event.calendarName}
+          </Badge>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {event.note ? (
+                <>
+                  <DropdownMenuItem onClick={handleViewNote}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Note
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleUnlinkNote}>
+                    <Unlink className="h-4 w-4 mr-2" />
+                    Unlink Note
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem
+                    onClick={handleCreateNote}
+                    disabled={isCreatingNote}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {isCreatingNote ? "Creating..." : "Create Note"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsLinkDialogOpen(true)}>
+                    <LinkIcon className="h-4 w-4 mr-2" />
+                    Link Existing Note
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <div className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
@@ -252,6 +396,64 @@ function CalendarEventCard({ event }: { event: CalendarEvent }) {
       {event.description && (
         <p className="mt-2 text-sm line-clamp-2">{event.description}</p>
       )}
+
+      {/* Show linked note info if exists */}
+      {event.note && (
+        <div className="mt-2 flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          <span className="text-sm text-primary">{event.note.name}</span>
+        </div>
+      )}
+
+      {/* Dialog for linking existing notes */}
+      <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Link Existing Note</DialogTitle>
+            <DialogDescription>
+              Select a note to link to event "{event.title}"
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-96 overflow-y-auto">
+            {availableNotes.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">No notes available</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {availableNotes.map((note) => (
+                  <Button
+                    key={note.id}
+                    variant="outline"
+                    className="w-full justify-start text-left h-auto py-2"
+                    onClick={() => handleLinkNote(note.id)}
+                  >
+                    <div>
+                      <div className="font-medium">{note.name}</div>
+                      {note.creationDate && (
+                        <div className="text-xs text-muted-foreground">
+                          Created{" "}
+                          {format(new Date(note.creationDate), "MMM d, yyyy")}
+                        </div>
+                      )}
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsLinkDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

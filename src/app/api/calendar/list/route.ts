@@ -46,6 +46,8 @@ export async function GET() {
 
     const calendarList = await response.json();
 
+    console.log("Fetched calendar list:", calendarList);
+
     return NextResponse.json(calendarList);
   } catch (error) {
     console.error("Error fetching calendar list:", error);

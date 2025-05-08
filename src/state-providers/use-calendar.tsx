@@ -5,6 +5,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 // Types for Google Calendar events
 export interface CalendarEvent {
   id: string;
+  dbId?: string; // Database ID for the event
   title: string;
   description?: string;
   startTime: string;
@@ -14,6 +15,11 @@ export interface CalendarEvent {
   calendarName: string;
   color: string;
   allDay: boolean;
+  note?: {
+    id: string;
+    name: string;
+    content?: string;
+  } | null;
 }
 
 // Interface for calendar item from Google Calendar API
@@ -38,6 +44,9 @@ interface CalendarContextType {
   fetchCalendarList: () => Promise<void>;
   updateCalendarSelection: (id: string, selected: boolean) => Promise<void>;
   saveCalendars: (calendars: CalendarItem[]) => Promise<void>;
+  createEventNote: (eventId: string) => Promise<any>;
+  linkExistingNoteToEvent: (eventId: string, noteId: string) => Promise<any>;
+  unlinkEventNote: (eventId: string) => Promise<void>;
 }
 
 const CalendarContext = createContext<CalendarContextType | undefined>(
@@ -234,9 +243,123 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Create a new note for an event
+  const createEventNote = async (eventId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch("/api/calendar/events", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          eventId,
+          createNote: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create note: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Update the local events state to reflect the new note
+      setEvents(
+        events.map((event) =>
+          event.dbId === eventId ? { ...event, note: data.note } : event
+        )
+      );
+
+      return data.note;
+    } catch (error) {
+      console.error("Error creating event note:", error);
+      setError("Failed to create note for this event.");
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Link an existing note to an event
+  const linkExistingNoteToEvent = async (eventId: string, noteId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch("/api/calendar/events", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          eventId,
+          noteId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to link note: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Update the local events state to reflect the linked note
+      setEvents(
+        events.map((event) =>
+          event.dbId === eventId ? { ...event, note: data.note } : event
+        )
+      );
+
+      return data.note;
+    } catch (error) {
+      console.error("Error linking note to event:", error);
+      setError("Failed to link note to this event.");
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Unlink a note from an event
+  const unlinkEventNote = async (eventId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch("/api/calendar/events", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          eventId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to unlink note: ${response.statusText}`);
+      }
+
+      // Update the local events state to remove the note reference
+      setEvents(
+        events.map((event) =>
+          event.dbId === eventId ? { ...event, note: null } : event
+        )
+      );
+    } catch (error) {
+      console.error("Error unlinking event note:", error);
+      setError("Failed to unlink note from this event.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Fetch events for a specific day from Google Calendar API
   const fetchEvents = async (date: Date): Promise<void> => {
-    if (!isIntegrationEnabled || selectedCalendars.length === 0) {
+    if (!isIntegrationEnabled) {
       setEvents([]);
       return;
     }
@@ -274,44 +397,8 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
 
       const data = await response.json();
 
-      // Map Google Calendar events to our CalendarEvent interface
-      const calendarEvents: CalendarEvent[] = [];
-
-      // Process each calendar's events
-      for (const calId in data.events) {
-        if (data.events.hasOwnProperty(calId)) {
-          const calendar = calendarList.find((cal) => cal.id === calId);
-          const calendarName = calendar?.name || "Unknown Calendar";
-          const calendarColor = calendar?.color || "#039BE5";
-
-          const calEvents = data.events[calId].map((event: any) => {
-            const allDay = !event.start.dateTime;
-            const startTime = allDay
-              ? `${event.start.date}T00:00:00`
-              : event.start.dateTime;
-            const endTime = allDay
-              ? `${event.end.date}T23:59:59`
-              : event.end.dateTime;
-
-            return {
-              id: event.id,
-              title: event.summary,
-              description: event.description || "",
-              startTime,
-              endTime,
-              location: event.location || "",
-              calendarId: calId,
-              calendarName,
-              color: calendarColor,
-              allDay,
-            };
-          });
-
-          calendarEvents.push(...calEvents);
-        }
-      }
-
-      setEvents(calendarEvents);
+      // Set the events directly from our processed API response
+      setEvents(data.events || []);
     } catch (error) {
       console.error("Error fetching calendar events:", error);
       setError("Failed to load calendar events. Please try again.");
@@ -334,6 +421,9 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
         fetchCalendarList,
         updateCalendarSelection,
         saveCalendars,
+        createEventNote,
+        linkExistingNoteToEvent,
+        unlinkEventNote,
       }}
     >
       {children}

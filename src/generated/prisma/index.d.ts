@@ -69,6 +69,11 @@ export type verification = $Result.DefaultSelection<Prisma.$verificationPayload>
  */
 export type calendar = $Result.DefaultSelection<Prisma.$calendarPayload>
 /**
+ * Model calendar_event
+ * 
+ */
+export type calendar_event = $Result.DefaultSelection<Prisma.$calendar_eventPayload>
+/**
  * Model calendar_integration_settings
  * 
  */
@@ -337,6 +342,16 @@ export class PrismaClient<
     * ```
     */
   get calendar(): Prisma.calendarDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.calendar_event`: Exposes CRUD operations for the **calendar_event** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Calendar_events
+    * const calendar_events = await prisma.calendar_event.findMany()
+    * ```
+    */
+  get calendar_event(): Prisma.calendar_eventDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.calendar_integration_settings`: Exposes CRUD operations for the **calendar_integration_settings** model.
@@ -798,6 +813,7 @@ export namespace Prisma {
     user: 'user',
     verification: 'verification',
     calendar: 'calendar',
+    calendar_event: 'calendar_event',
     calendar_integration_settings: 'calendar_integration_settings'
   };
 
@@ -817,7 +833,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "account" | "folders" | "note_tags" | "notes" | "pending_shares" | "session" | "shares" | "tags" | "user" | "verification" | "calendar" | "calendar_integration_settings"
+      modelProps: "account" | "folders" | "note_tags" | "notes" | "pending_shares" | "session" | "shares" | "tags" | "user" | "verification" | "calendar" | "calendar_event" | "calendar_integration_settings"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1547,6 +1563,72 @@ export namespace Prisma {
           }
         }
       }
+      calendar_event: {
+        payload: Prisma.$calendar_eventPayload<ExtArgs>
+        fields: Prisma.calendar_eventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.calendar_eventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$calendar_eventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.calendar_eventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$calendar_eventPayload>
+          }
+          findFirst: {
+            args: Prisma.calendar_eventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$calendar_eventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.calendar_eventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$calendar_eventPayload>
+          }
+          findMany: {
+            args: Prisma.calendar_eventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$calendar_eventPayload>[]
+          }
+          create: {
+            args: Prisma.calendar_eventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$calendar_eventPayload>
+          }
+          createMany: {
+            args: Prisma.calendar_eventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          delete: {
+            args: Prisma.calendar_eventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$calendar_eventPayload>
+          }
+          update: {
+            args: Prisma.calendar_eventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$calendar_eventPayload>
+          }
+          deleteMany: {
+            args: Prisma.calendar_eventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.calendar_eventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.calendar_eventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$calendar_eventPayload>
+          }
+          aggregate: {
+            args: Prisma.Calendar_eventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCalendar_event>
+          }
+          groupBy: {
+            args: Prisma.calendar_eventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Calendar_eventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.calendar_eventCountArgs<ExtArgs>
+            result: $Utils.Optional<Calendar_eventCountAggregateOutputType> | number
+          }
+        }
+      }
       calendar_integration_settings: {
         payload: Prisma.$calendar_integration_settingsPayload<ExtArgs>
         fields: Prisma.calendar_integration_settingsFieldRefs
@@ -1708,6 +1790,7 @@ export namespace Prisma {
     user?: userOmit
     verification?: verificationOmit
     calendar?: calendarOmit
+    calendar_event?: calendar_eventOmit
     calendar_integration_settings?: calendar_integration_settingsOmit
   }
 
@@ -1845,11 +1928,13 @@ export namespace Prisma {
   export type NotesCountOutputType = {
     note_tags: number
     shares: number
+    events: number
   }
 
   export type NotesCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     note_tags?: boolean | NotesCountOutputTypeCountNote_tagsArgs
     shares?: boolean | NotesCountOutputTypeCountSharesArgs
+    events?: boolean | NotesCountOutputTypeCountEventsArgs
   }
 
   // Custom InputTypes
@@ -1875,6 +1960,13 @@ export namespace Prisma {
    */
   export type NotesCountOutputTypeCountSharesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: sharesWhereInput
+  }
+
+  /**
+   * NotesCountOutputType without action
+   */
+  export type NotesCountOutputTypeCountEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: calendar_eventWhereInput
   }
 
 
@@ -1982,6 +2074,37 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountCalendarsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: calendarWhereInput
+  }
+
+
+  /**
+   * Count Type CalendarCountOutputType
+   */
+
+  export type CalendarCountOutputType = {
+    events: number
+  }
+
+  export type CalendarCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    events?: boolean | CalendarCountOutputTypeCountEventsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * CalendarCountOutputType without action
+   */
+  export type CalendarCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CalendarCountOutputType
+     */
+    select?: CalendarCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * CalendarCountOutputType without action
+   */
+  export type CalendarCountOutputTypeCountEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: calendar_eventWhereInput
   }
 
 
@@ -5127,6 +5250,7 @@ export namespace Prisma {
     folders?: boolean | notes$foldersArgs<ExtArgs>
     user?: boolean | userDefaultArgs<ExtArgs>
     shares?: boolean | notes$sharesArgs<ExtArgs>
+    events?: boolean | notes$eventsArgs<ExtArgs>
     _count?: boolean | NotesCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["notes"]>
 
@@ -5150,6 +5274,7 @@ export namespace Prisma {
     folders?: boolean | notes$foldersArgs<ExtArgs>
     user?: boolean | userDefaultArgs<ExtArgs>
     shares?: boolean | notes$sharesArgs<ExtArgs>
+    events?: boolean | notes$eventsArgs<ExtArgs>
     _count?: boolean | NotesCountOutputTypeDefaultArgs<ExtArgs>
   }
 
@@ -5160,6 +5285,7 @@ export namespace Prisma {
       folders: Prisma.$foldersPayload<ExtArgs> | null
       user: Prisma.$userPayload<ExtArgs>
       shares: Prisma.$sharesPayload<ExtArgs>[]
+      events: Prisma.$calendar_eventPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -5515,6 +5641,7 @@ export namespace Prisma {
     folders<T extends notes$foldersArgs<ExtArgs> = {}>(args?: Subset<T, notes$foldersArgs<ExtArgs>>): Prisma__foldersClient<$Result.GetResult<Prisma.$foldersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     user<T extends userDefaultArgs<ExtArgs> = {}>(args?: Subset<T, userDefaultArgs<ExtArgs>>): Prisma__userClient<$Result.GetResult<Prisma.$userPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     shares<T extends notes$sharesArgs<ExtArgs> = {}>(args?: Subset<T, notes$sharesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$sharesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    events<T extends notes$eventsArgs<ExtArgs> = {}>(args?: Subset<T, notes$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$calendar_eventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -5960,6 +6087,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: SharesScalarFieldEnum | SharesScalarFieldEnum[]
+  }
+
+  /**
+   * notes.events
+   */
+  export type notes$eventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the calendar_event
+     */
+    select?: calendar_eventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the calendar_event
+     */
+    omit?: calendar_eventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: calendar_eventInclude<ExtArgs> | null
+    where?: calendar_eventWhereInput
+    orderBy?: calendar_eventOrderByWithRelationInput | calendar_eventOrderByWithRelationInput[]
+    cursor?: calendar_eventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Calendar_eventScalarFieldEnum | Calendar_eventScalarFieldEnum[]
   }
 
   /**
@@ -11897,6 +12048,8 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     user?: boolean | userDefaultArgs<ExtArgs>
+    events?: boolean | calendar$eventsArgs<ExtArgs>
+    _count?: boolean | CalendarCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["calendar"]>
 
 
@@ -11917,12 +12070,15 @@ export namespace Prisma {
   export type calendarOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "user_id" | "provider_id" | "calendar_name" | "calendar_id" | "is_primary" | "is_enabled" | "color" | "created_at" | "updated_at", ExtArgs["result"]["calendar"]>
   export type calendarInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | userDefaultArgs<ExtArgs>
+    events?: boolean | calendar$eventsArgs<ExtArgs>
+    _count?: boolean | CalendarCountOutputTypeDefaultArgs<ExtArgs>
   }
 
   export type $calendarPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "calendar"
     objects: {
       user: Prisma.$userPayload<ExtArgs>
+      events: Prisma.$calendar_eventPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -12276,6 +12432,7 @@ export namespace Prisma {
   export interface Prisma__calendarClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     user<T extends userDefaultArgs<ExtArgs> = {}>(args?: Subset<T, userDefaultArgs<ExtArgs>>): Prisma__userClient<$Result.GetResult<Prisma.$userPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    events<T extends calendar$eventsArgs<ExtArgs> = {}>(args?: Subset<T, calendar$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$calendar_eventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -12658,6 +12815,30 @@ export namespace Prisma {
   }
 
   /**
+   * calendar.events
+   */
+  export type calendar$eventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the calendar_event
+     */
+    select?: calendar_eventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the calendar_event
+     */
+    omit?: calendar_eventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: calendar_eventInclude<ExtArgs> | null
+    where?: calendar_eventWhereInput
+    orderBy?: calendar_eventOrderByWithRelationInput | calendar_eventOrderByWithRelationInput[]
+    cursor?: calendar_eventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Calendar_eventScalarFieldEnum | Calendar_eventScalarFieldEnum[]
+  }
+
+  /**
    * calendar without action
    */
   export type calendarDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -12673,6 +12854,1046 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: calendarInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model calendar_event
+   */
+
+  export type AggregateCalendar_event = {
+    _count: Calendar_eventCountAggregateOutputType | null
+    _min: Calendar_eventMinAggregateOutputType | null
+    _max: Calendar_eventMaxAggregateOutputType | null
+  }
+
+  export type Calendar_eventMinAggregateOutputType = {
+    id: string | null
+    calendar_id: string | null
+    event_id: string | null
+    title: string | null
+    description: string | null
+    start_time: Date | null
+    end_time: Date | null
+    all_day: boolean | null
+    location: string | null
+    recurrence_rule: string | null
+    created_at: Date | null
+    updated_at: Date | null
+    note_id: string | null
+  }
+
+  export type Calendar_eventMaxAggregateOutputType = {
+    id: string | null
+    calendar_id: string | null
+    event_id: string | null
+    title: string | null
+    description: string | null
+    start_time: Date | null
+    end_time: Date | null
+    all_day: boolean | null
+    location: string | null
+    recurrence_rule: string | null
+    created_at: Date | null
+    updated_at: Date | null
+    note_id: string | null
+  }
+
+  export type Calendar_eventCountAggregateOutputType = {
+    id: number
+    calendar_id: number
+    event_id: number
+    title: number
+    description: number
+    start_time: number
+    end_time: number
+    all_day: number
+    location: number
+    recurrence_rule: number
+    created_at: number
+    updated_at: number
+    note_id: number
+    _all: number
+  }
+
+
+  export type Calendar_eventMinAggregateInputType = {
+    id?: true
+    calendar_id?: true
+    event_id?: true
+    title?: true
+    description?: true
+    start_time?: true
+    end_time?: true
+    all_day?: true
+    location?: true
+    recurrence_rule?: true
+    created_at?: true
+    updated_at?: true
+    note_id?: true
+  }
+
+  export type Calendar_eventMaxAggregateInputType = {
+    id?: true
+    calendar_id?: true
+    event_id?: true
+    title?: true
+    description?: true
+    start_time?: true
+    end_time?: true
+    all_day?: true
+    location?: true
+    recurrence_rule?: true
+    created_at?: true
+    updated_at?: true
+    note_id?: true
+  }
+
+  export type Calendar_eventCountAggregateInputType = {
+    id?: true
+    calendar_id?: true
+    event_id?: true
+    title?: true
+    description?: true
+    start_time?: true
+    end_time?: true
+    all_day?: true
+    location?: true
+    recurrence_rule?: true
+    created_at?: true
+    updated_at?: true
+    note_id?: true
+    _all?: true
+  }
+
+  export type Calendar_eventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which calendar_event to aggregate.
+     */
+    where?: calendar_eventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of calendar_events to fetch.
+     */
+    orderBy?: calendar_eventOrderByWithRelationInput | calendar_eventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: calendar_eventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` calendar_events from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` calendar_events.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned calendar_events
+    **/
+    _count?: true | Calendar_eventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Calendar_eventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Calendar_eventMaxAggregateInputType
+  }
+
+  export type GetCalendar_eventAggregateType<T extends Calendar_eventAggregateArgs> = {
+        [P in keyof T & keyof AggregateCalendar_event]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCalendar_event[P]>
+      : GetScalarType<T[P], AggregateCalendar_event[P]>
+  }
+
+
+
+
+  export type calendar_eventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: calendar_eventWhereInput
+    orderBy?: calendar_eventOrderByWithAggregationInput | calendar_eventOrderByWithAggregationInput[]
+    by: Calendar_eventScalarFieldEnum[] | Calendar_eventScalarFieldEnum
+    having?: calendar_eventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Calendar_eventCountAggregateInputType | true
+    _min?: Calendar_eventMinAggregateInputType
+    _max?: Calendar_eventMaxAggregateInputType
+  }
+
+  export type Calendar_eventGroupByOutputType = {
+    id: string
+    calendar_id: string
+    event_id: string
+    title: string
+    description: string | null
+    start_time: Date
+    end_time: Date
+    all_day: boolean
+    location: string | null
+    recurrence_rule: string | null
+    created_at: Date
+    updated_at: Date
+    note_id: string | null
+    _count: Calendar_eventCountAggregateOutputType | null
+    _min: Calendar_eventMinAggregateOutputType | null
+    _max: Calendar_eventMaxAggregateOutputType | null
+  }
+
+  type GetCalendar_eventGroupByPayload<T extends calendar_eventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Calendar_eventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Calendar_eventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Calendar_eventGroupByOutputType[P]>
+            : GetScalarType<T[P], Calendar_eventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type calendar_eventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    calendar_id?: boolean
+    event_id?: boolean
+    title?: boolean
+    description?: boolean
+    start_time?: boolean
+    end_time?: boolean
+    all_day?: boolean
+    location?: boolean
+    recurrence_rule?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+    note_id?: boolean
+    calendar?: boolean | calendarDefaultArgs<ExtArgs>
+    note?: boolean | calendar_event$noteArgs<ExtArgs>
+  }, ExtArgs["result"]["calendar_event"]>
+
+
+
+  export type calendar_eventSelectScalar = {
+    id?: boolean
+    calendar_id?: boolean
+    event_id?: boolean
+    title?: boolean
+    description?: boolean
+    start_time?: boolean
+    end_time?: boolean
+    all_day?: boolean
+    location?: boolean
+    recurrence_rule?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+    note_id?: boolean
+  }
+
+  export type calendar_eventOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "calendar_id" | "event_id" | "title" | "description" | "start_time" | "end_time" | "all_day" | "location" | "recurrence_rule" | "created_at" | "updated_at" | "note_id", ExtArgs["result"]["calendar_event"]>
+  export type calendar_eventInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    calendar?: boolean | calendarDefaultArgs<ExtArgs>
+    note?: boolean | calendar_event$noteArgs<ExtArgs>
+  }
+
+  export type $calendar_eventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "calendar_event"
+    objects: {
+      calendar: Prisma.$calendarPayload<ExtArgs>
+      note: Prisma.$notesPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      calendar_id: string
+      event_id: string
+      title: string
+      description: string | null
+      start_time: Date
+      end_time: Date
+      all_day: boolean
+      location: string | null
+      recurrence_rule: string | null
+      created_at: Date
+      updated_at: Date
+      note_id: string | null
+    }, ExtArgs["result"]["calendar_event"]>
+    composites: {}
+  }
+
+  type calendar_eventGetPayload<S extends boolean | null | undefined | calendar_eventDefaultArgs> = $Result.GetResult<Prisma.$calendar_eventPayload, S>
+
+  type calendar_eventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<calendar_eventFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Calendar_eventCountAggregateInputType | true
+    }
+
+  export interface calendar_eventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['calendar_event'], meta: { name: 'calendar_event' } }
+    /**
+     * Find zero or one Calendar_event that matches the filter.
+     * @param {calendar_eventFindUniqueArgs} args - Arguments to find a Calendar_event
+     * @example
+     * // Get one Calendar_event
+     * const calendar_event = await prisma.calendar_event.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends calendar_eventFindUniqueArgs>(args: SelectSubset<T, calendar_eventFindUniqueArgs<ExtArgs>>): Prisma__calendar_eventClient<$Result.GetResult<Prisma.$calendar_eventPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Calendar_event that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {calendar_eventFindUniqueOrThrowArgs} args - Arguments to find a Calendar_event
+     * @example
+     * // Get one Calendar_event
+     * const calendar_event = await prisma.calendar_event.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends calendar_eventFindUniqueOrThrowArgs>(args: SelectSubset<T, calendar_eventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__calendar_eventClient<$Result.GetResult<Prisma.$calendar_eventPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Calendar_event that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {calendar_eventFindFirstArgs} args - Arguments to find a Calendar_event
+     * @example
+     * // Get one Calendar_event
+     * const calendar_event = await prisma.calendar_event.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends calendar_eventFindFirstArgs>(args?: SelectSubset<T, calendar_eventFindFirstArgs<ExtArgs>>): Prisma__calendar_eventClient<$Result.GetResult<Prisma.$calendar_eventPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Calendar_event that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {calendar_eventFindFirstOrThrowArgs} args - Arguments to find a Calendar_event
+     * @example
+     * // Get one Calendar_event
+     * const calendar_event = await prisma.calendar_event.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends calendar_eventFindFirstOrThrowArgs>(args?: SelectSubset<T, calendar_eventFindFirstOrThrowArgs<ExtArgs>>): Prisma__calendar_eventClient<$Result.GetResult<Prisma.$calendar_eventPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Calendar_events that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {calendar_eventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Calendar_events
+     * const calendar_events = await prisma.calendar_event.findMany()
+     * 
+     * // Get first 10 Calendar_events
+     * const calendar_events = await prisma.calendar_event.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const calendar_eventWithIdOnly = await prisma.calendar_event.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends calendar_eventFindManyArgs>(args?: SelectSubset<T, calendar_eventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$calendar_eventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Calendar_event.
+     * @param {calendar_eventCreateArgs} args - Arguments to create a Calendar_event.
+     * @example
+     * // Create one Calendar_event
+     * const Calendar_event = await prisma.calendar_event.create({
+     *   data: {
+     *     // ... data to create a Calendar_event
+     *   }
+     * })
+     * 
+     */
+    create<T extends calendar_eventCreateArgs>(args: SelectSubset<T, calendar_eventCreateArgs<ExtArgs>>): Prisma__calendar_eventClient<$Result.GetResult<Prisma.$calendar_eventPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Calendar_events.
+     * @param {calendar_eventCreateManyArgs} args - Arguments to create many Calendar_events.
+     * @example
+     * // Create many Calendar_events
+     * const calendar_event = await prisma.calendar_event.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends calendar_eventCreateManyArgs>(args?: SelectSubset<T, calendar_eventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Delete a Calendar_event.
+     * @param {calendar_eventDeleteArgs} args - Arguments to delete one Calendar_event.
+     * @example
+     * // Delete one Calendar_event
+     * const Calendar_event = await prisma.calendar_event.delete({
+     *   where: {
+     *     // ... filter to delete one Calendar_event
+     *   }
+     * })
+     * 
+     */
+    delete<T extends calendar_eventDeleteArgs>(args: SelectSubset<T, calendar_eventDeleteArgs<ExtArgs>>): Prisma__calendar_eventClient<$Result.GetResult<Prisma.$calendar_eventPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Calendar_event.
+     * @param {calendar_eventUpdateArgs} args - Arguments to update one Calendar_event.
+     * @example
+     * // Update one Calendar_event
+     * const calendar_event = await prisma.calendar_event.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends calendar_eventUpdateArgs>(args: SelectSubset<T, calendar_eventUpdateArgs<ExtArgs>>): Prisma__calendar_eventClient<$Result.GetResult<Prisma.$calendar_eventPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Calendar_events.
+     * @param {calendar_eventDeleteManyArgs} args - Arguments to filter Calendar_events to delete.
+     * @example
+     * // Delete a few Calendar_events
+     * const { count } = await prisma.calendar_event.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends calendar_eventDeleteManyArgs>(args?: SelectSubset<T, calendar_eventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Calendar_events.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {calendar_eventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Calendar_events
+     * const calendar_event = await prisma.calendar_event.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends calendar_eventUpdateManyArgs>(args: SelectSubset<T, calendar_eventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one Calendar_event.
+     * @param {calendar_eventUpsertArgs} args - Arguments to update or create a Calendar_event.
+     * @example
+     * // Update or create a Calendar_event
+     * const calendar_event = await prisma.calendar_event.upsert({
+     *   create: {
+     *     // ... data to create a Calendar_event
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Calendar_event we want to update
+     *   }
+     * })
+     */
+    upsert<T extends calendar_eventUpsertArgs>(args: SelectSubset<T, calendar_eventUpsertArgs<ExtArgs>>): Prisma__calendar_eventClient<$Result.GetResult<Prisma.$calendar_eventPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Calendar_events.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {calendar_eventCountArgs} args - Arguments to filter Calendar_events to count.
+     * @example
+     * // Count the number of Calendar_events
+     * const count = await prisma.calendar_event.count({
+     *   where: {
+     *     // ... the filter for the Calendar_events we want to count
+     *   }
+     * })
+    **/
+    count<T extends calendar_eventCountArgs>(
+      args?: Subset<T, calendar_eventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Calendar_eventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Calendar_event.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Calendar_eventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Calendar_eventAggregateArgs>(args: Subset<T, Calendar_eventAggregateArgs>): Prisma.PrismaPromise<GetCalendar_eventAggregateType<T>>
+
+    /**
+     * Group by Calendar_event.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {calendar_eventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends calendar_eventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: calendar_eventGroupByArgs['orderBy'] }
+        : { orderBy?: calendar_eventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, calendar_eventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCalendar_eventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the calendar_event model
+   */
+  readonly fields: calendar_eventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for calendar_event.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__calendar_eventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    calendar<T extends calendarDefaultArgs<ExtArgs> = {}>(args?: Subset<T, calendarDefaultArgs<ExtArgs>>): Prisma__calendarClient<$Result.GetResult<Prisma.$calendarPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    note<T extends calendar_event$noteArgs<ExtArgs> = {}>(args?: Subset<T, calendar_event$noteArgs<ExtArgs>>): Prisma__notesClient<$Result.GetResult<Prisma.$notesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the calendar_event model
+   */
+  interface calendar_eventFieldRefs {
+    readonly id: FieldRef<"calendar_event", 'String'>
+    readonly calendar_id: FieldRef<"calendar_event", 'String'>
+    readonly event_id: FieldRef<"calendar_event", 'String'>
+    readonly title: FieldRef<"calendar_event", 'String'>
+    readonly description: FieldRef<"calendar_event", 'String'>
+    readonly start_time: FieldRef<"calendar_event", 'DateTime'>
+    readonly end_time: FieldRef<"calendar_event", 'DateTime'>
+    readonly all_day: FieldRef<"calendar_event", 'Boolean'>
+    readonly location: FieldRef<"calendar_event", 'String'>
+    readonly recurrence_rule: FieldRef<"calendar_event", 'String'>
+    readonly created_at: FieldRef<"calendar_event", 'DateTime'>
+    readonly updated_at: FieldRef<"calendar_event", 'DateTime'>
+    readonly note_id: FieldRef<"calendar_event", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * calendar_event findUnique
+   */
+  export type calendar_eventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the calendar_event
+     */
+    select?: calendar_eventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the calendar_event
+     */
+    omit?: calendar_eventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: calendar_eventInclude<ExtArgs> | null
+    /**
+     * Filter, which calendar_event to fetch.
+     */
+    where: calendar_eventWhereUniqueInput
+  }
+
+  /**
+   * calendar_event findUniqueOrThrow
+   */
+  export type calendar_eventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the calendar_event
+     */
+    select?: calendar_eventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the calendar_event
+     */
+    omit?: calendar_eventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: calendar_eventInclude<ExtArgs> | null
+    /**
+     * Filter, which calendar_event to fetch.
+     */
+    where: calendar_eventWhereUniqueInput
+  }
+
+  /**
+   * calendar_event findFirst
+   */
+  export type calendar_eventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the calendar_event
+     */
+    select?: calendar_eventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the calendar_event
+     */
+    omit?: calendar_eventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: calendar_eventInclude<ExtArgs> | null
+    /**
+     * Filter, which calendar_event to fetch.
+     */
+    where?: calendar_eventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of calendar_events to fetch.
+     */
+    orderBy?: calendar_eventOrderByWithRelationInput | calendar_eventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for calendar_events.
+     */
+    cursor?: calendar_eventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` calendar_events from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` calendar_events.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of calendar_events.
+     */
+    distinct?: Calendar_eventScalarFieldEnum | Calendar_eventScalarFieldEnum[]
+  }
+
+  /**
+   * calendar_event findFirstOrThrow
+   */
+  export type calendar_eventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the calendar_event
+     */
+    select?: calendar_eventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the calendar_event
+     */
+    omit?: calendar_eventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: calendar_eventInclude<ExtArgs> | null
+    /**
+     * Filter, which calendar_event to fetch.
+     */
+    where?: calendar_eventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of calendar_events to fetch.
+     */
+    orderBy?: calendar_eventOrderByWithRelationInput | calendar_eventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for calendar_events.
+     */
+    cursor?: calendar_eventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` calendar_events from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` calendar_events.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of calendar_events.
+     */
+    distinct?: Calendar_eventScalarFieldEnum | Calendar_eventScalarFieldEnum[]
+  }
+
+  /**
+   * calendar_event findMany
+   */
+  export type calendar_eventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the calendar_event
+     */
+    select?: calendar_eventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the calendar_event
+     */
+    omit?: calendar_eventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: calendar_eventInclude<ExtArgs> | null
+    /**
+     * Filter, which calendar_events to fetch.
+     */
+    where?: calendar_eventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of calendar_events to fetch.
+     */
+    orderBy?: calendar_eventOrderByWithRelationInput | calendar_eventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing calendar_events.
+     */
+    cursor?: calendar_eventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` calendar_events from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` calendar_events.
+     */
+    skip?: number
+    distinct?: Calendar_eventScalarFieldEnum | Calendar_eventScalarFieldEnum[]
+  }
+
+  /**
+   * calendar_event create
+   */
+  export type calendar_eventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the calendar_event
+     */
+    select?: calendar_eventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the calendar_event
+     */
+    omit?: calendar_eventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: calendar_eventInclude<ExtArgs> | null
+    /**
+     * The data needed to create a calendar_event.
+     */
+    data: XOR<calendar_eventCreateInput, calendar_eventUncheckedCreateInput>
+  }
+
+  /**
+   * calendar_event createMany
+   */
+  export type calendar_eventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many calendar_events.
+     */
+    data: calendar_eventCreateManyInput | calendar_eventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * calendar_event update
+   */
+  export type calendar_eventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the calendar_event
+     */
+    select?: calendar_eventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the calendar_event
+     */
+    omit?: calendar_eventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: calendar_eventInclude<ExtArgs> | null
+    /**
+     * The data needed to update a calendar_event.
+     */
+    data: XOR<calendar_eventUpdateInput, calendar_eventUncheckedUpdateInput>
+    /**
+     * Choose, which calendar_event to update.
+     */
+    where: calendar_eventWhereUniqueInput
+  }
+
+  /**
+   * calendar_event updateMany
+   */
+  export type calendar_eventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update calendar_events.
+     */
+    data: XOR<calendar_eventUpdateManyMutationInput, calendar_eventUncheckedUpdateManyInput>
+    /**
+     * Filter which calendar_events to update
+     */
+    where?: calendar_eventWhereInput
+    /**
+     * Limit how many calendar_events to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * calendar_event upsert
+   */
+  export type calendar_eventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the calendar_event
+     */
+    select?: calendar_eventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the calendar_event
+     */
+    omit?: calendar_eventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: calendar_eventInclude<ExtArgs> | null
+    /**
+     * The filter to search for the calendar_event to update in case it exists.
+     */
+    where: calendar_eventWhereUniqueInput
+    /**
+     * In case the calendar_event found by the `where` argument doesn't exist, create a new calendar_event with this data.
+     */
+    create: XOR<calendar_eventCreateInput, calendar_eventUncheckedCreateInput>
+    /**
+     * In case the calendar_event was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<calendar_eventUpdateInput, calendar_eventUncheckedUpdateInput>
+  }
+
+  /**
+   * calendar_event delete
+   */
+  export type calendar_eventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the calendar_event
+     */
+    select?: calendar_eventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the calendar_event
+     */
+    omit?: calendar_eventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: calendar_eventInclude<ExtArgs> | null
+    /**
+     * Filter which calendar_event to delete.
+     */
+    where: calendar_eventWhereUniqueInput
+  }
+
+  /**
+   * calendar_event deleteMany
+   */
+  export type calendar_eventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which calendar_events to delete
+     */
+    where?: calendar_eventWhereInput
+    /**
+     * Limit how many calendar_events to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * calendar_event.note
+   */
+  export type calendar_event$noteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the notes
+     */
+    select?: notesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the notes
+     */
+    omit?: notesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: notesInclude<ExtArgs> | null
+    where?: notesWhereInput
+  }
+
+  /**
+   * calendar_event without action
+   */
+  export type calendar_eventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the calendar_event
+     */
+    select?: calendar_eventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the calendar_event
+     */
+    omit?: calendar_eventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: calendar_eventInclude<ExtArgs> | null
   }
 
 
@@ -13760,6 +14981,25 @@ export namespace Prisma {
   export type CalendarScalarFieldEnum = (typeof CalendarScalarFieldEnum)[keyof typeof CalendarScalarFieldEnum]
 
 
+  export const Calendar_eventScalarFieldEnum: {
+    id: 'id',
+    calendar_id: 'calendar_id',
+    event_id: 'event_id',
+    title: 'title',
+    description: 'description',
+    start_time: 'start_time',
+    end_time: 'end_time',
+    all_day: 'all_day',
+    location: 'location',
+    recurrence_rule: 'recurrence_rule',
+    created_at: 'created_at',
+    updated_at: 'updated_at',
+    note_id: 'note_id'
+  };
+
+  export type Calendar_eventScalarFieldEnum = (typeof Calendar_eventScalarFieldEnum)[keyof typeof Calendar_eventScalarFieldEnum]
+
+
   export const Calendar_integration_settingsScalarFieldEnum: {
     id: 'id',
     user_id: 'user_id',
@@ -13898,6 +15138,20 @@ export namespace Prisma {
   };
 
   export type calendarOrderByRelevanceFieldEnum = (typeof calendarOrderByRelevanceFieldEnum)[keyof typeof calendarOrderByRelevanceFieldEnum]
+
+
+  export const calendar_eventOrderByRelevanceFieldEnum: {
+    id: 'id',
+    calendar_id: 'calendar_id',
+    event_id: 'event_id',
+    title: 'title',
+    description: 'description',
+    location: 'location',
+    recurrence_rule: 'recurrence_rule',
+    note_id: 'note_id'
+  };
+
+  export type calendar_eventOrderByRelevanceFieldEnum = (typeof calendar_eventOrderByRelevanceFieldEnum)[keyof typeof calendar_eventOrderByRelevanceFieldEnum]
 
 
   export const calendar_integration_settingsOrderByRelevanceFieldEnum: {
@@ -14186,6 +15440,7 @@ export namespace Prisma {
     folders?: XOR<FoldersNullableScalarRelationFilter, foldersWhereInput> | null
     user?: XOR<UserScalarRelationFilter, userWhereInput>
     shares?: SharesListRelationFilter
+    events?: Calendar_eventListRelationFilter
   }
 
   export type notesOrderByWithRelationInput = {
@@ -14202,6 +15457,7 @@ export namespace Prisma {
     folders?: foldersOrderByWithRelationInput
     user?: userOrderByWithRelationInput
     shares?: sharesOrderByRelationAggregateInput
+    events?: calendar_eventOrderByRelationAggregateInput
     _relevance?: notesOrderByRelevanceInput
   }
 
@@ -14222,6 +15478,7 @@ export namespace Prisma {
     folders?: XOR<FoldersNullableScalarRelationFilter, foldersWhereInput> | null
     user?: XOR<UserScalarRelationFilter, userWhereInput>
     shares?: SharesListRelationFilter
+    events?: Calendar_eventListRelationFilter
   }, "id">
 
   export type notesOrderByWithAggregationInput = {
@@ -14646,6 +15903,7 @@ export namespace Prisma {
     created_at?: DateTimeFilter<"calendar"> | Date | string
     updated_at?: DateTimeFilter<"calendar"> | Date | string
     user?: XOR<UserScalarRelationFilter, userWhereInput>
+    events?: Calendar_eventListRelationFilter
   }
 
   export type calendarOrderByWithRelationInput = {
@@ -14660,6 +15918,7 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     user?: userOrderByWithRelationInput
+    events?: calendar_eventOrderByRelationAggregateInput
     _relevance?: calendarOrderByRelevanceInput
   }
 
@@ -14679,6 +15938,7 @@ export namespace Prisma {
     created_at?: DateTimeFilter<"calendar"> | Date | string
     updated_at?: DateTimeFilter<"calendar"> | Date | string
     user?: XOR<UserScalarRelationFilter, userWhereInput>
+    events?: Calendar_eventListRelationFilter
   }, "id" | "unique_user_calendar">
 
   export type calendarOrderByWithAggregationInput = {
@@ -14711,6 +15971,106 @@ export namespace Prisma {
     color?: StringNullableWithAggregatesFilter<"calendar"> | string | null
     created_at?: DateTimeWithAggregatesFilter<"calendar"> | Date | string
     updated_at?: DateTimeWithAggregatesFilter<"calendar"> | Date | string
+  }
+
+  export type calendar_eventWhereInput = {
+    AND?: calendar_eventWhereInput | calendar_eventWhereInput[]
+    OR?: calendar_eventWhereInput[]
+    NOT?: calendar_eventWhereInput | calendar_eventWhereInput[]
+    id?: StringFilter<"calendar_event"> | string
+    calendar_id?: StringFilter<"calendar_event"> | string
+    event_id?: StringFilter<"calendar_event"> | string
+    title?: StringFilter<"calendar_event"> | string
+    description?: StringNullableFilter<"calendar_event"> | string | null
+    start_time?: DateTimeFilter<"calendar_event"> | Date | string
+    end_time?: DateTimeFilter<"calendar_event"> | Date | string
+    all_day?: BoolFilter<"calendar_event"> | boolean
+    location?: StringNullableFilter<"calendar_event"> | string | null
+    recurrence_rule?: StringNullableFilter<"calendar_event"> | string | null
+    created_at?: DateTimeFilter<"calendar_event"> | Date | string
+    updated_at?: DateTimeFilter<"calendar_event"> | Date | string
+    note_id?: StringNullableFilter<"calendar_event"> | string | null
+    calendar?: XOR<CalendarScalarRelationFilter, calendarWhereInput>
+    note?: XOR<NotesNullableScalarRelationFilter, notesWhereInput> | null
+  }
+
+  export type calendar_eventOrderByWithRelationInput = {
+    id?: SortOrder
+    calendar_id?: SortOrder
+    event_id?: SortOrder
+    title?: SortOrder
+    description?: SortOrderInput | SortOrder
+    start_time?: SortOrder
+    end_time?: SortOrder
+    all_day?: SortOrder
+    location?: SortOrderInput | SortOrder
+    recurrence_rule?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    note_id?: SortOrderInput | SortOrder
+    calendar?: calendarOrderByWithRelationInput
+    note?: notesOrderByWithRelationInput
+    _relevance?: calendar_eventOrderByRelevanceInput
+  }
+
+  export type calendar_eventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    unique_calendar_event?: calendar_eventUnique_calendar_eventCompoundUniqueInput
+    AND?: calendar_eventWhereInput | calendar_eventWhereInput[]
+    OR?: calendar_eventWhereInput[]
+    NOT?: calendar_eventWhereInput | calendar_eventWhereInput[]
+    calendar_id?: StringFilter<"calendar_event"> | string
+    event_id?: StringFilter<"calendar_event"> | string
+    title?: StringFilter<"calendar_event"> | string
+    description?: StringNullableFilter<"calendar_event"> | string | null
+    start_time?: DateTimeFilter<"calendar_event"> | Date | string
+    end_time?: DateTimeFilter<"calendar_event"> | Date | string
+    all_day?: BoolFilter<"calendar_event"> | boolean
+    location?: StringNullableFilter<"calendar_event"> | string | null
+    recurrence_rule?: StringNullableFilter<"calendar_event"> | string | null
+    created_at?: DateTimeFilter<"calendar_event"> | Date | string
+    updated_at?: DateTimeFilter<"calendar_event"> | Date | string
+    note_id?: StringNullableFilter<"calendar_event"> | string | null
+    calendar?: XOR<CalendarScalarRelationFilter, calendarWhereInput>
+    note?: XOR<NotesNullableScalarRelationFilter, notesWhereInput> | null
+  }, "id" | "unique_calendar_event">
+
+  export type calendar_eventOrderByWithAggregationInput = {
+    id?: SortOrder
+    calendar_id?: SortOrder
+    event_id?: SortOrder
+    title?: SortOrder
+    description?: SortOrderInput | SortOrder
+    start_time?: SortOrder
+    end_time?: SortOrder
+    all_day?: SortOrder
+    location?: SortOrderInput | SortOrder
+    recurrence_rule?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    note_id?: SortOrderInput | SortOrder
+    _count?: calendar_eventCountOrderByAggregateInput
+    _max?: calendar_eventMaxOrderByAggregateInput
+    _min?: calendar_eventMinOrderByAggregateInput
+  }
+
+  export type calendar_eventScalarWhereWithAggregatesInput = {
+    AND?: calendar_eventScalarWhereWithAggregatesInput | calendar_eventScalarWhereWithAggregatesInput[]
+    OR?: calendar_eventScalarWhereWithAggregatesInput[]
+    NOT?: calendar_eventScalarWhereWithAggregatesInput | calendar_eventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"calendar_event"> | string
+    calendar_id?: StringWithAggregatesFilter<"calendar_event"> | string
+    event_id?: StringWithAggregatesFilter<"calendar_event"> | string
+    title?: StringWithAggregatesFilter<"calendar_event"> | string
+    description?: StringNullableWithAggregatesFilter<"calendar_event"> | string | null
+    start_time?: DateTimeWithAggregatesFilter<"calendar_event"> | Date | string
+    end_time?: DateTimeWithAggregatesFilter<"calendar_event"> | Date | string
+    all_day?: BoolWithAggregatesFilter<"calendar_event"> | boolean
+    location?: StringNullableWithAggregatesFilter<"calendar_event"> | string | null
+    recurrence_rule?: StringNullableWithAggregatesFilter<"calendar_event"> | string | null
+    created_at?: DateTimeWithAggregatesFilter<"calendar_event"> | Date | string
+    updated_at?: DateTimeWithAggregatesFilter<"calendar_event"> | Date | string
+    note_id?: StringNullableWithAggregatesFilter<"calendar_event"> | string | null
   }
 
   export type calendar_integration_settingsWhereInput = {
@@ -14995,6 +16355,7 @@ export namespace Prisma {
     folders?: foldersCreateNestedOneWithoutNotesInput
     user: userCreateNestedOneWithoutNotesInput
     shares?: sharesCreateNestedManyWithoutNotesInput
+    events?: calendar_eventCreateNestedManyWithoutNoteInput
   }
 
   export type notesUncheckedCreateInput = {
@@ -15009,6 +16370,7 @@ export namespace Prisma {
     is_public?: boolean | null
     note_tags?: note_tagsUncheckedCreateNestedManyWithoutNotesInput
     shares?: sharesUncheckedCreateNestedManyWithoutNotesInput
+    events?: calendar_eventUncheckedCreateNestedManyWithoutNoteInput
   }
 
   export type notesUpdateInput = {
@@ -15023,6 +16385,7 @@ export namespace Prisma {
     folders?: foldersUpdateOneWithoutNotesNestedInput
     user?: userUpdateOneRequiredWithoutNotesNestedInput
     shares?: sharesUpdateManyWithoutNotesNestedInput
+    events?: calendar_eventUpdateManyWithoutNoteNestedInput
   }
 
   export type notesUncheckedUpdateInput = {
@@ -15037,6 +16400,7 @@ export namespace Prisma {
     is_public?: NullableBoolFieldUpdateOperationsInput | boolean | null
     note_tags?: note_tagsUncheckedUpdateManyWithoutNotesNestedInput
     shares?: sharesUncheckedUpdateManyWithoutNotesNestedInput
+    events?: calendar_eventUncheckedUpdateManyWithoutNoteNestedInput
   }
 
   export type notesCreateManyInput = {
@@ -15484,6 +16848,7 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     user: userCreateNestedOneWithoutCalendarsInput
+    events?: calendar_eventCreateNestedManyWithoutCalendarInput
   }
 
   export type calendarUncheckedCreateInput = {
@@ -15497,6 +16862,7 @@ export namespace Prisma {
     color?: string | null
     created_at?: Date | string
     updated_at?: Date | string
+    events?: calendar_eventUncheckedCreateNestedManyWithoutCalendarInput
   }
 
   export type calendarUpdateInput = {
@@ -15510,6 +16876,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: userUpdateOneRequiredWithoutCalendarsNestedInput
+    events?: calendar_eventUpdateManyWithoutCalendarNestedInput
   }
 
   export type calendarUncheckedUpdateInput = {
@@ -15523,6 +16890,7 @@ export namespace Prisma {
     color?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    events?: calendar_eventUncheckedUpdateManyWithoutCalendarNestedInput
   }
 
   export type calendarCreateManyInput = {
@@ -15561,6 +16929,116 @@ export namespace Prisma {
     color?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type calendar_eventCreateInput = {
+    id: string
+    event_id: string
+    title: string
+    description?: string | null
+    start_time: Date | string
+    end_time: Date | string
+    all_day?: boolean
+    location?: string | null
+    recurrence_rule?: string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    calendar: calendarCreateNestedOneWithoutEventsInput
+    note?: notesCreateNestedOneWithoutEventsInput
+  }
+
+  export type calendar_eventUncheckedCreateInput = {
+    id: string
+    calendar_id: string
+    event_id: string
+    title: string
+    description?: string | null
+    start_time: Date | string
+    end_time: Date | string
+    all_day?: boolean
+    location?: string | null
+    recurrence_rule?: string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    note_id?: string | null
+  }
+
+  export type calendar_eventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    event_id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    start_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    end_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    all_day?: BoolFieldUpdateOperationsInput | boolean
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    recurrence_rule?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    calendar?: calendarUpdateOneRequiredWithoutEventsNestedInput
+    note?: notesUpdateOneWithoutEventsNestedInput
+  }
+
+  export type calendar_eventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    calendar_id?: StringFieldUpdateOperationsInput | string
+    event_id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    start_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    end_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    all_day?: BoolFieldUpdateOperationsInput | boolean
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    recurrence_rule?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    note_id?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type calendar_eventCreateManyInput = {
+    id: string
+    calendar_id: string
+    event_id: string
+    title: string
+    description?: string | null
+    start_time: Date | string
+    end_time: Date | string
+    all_day?: boolean
+    location?: string | null
+    recurrence_rule?: string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    note_id?: string | null
+  }
+
+  export type calendar_eventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    event_id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    start_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    end_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    all_day?: BoolFieldUpdateOperationsInput | boolean
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    recurrence_rule?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type calendar_eventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    calendar_id?: StringFieldUpdateOperationsInput | string
+    event_id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    start_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    end_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    all_day?: BoolFieldUpdateOperationsInput | boolean
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    recurrence_rule?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    note_id?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type calendar_integration_settingsCreateInput = {
@@ -15909,11 +17387,21 @@ export namespace Prisma {
     none?: sharesWhereInput
   }
 
+  export type Calendar_eventListRelationFilter = {
+    every?: calendar_eventWhereInput
+    some?: calendar_eventWhereInput
+    none?: calendar_eventWhereInput
+  }
+
   export type note_tagsOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type sharesOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type calendar_eventOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -16300,6 +17788,75 @@ export namespace Prisma {
     updated_at?: SortOrder
   }
 
+  export type CalendarScalarRelationFilter = {
+    is?: calendarWhereInput
+    isNot?: calendarWhereInput
+  }
+
+  export type NotesNullableScalarRelationFilter = {
+    is?: notesWhereInput | null
+    isNot?: notesWhereInput | null
+  }
+
+  export type calendar_eventOrderByRelevanceInput = {
+    fields: calendar_eventOrderByRelevanceFieldEnum | calendar_eventOrderByRelevanceFieldEnum[]
+    sort: SortOrder
+    search: string
+  }
+
+  export type calendar_eventUnique_calendar_eventCompoundUniqueInput = {
+    calendar_id: string
+    event_id: string
+  }
+
+  export type calendar_eventCountOrderByAggregateInput = {
+    id?: SortOrder
+    calendar_id?: SortOrder
+    event_id?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    start_time?: SortOrder
+    end_time?: SortOrder
+    all_day?: SortOrder
+    location?: SortOrder
+    recurrence_rule?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    note_id?: SortOrder
+  }
+
+  export type calendar_eventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    calendar_id?: SortOrder
+    event_id?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    start_time?: SortOrder
+    end_time?: SortOrder
+    all_day?: SortOrder
+    location?: SortOrder
+    recurrence_rule?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    note_id?: SortOrder
+  }
+
+  export type calendar_eventMinOrderByAggregateInput = {
+    id?: SortOrder
+    calendar_id?: SortOrder
+    event_id?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    start_time?: SortOrder
+    end_time?: SortOrder
+    all_day?: SortOrder
+    location?: SortOrder
+    recurrence_rule?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    note_id?: SortOrder
+  }
+
   export type calendar_integration_settingsOrderByRelevanceInput = {
     fields: calendar_integration_settingsOrderByRelevanceFieldEnum | calendar_integration_settingsOrderByRelevanceFieldEnum[]
     sort: SortOrder
@@ -16528,6 +18085,13 @@ export namespace Prisma {
     connect?: sharesWhereUniqueInput | sharesWhereUniqueInput[]
   }
 
+  export type calendar_eventCreateNestedManyWithoutNoteInput = {
+    create?: XOR<calendar_eventCreateWithoutNoteInput, calendar_eventUncheckedCreateWithoutNoteInput> | calendar_eventCreateWithoutNoteInput[] | calendar_eventUncheckedCreateWithoutNoteInput[]
+    connectOrCreate?: calendar_eventCreateOrConnectWithoutNoteInput | calendar_eventCreateOrConnectWithoutNoteInput[]
+    createMany?: calendar_eventCreateManyNoteInputEnvelope
+    connect?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+  }
+
   export type note_tagsUncheckedCreateNestedManyWithoutNotesInput = {
     create?: XOR<note_tagsCreateWithoutNotesInput, note_tagsUncheckedCreateWithoutNotesInput> | note_tagsCreateWithoutNotesInput[] | note_tagsUncheckedCreateWithoutNotesInput[]
     connectOrCreate?: note_tagsCreateOrConnectWithoutNotesInput | note_tagsCreateOrConnectWithoutNotesInput[]
@@ -16540,6 +18104,13 @@ export namespace Prisma {
     connectOrCreate?: sharesCreateOrConnectWithoutNotesInput | sharesCreateOrConnectWithoutNotesInput[]
     createMany?: sharesCreateManyNotesInputEnvelope
     connect?: sharesWhereUniqueInput | sharesWhereUniqueInput[]
+  }
+
+  export type calendar_eventUncheckedCreateNestedManyWithoutNoteInput = {
+    create?: XOR<calendar_eventCreateWithoutNoteInput, calendar_eventUncheckedCreateWithoutNoteInput> | calendar_eventCreateWithoutNoteInput[] | calendar_eventUncheckedCreateWithoutNoteInput[]
+    connectOrCreate?: calendar_eventCreateOrConnectWithoutNoteInput | calendar_eventCreateOrConnectWithoutNoteInput[]
+    createMany?: calendar_eventCreateManyNoteInputEnvelope
+    connect?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
   }
 
   export type NullableBoolFieldUpdateOperationsInput = {
@@ -16592,6 +18163,20 @@ export namespace Prisma {
     deleteMany?: sharesScalarWhereInput | sharesScalarWhereInput[]
   }
 
+  export type calendar_eventUpdateManyWithoutNoteNestedInput = {
+    create?: XOR<calendar_eventCreateWithoutNoteInput, calendar_eventUncheckedCreateWithoutNoteInput> | calendar_eventCreateWithoutNoteInput[] | calendar_eventUncheckedCreateWithoutNoteInput[]
+    connectOrCreate?: calendar_eventCreateOrConnectWithoutNoteInput | calendar_eventCreateOrConnectWithoutNoteInput[]
+    upsert?: calendar_eventUpsertWithWhereUniqueWithoutNoteInput | calendar_eventUpsertWithWhereUniqueWithoutNoteInput[]
+    createMany?: calendar_eventCreateManyNoteInputEnvelope
+    set?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    disconnect?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    delete?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    connect?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    update?: calendar_eventUpdateWithWhereUniqueWithoutNoteInput | calendar_eventUpdateWithWhereUniqueWithoutNoteInput[]
+    updateMany?: calendar_eventUpdateManyWithWhereWithoutNoteInput | calendar_eventUpdateManyWithWhereWithoutNoteInput[]
+    deleteMany?: calendar_eventScalarWhereInput | calendar_eventScalarWhereInput[]
+  }
+
   export type note_tagsUncheckedUpdateManyWithoutNotesNestedInput = {
     create?: XOR<note_tagsCreateWithoutNotesInput, note_tagsUncheckedCreateWithoutNotesInput> | note_tagsCreateWithoutNotesInput[] | note_tagsUncheckedCreateWithoutNotesInput[]
     connectOrCreate?: note_tagsCreateOrConnectWithoutNotesInput | note_tagsCreateOrConnectWithoutNotesInput[]
@@ -16618,6 +18203,20 @@ export namespace Prisma {
     update?: sharesUpdateWithWhereUniqueWithoutNotesInput | sharesUpdateWithWhereUniqueWithoutNotesInput[]
     updateMany?: sharesUpdateManyWithWhereWithoutNotesInput | sharesUpdateManyWithWhereWithoutNotesInput[]
     deleteMany?: sharesScalarWhereInput | sharesScalarWhereInput[]
+  }
+
+  export type calendar_eventUncheckedUpdateManyWithoutNoteNestedInput = {
+    create?: XOR<calendar_eventCreateWithoutNoteInput, calendar_eventUncheckedCreateWithoutNoteInput> | calendar_eventCreateWithoutNoteInput[] | calendar_eventUncheckedCreateWithoutNoteInput[]
+    connectOrCreate?: calendar_eventCreateOrConnectWithoutNoteInput | calendar_eventCreateOrConnectWithoutNoteInput[]
+    upsert?: calendar_eventUpsertWithWhereUniqueWithoutNoteInput | calendar_eventUpsertWithWhereUniqueWithoutNoteInput[]
+    createMany?: calendar_eventCreateManyNoteInputEnvelope
+    set?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    disconnect?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    delete?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    connect?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    update?: calendar_eventUpdateWithWhereUniqueWithoutNoteInput | calendar_eventUpdateWithWhereUniqueWithoutNoteInput[]
+    updateMany?: calendar_eventUpdateManyWithWhereWithoutNoteInput | calendar_eventUpdateManyWithWhereWithoutNoteInput[]
+    deleteMany?: calendar_eventScalarWhereInput | calendar_eventScalarWhereInput[]
   }
 
   export type Enumpending_shares_permissionFieldUpdateOperationsInput = {
@@ -17006,12 +18605,84 @@ export namespace Prisma {
     connect?: userWhereUniqueInput
   }
 
+  export type calendar_eventCreateNestedManyWithoutCalendarInput = {
+    create?: XOR<calendar_eventCreateWithoutCalendarInput, calendar_eventUncheckedCreateWithoutCalendarInput> | calendar_eventCreateWithoutCalendarInput[] | calendar_eventUncheckedCreateWithoutCalendarInput[]
+    connectOrCreate?: calendar_eventCreateOrConnectWithoutCalendarInput | calendar_eventCreateOrConnectWithoutCalendarInput[]
+    createMany?: calendar_eventCreateManyCalendarInputEnvelope
+    connect?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+  }
+
+  export type calendar_eventUncheckedCreateNestedManyWithoutCalendarInput = {
+    create?: XOR<calendar_eventCreateWithoutCalendarInput, calendar_eventUncheckedCreateWithoutCalendarInput> | calendar_eventCreateWithoutCalendarInput[] | calendar_eventUncheckedCreateWithoutCalendarInput[]
+    connectOrCreate?: calendar_eventCreateOrConnectWithoutCalendarInput | calendar_eventCreateOrConnectWithoutCalendarInput[]
+    createMany?: calendar_eventCreateManyCalendarInputEnvelope
+    connect?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+  }
+
   export type userUpdateOneRequiredWithoutCalendarsNestedInput = {
     create?: XOR<userCreateWithoutCalendarsInput, userUncheckedCreateWithoutCalendarsInput>
     connectOrCreate?: userCreateOrConnectWithoutCalendarsInput
     upsert?: userUpsertWithoutCalendarsInput
     connect?: userWhereUniqueInput
     update?: XOR<XOR<userUpdateToOneWithWhereWithoutCalendarsInput, userUpdateWithoutCalendarsInput>, userUncheckedUpdateWithoutCalendarsInput>
+  }
+
+  export type calendar_eventUpdateManyWithoutCalendarNestedInput = {
+    create?: XOR<calendar_eventCreateWithoutCalendarInput, calendar_eventUncheckedCreateWithoutCalendarInput> | calendar_eventCreateWithoutCalendarInput[] | calendar_eventUncheckedCreateWithoutCalendarInput[]
+    connectOrCreate?: calendar_eventCreateOrConnectWithoutCalendarInput | calendar_eventCreateOrConnectWithoutCalendarInput[]
+    upsert?: calendar_eventUpsertWithWhereUniqueWithoutCalendarInput | calendar_eventUpsertWithWhereUniqueWithoutCalendarInput[]
+    createMany?: calendar_eventCreateManyCalendarInputEnvelope
+    set?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    disconnect?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    delete?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    connect?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    update?: calendar_eventUpdateWithWhereUniqueWithoutCalendarInput | calendar_eventUpdateWithWhereUniqueWithoutCalendarInput[]
+    updateMany?: calendar_eventUpdateManyWithWhereWithoutCalendarInput | calendar_eventUpdateManyWithWhereWithoutCalendarInput[]
+    deleteMany?: calendar_eventScalarWhereInput | calendar_eventScalarWhereInput[]
+  }
+
+  export type calendar_eventUncheckedUpdateManyWithoutCalendarNestedInput = {
+    create?: XOR<calendar_eventCreateWithoutCalendarInput, calendar_eventUncheckedCreateWithoutCalendarInput> | calendar_eventCreateWithoutCalendarInput[] | calendar_eventUncheckedCreateWithoutCalendarInput[]
+    connectOrCreate?: calendar_eventCreateOrConnectWithoutCalendarInput | calendar_eventCreateOrConnectWithoutCalendarInput[]
+    upsert?: calendar_eventUpsertWithWhereUniqueWithoutCalendarInput | calendar_eventUpsertWithWhereUniqueWithoutCalendarInput[]
+    createMany?: calendar_eventCreateManyCalendarInputEnvelope
+    set?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    disconnect?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    delete?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    connect?: calendar_eventWhereUniqueInput | calendar_eventWhereUniqueInput[]
+    update?: calendar_eventUpdateWithWhereUniqueWithoutCalendarInput | calendar_eventUpdateWithWhereUniqueWithoutCalendarInput[]
+    updateMany?: calendar_eventUpdateManyWithWhereWithoutCalendarInput | calendar_eventUpdateManyWithWhereWithoutCalendarInput[]
+    deleteMany?: calendar_eventScalarWhereInput | calendar_eventScalarWhereInput[]
+  }
+
+  export type calendarCreateNestedOneWithoutEventsInput = {
+    create?: XOR<calendarCreateWithoutEventsInput, calendarUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: calendarCreateOrConnectWithoutEventsInput
+    connect?: calendarWhereUniqueInput
+  }
+
+  export type notesCreateNestedOneWithoutEventsInput = {
+    create?: XOR<notesCreateWithoutEventsInput, notesUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: notesCreateOrConnectWithoutEventsInput
+    connect?: notesWhereUniqueInput
+  }
+
+  export type calendarUpdateOneRequiredWithoutEventsNestedInput = {
+    create?: XOR<calendarCreateWithoutEventsInput, calendarUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: calendarCreateOrConnectWithoutEventsInput
+    upsert?: calendarUpsertWithoutEventsInput
+    connect?: calendarWhereUniqueInput
+    update?: XOR<XOR<calendarUpdateToOneWithWhereWithoutEventsInput, calendarUpdateWithoutEventsInput>, calendarUncheckedUpdateWithoutEventsInput>
+  }
+
+  export type notesUpdateOneWithoutEventsNestedInput = {
+    create?: XOR<notesCreateWithoutEventsInput, notesUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: notesCreateOrConnectWithoutEventsInput
+    upsert?: notesUpsertWithoutEventsInput
+    disconnect?: notesWhereInput | boolean
+    delete?: notesWhereInput | boolean
+    connect?: notesWhereUniqueInput
+    update?: XOR<XOR<notesUpdateToOneWithWhereWithoutEventsInput, notesUpdateWithoutEventsInput>, notesUncheckedUpdateWithoutEventsInput>
   }
 
   export type userCreateNestedOneWithoutCalendarIntegrationSettingsInput = {
@@ -17409,6 +19080,7 @@ export namespace Prisma {
     note_tags?: note_tagsCreateNestedManyWithoutNotesInput
     user: userCreateNestedOneWithoutNotesInput
     shares?: sharesCreateNestedManyWithoutNotesInput
+    events?: calendar_eventCreateNestedManyWithoutNoteInput
   }
 
   export type notesUncheckedCreateWithoutFoldersInput = {
@@ -17422,6 +19094,7 @@ export namespace Prisma {
     is_public?: boolean | null
     note_tags?: note_tagsUncheckedCreateNestedManyWithoutNotesInput
     shares?: sharesUncheckedCreateNestedManyWithoutNotesInput
+    events?: calendar_eventUncheckedCreateNestedManyWithoutNoteInput
   }
 
   export type notesCreateOrConnectWithoutFoldersInput = {
@@ -17578,6 +19251,7 @@ export namespace Prisma {
     folders?: foldersCreateNestedOneWithoutNotesInput
     user: userCreateNestedOneWithoutNotesInput
     shares?: sharesCreateNestedManyWithoutNotesInput
+    events?: calendar_eventCreateNestedManyWithoutNoteInput
   }
 
   export type notesUncheckedCreateWithoutNote_tagsInput = {
@@ -17591,6 +19265,7 @@ export namespace Prisma {
     is_pinned?: boolean | null
     is_public?: boolean | null
     shares?: sharesUncheckedCreateNestedManyWithoutNotesInput
+    events?: calendar_eventUncheckedCreateNestedManyWithoutNoteInput
   }
 
   export type notesCreateOrConnectWithoutNote_tagsInput = {
@@ -17639,6 +19314,7 @@ export namespace Prisma {
     folders?: foldersUpdateOneWithoutNotesNestedInput
     user?: userUpdateOneRequiredWithoutNotesNestedInput
     shares?: sharesUpdateManyWithoutNotesNestedInput
+    events?: calendar_eventUpdateManyWithoutNoteNestedInput
   }
 
   export type notesUncheckedUpdateWithoutNote_tagsInput = {
@@ -17652,6 +19328,7 @@ export namespace Prisma {
     is_pinned?: NullableBoolFieldUpdateOperationsInput | boolean | null
     is_public?: NullableBoolFieldUpdateOperationsInput | boolean | null
     shares?: sharesUncheckedUpdateManyWithoutNotesNestedInput
+    events?: calendar_eventUncheckedUpdateManyWithoutNoteNestedInput
   }
 
   export type tagsUpsertWithoutNote_tagsInput = {
@@ -17785,6 +19462,46 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type calendar_eventCreateWithoutNoteInput = {
+    id: string
+    event_id: string
+    title: string
+    description?: string | null
+    start_time: Date | string
+    end_time: Date | string
+    all_day?: boolean
+    location?: string | null
+    recurrence_rule?: string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    calendar: calendarCreateNestedOneWithoutEventsInput
+  }
+
+  export type calendar_eventUncheckedCreateWithoutNoteInput = {
+    id: string
+    calendar_id: string
+    event_id: string
+    title: string
+    description?: string | null
+    start_time: Date | string
+    end_time: Date | string
+    all_day?: boolean
+    location?: string | null
+    recurrence_rule?: string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type calendar_eventCreateOrConnectWithoutNoteInput = {
+    where: calendar_eventWhereUniqueInput
+    create: XOR<calendar_eventCreateWithoutNoteInput, calendar_eventUncheckedCreateWithoutNoteInput>
+  }
+
+  export type calendar_eventCreateManyNoteInputEnvelope = {
+    data: calendar_eventCreateManyNoteInput | calendar_eventCreateManyNoteInput[]
+    skipDuplicates?: boolean
+  }
+
   export type note_tagsUpsertWithWhereUniqueWithoutNotesInput = {
     where: note_tagsWhereUniqueInput
     update: XOR<note_tagsUpdateWithoutNotesInput, note_tagsUncheckedUpdateWithoutNotesInput>
@@ -17911,6 +19628,41 @@ export namespace Prisma {
     permission?: Enumshares_permissionNullableFilter<"shares"> | $Enums.shares_permission | null
   }
 
+  export type calendar_eventUpsertWithWhereUniqueWithoutNoteInput = {
+    where: calendar_eventWhereUniqueInput
+    update: XOR<calendar_eventUpdateWithoutNoteInput, calendar_eventUncheckedUpdateWithoutNoteInput>
+    create: XOR<calendar_eventCreateWithoutNoteInput, calendar_eventUncheckedCreateWithoutNoteInput>
+  }
+
+  export type calendar_eventUpdateWithWhereUniqueWithoutNoteInput = {
+    where: calendar_eventWhereUniqueInput
+    data: XOR<calendar_eventUpdateWithoutNoteInput, calendar_eventUncheckedUpdateWithoutNoteInput>
+  }
+
+  export type calendar_eventUpdateManyWithWhereWithoutNoteInput = {
+    where: calendar_eventScalarWhereInput
+    data: XOR<calendar_eventUpdateManyMutationInput, calendar_eventUncheckedUpdateManyWithoutNoteInput>
+  }
+
+  export type calendar_eventScalarWhereInput = {
+    AND?: calendar_eventScalarWhereInput | calendar_eventScalarWhereInput[]
+    OR?: calendar_eventScalarWhereInput[]
+    NOT?: calendar_eventScalarWhereInput | calendar_eventScalarWhereInput[]
+    id?: StringFilter<"calendar_event"> | string
+    calendar_id?: StringFilter<"calendar_event"> | string
+    event_id?: StringFilter<"calendar_event"> | string
+    title?: StringFilter<"calendar_event"> | string
+    description?: StringNullableFilter<"calendar_event"> | string | null
+    start_time?: DateTimeFilter<"calendar_event"> | Date | string
+    end_time?: DateTimeFilter<"calendar_event"> | Date | string
+    all_day?: BoolFilter<"calendar_event"> | boolean
+    location?: StringNullableFilter<"calendar_event"> | string | null
+    recurrence_rule?: StringNullableFilter<"calendar_event"> | string | null
+    created_at?: DateTimeFilter<"calendar_event"> | Date | string
+    updated_at?: DateTimeFilter<"calendar_event"> | Date | string
+    note_id?: StringNullableFilter<"calendar_event"> | string | null
+  }
+
   export type notesCreateWithoutSharesInput = {
     id: string
     name: string
@@ -17922,6 +19674,7 @@ export namespace Prisma {
     note_tags?: note_tagsCreateNestedManyWithoutNotesInput
     folders?: foldersCreateNestedOneWithoutNotesInput
     user: userCreateNestedOneWithoutNotesInput
+    events?: calendar_eventCreateNestedManyWithoutNoteInput
   }
 
   export type notesUncheckedCreateWithoutSharesInput = {
@@ -17935,6 +19688,7 @@ export namespace Prisma {
     is_pinned?: boolean | null
     is_public?: boolean | null
     note_tags?: note_tagsUncheckedCreateNestedManyWithoutNotesInput
+    events?: calendar_eventUncheckedCreateNestedManyWithoutNoteInput
   }
 
   export type notesCreateOrConnectWithoutSharesInput = {
@@ -18001,6 +19755,7 @@ export namespace Prisma {
     note_tags?: note_tagsUpdateManyWithoutNotesNestedInput
     folders?: foldersUpdateOneWithoutNotesNestedInput
     user?: userUpdateOneRequiredWithoutNotesNestedInput
+    events?: calendar_eventUpdateManyWithoutNoteNestedInput
   }
 
   export type notesUncheckedUpdateWithoutSharesInput = {
@@ -18014,6 +19769,7 @@ export namespace Prisma {
     is_pinned?: NullableBoolFieldUpdateOperationsInput | boolean | null
     is_public?: NullableBoolFieldUpdateOperationsInput | boolean | null
     note_tags?: note_tagsUncheckedUpdateManyWithoutNotesNestedInput
+    events?: calendar_eventUncheckedUpdateManyWithoutNoteNestedInput
   }
 
   export type userUpsertWithoutSharesInput = {
@@ -18214,6 +19970,7 @@ export namespace Prisma {
     note_tags?: note_tagsCreateNestedManyWithoutNotesInput
     folders?: foldersCreateNestedOneWithoutNotesInput
     shares?: sharesCreateNestedManyWithoutNotesInput
+    events?: calendar_eventCreateNestedManyWithoutNoteInput
   }
 
   export type notesUncheckedCreateWithoutUserInput = {
@@ -18227,6 +19984,7 @@ export namespace Prisma {
     is_public?: boolean | null
     note_tags?: note_tagsUncheckedCreateNestedManyWithoutNotesInput
     shares?: sharesUncheckedCreateNestedManyWithoutNotesInput
+    events?: calendar_eventUncheckedCreateNestedManyWithoutNoteInput
   }
 
   export type notesCreateOrConnectWithoutUserInput = {
@@ -18339,6 +20097,7 @@ export namespace Prisma {
     color?: string | null
     created_at?: Date | string
     updated_at?: Date | string
+    events?: calendar_eventCreateNestedManyWithoutCalendarInput
   }
 
   export type calendarUncheckedCreateWithoutUserInput = {
@@ -18351,6 +20110,7 @@ export namespace Prisma {
     color?: string | null
     created_at?: Date | string
     updated_at?: Date | string
+    events?: calendar_eventUncheckedCreateNestedManyWithoutCalendarInput
   }
 
   export type calendarCreateOrConnectWithoutUserInput = {
@@ -18585,6 +20345,46 @@ export namespace Prisma {
     create: XOR<userCreateWithoutCalendarsInput, userUncheckedCreateWithoutCalendarsInput>
   }
 
+  export type calendar_eventCreateWithoutCalendarInput = {
+    id: string
+    event_id: string
+    title: string
+    description?: string | null
+    start_time: Date | string
+    end_time: Date | string
+    all_day?: boolean
+    location?: string | null
+    recurrence_rule?: string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    note?: notesCreateNestedOneWithoutEventsInput
+  }
+
+  export type calendar_eventUncheckedCreateWithoutCalendarInput = {
+    id: string
+    event_id: string
+    title: string
+    description?: string | null
+    start_time: Date | string
+    end_time: Date | string
+    all_day?: boolean
+    location?: string | null
+    recurrence_rule?: string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    note_id?: string | null
+  }
+
+  export type calendar_eventCreateOrConnectWithoutCalendarInput = {
+    where: calendar_eventWhereUniqueInput
+    create: XOR<calendar_eventCreateWithoutCalendarInput, calendar_eventUncheckedCreateWithoutCalendarInput>
+  }
+
+  export type calendar_eventCreateManyCalendarInputEnvelope = {
+    data: calendar_eventCreateManyCalendarInput | calendar_eventCreateManyCalendarInput[]
+    skipDuplicates?: boolean
+  }
+
   export type userUpsertWithoutCalendarsInput = {
     update: XOR<userUpdateWithoutCalendarsInput, userUncheckedUpdateWithoutCalendarsInput>
     create: XOR<userCreateWithoutCalendarsInput, userUncheckedCreateWithoutCalendarsInput>
@@ -18626,6 +20426,162 @@ export namespace Prisma {
     tags?: tagsUncheckedUpdateManyWithoutUserNestedInput
     accounts?: accountUncheckedUpdateManyWithoutUserNestedInput
     calendarIntegrationSettings?: calendar_integration_settingsUncheckedUpdateOneWithoutUserNestedInput
+  }
+
+  export type calendar_eventUpsertWithWhereUniqueWithoutCalendarInput = {
+    where: calendar_eventWhereUniqueInput
+    update: XOR<calendar_eventUpdateWithoutCalendarInput, calendar_eventUncheckedUpdateWithoutCalendarInput>
+    create: XOR<calendar_eventCreateWithoutCalendarInput, calendar_eventUncheckedCreateWithoutCalendarInput>
+  }
+
+  export type calendar_eventUpdateWithWhereUniqueWithoutCalendarInput = {
+    where: calendar_eventWhereUniqueInput
+    data: XOR<calendar_eventUpdateWithoutCalendarInput, calendar_eventUncheckedUpdateWithoutCalendarInput>
+  }
+
+  export type calendar_eventUpdateManyWithWhereWithoutCalendarInput = {
+    where: calendar_eventScalarWhereInput
+    data: XOR<calendar_eventUpdateManyMutationInput, calendar_eventUncheckedUpdateManyWithoutCalendarInput>
+  }
+
+  export type calendarCreateWithoutEventsInput = {
+    id: string
+    provider_id: string
+    calendar_name: string
+    calendar_id: string
+    is_primary?: boolean
+    is_enabled?: boolean
+    color?: string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    user: userCreateNestedOneWithoutCalendarsInput
+  }
+
+  export type calendarUncheckedCreateWithoutEventsInput = {
+    id: string
+    user_id: string
+    provider_id: string
+    calendar_name: string
+    calendar_id: string
+    is_primary?: boolean
+    is_enabled?: boolean
+    color?: string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type calendarCreateOrConnectWithoutEventsInput = {
+    where: calendarWhereUniqueInput
+    create: XOR<calendarCreateWithoutEventsInput, calendarUncheckedCreateWithoutEventsInput>
+  }
+
+  export type notesCreateWithoutEventsInput = {
+    id: string
+    name: string
+    content?: string | null
+    created_at?: Date | string | null
+    updated_at?: Date | string | null
+    is_pinned?: boolean | null
+    is_public?: boolean | null
+    note_tags?: note_tagsCreateNestedManyWithoutNotesInput
+    folders?: foldersCreateNestedOneWithoutNotesInput
+    user: userCreateNestedOneWithoutNotesInput
+    shares?: sharesCreateNestedManyWithoutNotesInput
+  }
+
+  export type notesUncheckedCreateWithoutEventsInput = {
+    id: string
+    name: string
+    content?: string | null
+    user_id: string
+    parent_id?: string | null
+    created_at?: Date | string | null
+    updated_at?: Date | string | null
+    is_pinned?: boolean | null
+    is_public?: boolean | null
+    note_tags?: note_tagsUncheckedCreateNestedManyWithoutNotesInput
+    shares?: sharesUncheckedCreateNestedManyWithoutNotesInput
+  }
+
+  export type notesCreateOrConnectWithoutEventsInput = {
+    where: notesWhereUniqueInput
+    create: XOR<notesCreateWithoutEventsInput, notesUncheckedCreateWithoutEventsInput>
+  }
+
+  export type calendarUpsertWithoutEventsInput = {
+    update: XOR<calendarUpdateWithoutEventsInput, calendarUncheckedUpdateWithoutEventsInput>
+    create: XOR<calendarCreateWithoutEventsInput, calendarUncheckedCreateWithoutEventsInput>
+    where?: calendarWhereInput
+  }
+
+  export type calendarUpdateToOneWithWhereWithoutEventsInput = {
+    where?: calendarWhereInput
+    data: XOR<calendarUpdateWithoutEventsInput, calendarUncheckedUpdateWithoutEventsInput>
+  }
+
+  export type calendarUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider_id?: StringFieldUpdateOperationsInput | string
+    calendar_name?: StringFieldUpdateOperationsInput | string
+    calendar_id?: StringFieldUpdateOperationsInput | string
+    is_primary?: BoolFieldUpdateOperationsInput | boolean
+    is_enabled?: BoolFieldUpdateOperationsInput | boolean
+    color?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: userUpdateOneRequiredWithoutCalendarsNestedInput
+  }
+
+  export type calendarUncheckedUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    provider_id?: StringFieldUpdateOperationsInput | string
+    calendar_name?: StringFieldUpdateOperationsInput | string
+    calendar_id?: StringFieldUpdateOperationsInput | string
+    is_primary?: BoolFieldUpdateOperationsInput | boolean
+    is_enabled?: BoolFieldUpdateOperationsInput | boolean
+    color?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type notesUpsertWithoutEventsInput = {
+    update: XOR<notesUpdateWithoutEventsInput, notesUncheckedUpdateWithoutEventsInput>
+    create: XOR<notesCreateWithoutEventsInput, notesUncheckedCreateWithoutEventsInput>
+    where?: notesWhereInput
+  }
+
+  export type notesUpdateToOneWithWhereWithoutEventsInput = {
+    where?: notesWhereInput
+    data: XOR<notesUpdateWithoutEventsInput, notesUncheckedUpdateWithoutEventsInput>
+  }
+
+  export type notesUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    content?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    is_pinned?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    is_public?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    note_tags?: note_tagsUpdateManyWithoutNotesNestedInput
+    folders?: foldersUpdateOneWithoutNotesNestedInput
+    user?: userUpdateOneRequiredWithoutNotesNestedInput
+    shares?: sharesUpdateManyWithoutNotesNestedInput
+  }
+
+  export type notesUncheckedUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    content?: NullableStringFieldUpdateOperationsInput | string | null
+    user_id?: StringFieldUpdateOperationsInput | string
+    parent_id?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updated_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    is_pinned?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    is_public?: NullableBoolFieldUpdateOperationsInput | boolean | null
+    note_tags?: note_tagsUncheckedUpdateManyWithoutNotesNestedInput
+    shares?: sharesUncheckedUpdateManyWithoutNotesNestedInput
   }
 
   export type userCreateWithoutCalendarIntegrationSettingsInput = {
@@ -18766,6 +20722,7 @@ export namespace Prisma {
     note_tags?: note_tagsUpdateManyWithoutNotesNestedInput
     user?: userUpdateOneRequiredWithoutNotesNestedInput
     shares?: sharesUpdateManyWithoutNotesNestedInput
+    events?: calendar_eventUpdateManyWithoutNoteNestedInput
   }
 
   export type notesUncheckedUpdateWithoutFoldersInput = {
@@ -18779,6 +20736,7 @@ export namespace Prisma {
     is_public?: NullableBoolFieldUpdateOperationsInput | boolean | null
     note_tags?: note_tagsUncheckedUpdateManyWithoutNotesNestedInput
     shares?: sharesUncheckedUpdateManyWithoutNotesNestedInput
+    events?: calendar_eventUncheckedUpdateManyWithoutNoteNestedInput
   }
 
   export type notesUncheckedUpdateManyWithoutFoldersInput = {
@@ -18802,6 +20760,21 @@ export namespace Prisma {
     created_at?: Date | string | null
     expires_at?: Date | string | null
     permission?: $Enums.shares_permission | null
+  }
+
+  export type calendar_eventCreateManyNoteInput = {
+    id: string
+    calendar_id: string
+    event_id: string
+    title: string
+    description?: string | null
+    start_time: Date | string
+    end_time: Date | string
+    all_day?: boolean
+    location?: string | null
+    recurrence_rule?: string | null
+    created_at?: Date | string
+    updated_at?: Date | string
   }
 
   export type note_tagsUpdateWithoutNotesInput = {
@@ -18838,6 +20811,51 @@ export namespace Prisma {
     created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     permission?: NullableEnumshares_permissionFieldUpdateOperationsInput | $Enums.shares_permission | null
+  }
+
+  export type calendar_eventUpdateWithoutNoteInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    event_id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    start_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    end_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    all_day?: BoolFieldUpdateOperationsInput | boolean
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    recurrence_rule?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    calendar?: calendarUpdateOneRequiredWithoutEventsNestedInput
+  }
+
+  export type calendar_eventUncheckedUpdateWithoutNoteInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    calendar_id?: StringFieldUpdateOperationsInput | string
+    event_id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    start_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    end_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    all_day?: BoolFieldUpdateOperationsInput | boolean
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    recurrence_rule?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type calendar_eventUncheckedUpdateManyWithoutNoteInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    calendar_id?: StringFieldUpdateOperationsInput | string
+    event_id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    start_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    end_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    all_day?: BoolFieldUpdateOperationsInput | boolean
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    recurrence_rule?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type note_tagsCreateManyTagsInput = {
@@ -18955,6 +20973,7 @@ export namespace Prisma {
     note_tags?: note_tagsUpdateManyWithoutNotesNestedInput
     folders?: foldersUpdateOneWithoutNotesNestedInput
     shares?: sharesUpdateManyWithoutNotesNestedInput
+    events?: calendar_eventUpdateManyWithoutNoteNestedInput
   }
 
   export type notesUncheckedUpdateWithoutUserInput = {
@@ -18968,6 +20987,7 @@ export namespace Prisma {
     is_public?: NullableBoolFieldUpdateOperationsInput | boolean | null
     note_tags?: note_tagsUncheckedUpdateManyWithoutNotesNestedInput
     shares?: sharesUncheckedUpdateManyWithoutNotesNestedInput
+    events?: calendar_eventUncheckedUpdateManyWithoutNoteNestedInput
   }
 
   export type notesUncheckedUpdateManyWithoutUserInput = {
@@ -19080,6 +21100,7 @@ export namespace Prisma {
     color?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    events?: calendar_eventUpdateManyWithoutCalendarNestedInput
   }
 
   export type calendarUncheckedUpdateWithoutUserInput = {
@@ -19092,6 +21113,7 @@ export namespace Prisma {
     color?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    events?: calendar_eventUncheckedUpdateManyWithoutCalendarNestedInput
   }
 
   export type calendarUncheckedUpdateManyWithoutUserInput = {
@@ -19104,6 +21126,66 @@ export namespace Prisma {
     color?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type calendar_eventCreateManyCalendarInput = {
+    id: string
+    event_id: string
+    title: string
+    description?: string | null
+    start_time: Date | string
+    end_time: Date | string
+    all_day?: boolean
+    location?: string | null
+    recurrence_rule?: string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    note_id?: string | null
+  }
+
+  export type calendar_eventUpdateWithoutCalendarInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    event_id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    start_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    end_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    all_day?: BoolFieldUpdateOperationsInput | boolean
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    recurrence_rule?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    note?: notesUpdateOneWithoutEventsNestedInput
+  }
+
+  export type calendar_eventUncheckedUpdateWithoutCalendarInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    event_id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    start_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    end_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    all_day?: BoolFieldUpdateOperationsInput | boolean
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    recurrence_rule?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    note_id?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type calendar_eventUncheckedUpdateManyWithoutCalendarInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    event_id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    start_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    end_time?: DateTimeFieldUpdateOperationsInput | Date | string
+    all_day?: BoolFieldUpdateOperationsInput | boolean
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    recurrence_rule?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    note_id?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
 

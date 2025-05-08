@@ -27,7 +27,7 @@ import { useEffect, useState } from "react";
 
 export function CalendarSettings() {
   const { toast } = useToast();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [googleAuthStatus, setGoogleAuthStatus] = useState<{
@@ -48,26 +48,6 @@ export function CalendarSettings() {
   } = useCalendar();
 
   const { user } = useAuth();
-
-  // Check if user has connected Google account
-  const checkGoogleAuthStatus = async () => {
-    try {
-      // This would be an API call to check if the user has connected their Google account
-      const response = await fetch("/api/auth/google/status");
-      const data = await response.json();
-
-      console.log("Google auth status:", data);
-
-      setGoogleAuthStatus({
-        connected: data.connected,
-        email: data.email,
-        accessToken: data.accessToken,
-      });
-    } catch (error) {
-      console.error("Error checking Google auth status:", error);
-      setGoogleAuthStatus({ connected: false });
-    }
-  };
 
   // Load calendars when component mounts if the user is authenticated
   // and integration is enabled
@@ -100,7 +80,10 @@ export function CalendarSettings() {
       // Use Better Auth's social signin with Google provider
       await authClient.linkSocial({
         provider: "google",
-        scopes: ["https://www.googleapis.com/auth/calendar.readonly"],
+        scopes: [
+          "https://www.googleapis.com/auth/calendar.readonly",
+          "https://www.googleapis.com/auth/calendar.events.readonly",
+        ],
       });
       setIsLoading(false);
     } catch (error) {

@@ -225,6 +225,22 @@ exports.Prisma.CalendarScalarFieldEnum = {
   updated_at: 'updated_at'
 };
 
+exports.Prisma.Calendar_eventScalarFieldEnum = {
+  id: 'id',
+  calendar_id: 'calendar_id',
+  event_id: 'event_id',
+  title: 'title',
+  description: 'description',
+  start_time: 'start_time',
+  end_time: 'end_time',
+  all_day: 'all_day',
+  location: 'location',
+  recurrence_rule: 'recurrence_rule',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  note_id: 'note_id'
+};
+
 exports.Prisma.Calendar_integration_settingsScalarFieldEnum = {
   id: 'id',
   user_id: 'user_id',
@@ -323,6 +339,17 @@ exports.Prisma.calendarOrderByRelevanceFieldEnum = {
   color: 'color'
 };
 
+exports.Prisma.calendar_eventOrderByRelevanceFieldEnum = {
+  id: 'id',
+  calendar_id: 'calendar_id',
+  event_id: 'event_id',
+  title: 'title',
+  description: 'description',
+  location: 'location',
+  recurrence_rule: 'recurrence_rule',
+  note_id: 'note_id'
+};
+
 exports.Prisma.calendar_integration_settingsOrderByRelevanceFieldEnum = {
   id: 'id',
   user_id: 'user_id'
@@ -349,6 +376,7 @@ exports.Prisma.ModelName = {
   user: 'user',
   verification: 'verification',
   calendar: 'calendar',
+  calendar_event: 'calendar_event',
   calendar_integration_settings: 'calendar_integration_settings'
 };
 
